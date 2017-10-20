@@ -1,11 +1,12 @@
 #!/bin/bash
+#SBATCH --job-name heavy-io
+#SBATCH --out heavy-io.out
+#SBATCH --error heavy-io.out
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 4096
 #SBATCH --time 12:30:00
-#SBATCH --job-name heavy-io
-#SBATCH --out heavy-io.out
 
 # Generate unique directory name [DO NOT CHANGE]
 # ==============================================
