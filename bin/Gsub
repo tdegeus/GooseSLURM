@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+'''Gsub
+  Submit jobs.
+
+Usage:
+  Gsub [options] --cmd=<str> <input-files>...
+
+Arguments:
+  <input-files>   Input files
+
+Options:
+  -h --help       Show help.
+  --version       Show version.
+  --cmd=<str>     The command to execute (see below).
+
+Copyright:
+  T.W.J. de Geus
+  tom@geus.me
+  www.geus.me
+'''
+
+# ==================================================================================================
+
+slurm = '''#!/bin/bash
+#SBATCH --job-name {name:s}
+#SBATCH --out {name:s}.out
+#SBATCH --error {name:s}.out
+#SBATCH --nodes 1
+#SBATCH --ntasks 1
+#SBATCH --cpus-per-task 1
+#SBATCH --mem 4096
+#SBATCH --time 23:59:00
+
+# Generate unique directory name [DO NOT CHANGE]
+# ==============================================
+
+# store my username
+username=`whoami`
+
+# set the name of the temporary directory on the compute-node
+# use job-id to create a unique folder
+computedir="/scratch/$username/${{SLURM_JOB_ID}}"
+
+# set the submit directory
+submitdir="{path:s}"
+
+# 1. Transfer to node [DO NOT CHANGE]
+# ===================================
+
+# create/empty the temporary directory on the compute-node
+if [ ! -d "${{computedir}}" ]; then
+  mkdir -p "${{computedir}}"
+else
+  rm -rf "${{computedir}}"/*
+fi
+
+# change current directory to the location of the sbatch-command
+# (in the home directory on the head-node)
+cd "${{submitdir}}"
+# copy all files/folders in the directory of the sbatch-command
+cp -prf "{input:s}" ${{computedir}}
+# change directory to the temporary directory on the compute-node
+cd ${{computedir}}
+
+# 2. Execute [MODIFY TO YOUR NEED]
+# ================================
+
+STARTTIME=$(date +%s)
+
+{command:s}
+
+ENDTIME=$(date +%s)
+
+echo "Elapsed time (in seconds) : $(($ENDTIME - $STARTTIME))"
+
+# 3. Transfer back to the head-node [DO NOT CHANGE]
+# =================================================
+
+# change directory to the location of the sbatch-command (on the head-node)
+cd "${{submitdir}}"
+# copy everything from the temporary directory on the compute-node
+cp -prf "${{computedir}}"/* .
+# erase the temporary directory from the compute-node
+rm -rf "${{computedir}}"
+'''
+
+# ==================================================================================================
+
+import docopt, os, subprocess
+
+args = docopt.docopt(__doc__,version='0.0.1')
+
+args['cmd'  ] = args.pop('--cmd')
+args['input'] = args.pop('<input-files>')
+
+if len( args['cmd'].split('%s') ) == 1:
+  args['cmd'] += ' %s'
+
+for file in args['input']:
+
+  dirname, filename = os.path.split(file)
+
+  name   = os.path.splitext(filename)[0]
+
+  submit = os.path.join(os.path.abspath(dirname), name+'.slurm')
+
+  info   = dict(
+    path     = os.path.abspath(dirname),
+    name     = name,
+    name  = os.path.join(dirname, name),
+    input    = filename,
+    command  = args['cmd'] % filename,
+  )
+
+  open(submit,'w').write(slurm.format(**info))
+
+  print(subprocess.check_output('sbatch '+submit,shell=True))
+
