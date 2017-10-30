@@ -106,13 +106,12 @@ for file in args['input']:
 
   info   = dict(
     path     = os.path.abspath(dirname),
-    name     = name,
-    name  = os.path.join(dirname, name),
+    name     = os.path.join(dirname, name),
     input    = filename,
     command  = args['cmd'] % filename,
   )
 
   open(submit,'w').write(slurm.format(**info))
 
-  print(subprocess.check_output('sbatch '+submit,shell=True))
+  print(subprocess.check_output('sbatch '+submit,shell=True).decode('utf-8'))
 
