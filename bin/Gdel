@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+'''Gdel
+  Delete jobs, and remove the scratch directory.
+
+Usage:
+  Gdel [options]
+  Gdel [options] <job-id>...
+
+Arguments:
+  <job-id>        ID-number of the jobs to delete (default: all user's jobs)
+
+Options:
+  -h --help       Show help.
+  --version       Show version.
+  --cmd=<str>     The command to execute (see below).
+
+Copyright:
+  T.W.J. de Geus
+  tom@geus.me
+  www.geus.me
+'''
+
+# --------------------------------------------------------------------------------------------------
+
+import docopt, os, sys, subprocess, csv, pwd, shutil, time
+
+# --------------------------------------------------------------------------------------------------
+
+def confirm(message='Proceed [y/n]?\n'):
+  while True:
+    user = input(message)
+    if not user                     : print('Please enter y or n.'); continue
+    if user not in ['y','Y','n','N']: print('Please enter y or n.'); continue
+    if user     in ['y','Y'        ]: return True
+    if user     in ['n','N'        ]: return False
+
+# --------------------------------------------------------------------------------------------------
+
+def getjobs():
+
+  jobs = subprocess.check_output('squeue --user=`whoami`',shell=True).decode('utf-8')
+  jobs = [job.strip().split(' ')[0] for job in jobs.split('\n')[1:]]
+  jobs = [job for job in jobs if len(job) > 0]
+
+  return jobs
+
+# --------------------------------------------------------------------------------------------------
+
+args = docopt.docopt(__doc__,version='0.0.1')
+
+# --------------------------------------------------------------------------------------------------
+
+user = pwd.getpwuid( os.getuid() )[ 0 ]
+
+args['jobs'] = args.pop('<job-id>')
+
+# get the currently running jobs
+jobs = getjobs()
+
+# check if the supplied jobs are running (otherwise use all jobs)
+if args['jobs']:
+
+  for job in args['jobs']:
+    if job not in jobs:
+      raise IOError('Job-id "%s" is not currently running'%job)
+
+  jobs = args['jobs']
+
+# no jobs -> quit
+if len(jobs) == 0: sys.exit(0)
+
+# ask user for confirmation
+# - print message
+print('Delete jobs : '+' '.join(jobs))
+# - prompt response
+if not confirm(): sys.exit(1)
+
+# cancel all jobs
+print(subprocess.check_output('scancel '+' '.join(jobs),shell=True))
+
+# filter jobs that have a scratch directory
+jobs = [job for job in jobs if os.path.isdir('/scratch/{user:s}/{job:s}'.format(user=user,job=job))]
+
+# nothing to delete -> quit
+if len(jobs) == 0:
+  sys.exit(0)
+
+# wait until all jobs have stopped
+while True:
+  # - wait a bit before (re-)probing
+  time.sleep(5)
+  # - get all running jobs
+  running = getjobs()
+  print(running)
+  # - compare running jobs to jobs to deleted jobs
+  if len([job for job in jobs if job not in running]) == len(jobs): break
+
+# delete scratch folders
+for job in jobs: shutil.rmtree('/scratch/{user:s}/{job:s}'.format(user=user,job=job))
