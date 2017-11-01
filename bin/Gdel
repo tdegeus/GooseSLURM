@@ -73,12 +73,12 @@ if len(jobs) == 0: sys.exit(0)
 # - print message
 cmd = 'squeue -j {jobs:s} -o "%.10A %.12j %.8a %.10u %.4D %.5C %.11m %.6t %.12r %.20S %.20N" -S S'
 print('Delete jobs : ')
-print(subprocess.check_output(cmd.format(jobs=','.join(jobs)),shell=True).decode('utf-8'))
+print(subprocess.check_output(cmd.format(jobs=','.join(jobs)),shell=True).decode('utf-8'),end='')
 # - prompt response
 if not confirm(): sys.exit(1)
 
 # cancel all jobs
-print(subprocess.check_output('scancel '+' '.join(jobs),shell=True).decode('utf-8'))
+print(subprocess.check_output('scancel '+' '.join(jobs),shell=True).decode('utf-8'),end='')
 
 # filter jobs that have a scratch directory
 jobs = [job for job in jobs if os.path.isdir('/scratch/{user:s}/{job:s}'.format(user=user,job=job))]

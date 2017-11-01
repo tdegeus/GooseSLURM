@@ -113,5 +113,5 @@ for file in args['input']:
 
   open(submit,'w').write(slurm.format(**info))
 
-  print(subprocess.check_output('sbatch '+submit,shell=True).decode('utf-8'))
+  print(subprocess.check_output('sbatch '+submit,shell=True).decode('utf-8'),end='')
 
