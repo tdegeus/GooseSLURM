@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
 '''Gsub
-  Submit jobs.
+  Submit jobs using a script "NAME.slurm" that:
+
+  1. Creates a temporary working directory on the compute-node ("/scratch/USERNAME/JOB-ID")
+  2. Copies the input file ("<input-file>")
+  3. Runs the command ("cmd %s" % "<input-file>"), the output is written to "NAME.log"
+  4. Copies all files in the temporary directory back to the directory of "<input-file>".
+  5. Removes the temporary directory.
+
+  N.B.
+  - NAME is "<input-file>" without extensions
+  - This is an automated script of the "heavy-io.slurm" script.
 
 Usage:
-  Gsub [options] --cmd=<str> <input-files>...
+  Gsub [options] --cmd=<str> <input-file>...
 
 Arguments:
-  <input-files>   Input files
+  <input-file>    Input file(s)
 
 Options:
   -h --help       Show help.
   --version       Show version.
-  --cmd=<str>     The command to execute (see below).
+  --cmd=<str>     The command to execute. You may add "%s" somewhere to have it replaced with
+                  "<input-file>", otherwise it will be the last argument.
 
 Copyright:
   T.W.J. de Geus
@@ -23,8 +34,8 @@ Copyright:
 
 slurm = '''#!/bin/bash
 #SBATCH --job-name {name:s}
-#SBATCH --out {name:s}.out
-#SBATCH --error {name:s}.out
+#SBATCH --out {name:s}.log
+#SBATCH --error {name:s}.log
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
@@ -88,22 +99,29 @@ rm -rf "${{computedir}}"
 
 import docopt, os, subprocess
 
+# parse command-line options
 args = docopt.docopt(__doc__,version='0.0.1')
 
+# rename fields
 args['cmd'  ] = args.pop('--cmd')
-args['input'] = args.pop('<input-files>')
+args['input'] = args.pop('<input-file>')
 
-if len( args['cmd'].split('%s') ) == 1:
-  args['cmd'] += ' %s'
+# if needed, add "%s" format to insert the name of the input file
+if len( args['cmd'].split('%s') ) == 1: args['cmd'] += ' %s'
 
+# loop over input files
 for file in args['input']:
 
+  # - split the directory from the file name : will run as if from directory of the input-file
   dirname, filename = os.path.split(file)
 
+  # - get the name, for output-file and the job-name
   name   = os.path.splitext(filename)[0]
 
+  # - create file-name for the batch script
   submit = os.path.join(os.path.abspath(dirname), name+'.slurm')
 
+  # - create batch script
   info   = dict(
     path     = os.path.abspath(dirname),
     name     = os.path.join(dirname, name),
@@ -111,7 +129,9 @@ for file in args['input']:
     command  = args['cmd'] % filename,
   )
 
+  # - write batch script
   open(submit,'w').write(slurm.format(**info))
 
+  # - submit job
   print(subprocess.check_output('sbatch '+submit,shell=True).decode('utf-8'),end='')
 

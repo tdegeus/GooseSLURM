@@ -1,0 +1,205 @@
+#!/usr/bin/env python3
+'''Gstat
+  Get job information (front-end for squeue)
+
+Usage:
+  Gstat [options]
+  Gstat [options] [--user=<name>...] [--group=<name>...]
+
+Options:
+  -U                  Limit jobs to the current user.
+  -u --user=<name>    Limit jobs a certain user.
+  -g --group=<name>   Limit jobs a certain group.
+  -h --help           Show help.
+  --version           Show version.
+
+Copyright:
+  T.W.J. de Geus
+  tom@geus.me
+  www.geus.me
+'''
+
+# --------------------------------------------------------------------------------------------------
+
+import subprocess, shutil, docopt, pwd, os, time, re
+
+# --------------------------------------------------------------------------------------------------
+
+def Memory(data):
+
+  if type(data) == str: return data
+
+  byte = [1e12, 1e9, 1e6, 1e3, 1]
+  name = ['T', 'G', 'M', 'K', 'B']
+
+  for i,txt in zip(byte,name):
+    if abs(data) >= i:
+      n = float(data)/float(i)
+      return '%.0f%s'%(round(n),txt)
+
+  return '%.0fs'%float(data)
+
+# --------------------------------------------------------------------------------------------------
+
+def Duration(data):
+
+  if type(data) == str: return data
+
+  secs = [60*60*24, 60*60, 60, 1]
+  name = ['d', 'h', 'm', 's']
+
+  for i,txt in zip(secs,name):
+    if abs(data) >= i:
+      n = float(data)/float(i)
+      if abs(round(n)) < 10.: return '%.1f%s'%(      n ,txt)
+      else                  : return '%.0f%s'%(round(n),txt)
+
+  return '%.0fs'%float(data)
+
+# --------------------------------------------------------------------------------------------------
+
+# parse command-line options
+args = docopt.docopt(__doc__,version='0.0.1')
+
+# handle 'alias' options
+if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
+
+# set alias between options of this function and the slurm field-names
+args['USER'   ] = args.pop('--user' )
+args['ACCOUNT'] = args.pop('--group')
+
+# --------------------------------------------------------------------------------------------------
+
+# get all job-info
+cmd  = 'squeue -o "%A|%u|%j|%a|%C|%D|%m|%l|%L|%M|%S|%t|%N|%R|%p"'
+data = subprocess.check_output(cmd,shell=True).decode('utf-8')
+
+# extract the header and the jobs
+header,data = data.split('\n',1)
+data        = data.split('\n')
+
+# get the filed names
+header = header.split('|')
+
+# convert to list of dictionaries
+# - initialize
+jobs = []
+# - loop over jobs
+for job in data:
+  # -- check if there is content
+  if len(job) == 0: continue
+  # -- empty dictionary
+  info = {}
+  # -- fill dictionary using keys from the header
+  for key,val in zip(header,job.split('|')): info[key] = val
+  # -- store
+  jobs += [info]
+
+# limit based on command-line options
+for key in ['USER','ACCOUNT']:
+  if args[key]:
+    jobs = [job for job in jobs if job[key] == args[key]]
+
+# --------------------------------------------------------------------------------------------------
+
+for job in jobs:
+
+  for key in ['START_TIME']:
+
+    try:
+      job[key] = int(time.mktime(time.localtime())-time.mktime(time.strptime(job[key],'%Y-%m-%dT%H:%M:%S')))
+    except:
+      job[key] = job[key]
+
+
+  for key in ['TIME_LIMIT','TIME_LEFT']:
+
+    txt = job[key]
+    dt  = [0,0,0,0]
+
+    if len(job[key].split('-')) > 1:
+      dt[0],txt = job[key].split('-')
+
+    txt = txt.split(':')
+
+    for i in range(len(txt)):
+      dt[-1*(i+1)] = txt[-1*(i+1)]
+
+    job[key] = int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3])
+
+
+  for key in ['MIN_MEMORY']:
+
+    val  = int(job[key][:-1])
+    unit =     job[key][ -1]
+
+    if   unit == 'K': unit = 1e3
+    elif unit == 'M': unit = 1e6
+    elif unit == 'G': unit = 1e9
+    elif unit == 'T': unit = 1e12
+    else            : unit = 1
+
+    job[key] = val*unit
+
+# --------------------------------------------------------------------------------------------------
+
+# convert all fields to strings
+for job in jobs:
+  for key in ['START_TIME','TIME_LIMIT','TIME_LEFT']:
+    job[key] = Duration(job[key])
+  for key in ['MIN_MEMORY']:
+    job[key] = Memory(job[key])
+
+# select columns, and compute print width
+# - initialize (width == minimum width, real == real width (computed below))
+fields = [
+  {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>','head':'JOBID'  },
+  {'key':'USER'            ,'width':7 ,'real':0,'align':'<','head':'USER'   },
+  {'key':'ACCOUNT'         ,'width':7 ,'real':0,'align':'<','head':'ACCOUNT'},
+  {'key':'NAME'            ,'width':11,'real':0,'align':'<','head':'NAME'   },
+  {'key':'START_TIME'      ,'width':7 ,'real':0,'align':'>','head':'T_START'},
+  {'key':'TIME_LEFT'       ,'width':6 ,'real':0,'align':'>','head':'T_LEFT' },
+  {'key':'NODES'           ,'width':5 ,'real':0,'align':'>','head':'NODES'  },
+  {'key':'CPUS'            ,'width':4 ,'real':0,'align':'>','head':'CPUS'   },
+  {'key':'MIN_MEMORY'      ,'width':3 ,'real':0,'align':'>','head':'MEM'    },
+  {'key':'ST'              ,'width':2 ,'real':0,'align':'<','head':'ST'     },
+  {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<','head':'EXEC'   },
+]
+# - get the terminal size
+cols,_ = shutil.get_terminal_size()
+# - get the cumulative minimum size of the columns (+ spacing between the columns)
+if True:                       fields[0]['total'] = fields[0  ]['width']
+for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
+# - truncate at terminal size
+fields = [field for field in fields if field['total'] <= cols]
+# - get actual width
+for job in jobs:
+  for field in fields:
+    field['real'] = max(field['real'],len(job[field['key']]))
+# - get the available size to expand
+room = cols - fields[-1]['total']
+# - expand minimum width, as long there is room
+# -- distinguish priorities for expanding
+low  = ['NAME']
+high = [field['key'] for field in fields if field['key'] not in low]
+# -- expand
+for prio in [high,low]:
+  for field in fields:
+    if field['key'] not in prio: continue
+    if room <= 0: break
+    dw = min(field['real']-field['width'],room)
+    if dw <= 0: continue
+    field['width'] += dw
+    room           -= dw
+# - convert to print format
+head = ' '.join(['{%s:%s%d.%ds}'%(field['key'],'<'           ,field['width'],field['width']) for field in fields])
+fmt  = ' '.join(['{%s:%s%d.%ds}'%(field['key'],field['align'],field['width'],field['width']) for field in fields])
+
+# --------------------------------------------------------------------------------------------------
+
+# header
+print(head.format(**{field['key']:    field['head' ] for field in fields}))
+print(head.format(**{field['key']:'='*field['width'] for field in fields}))
+# jobs
+for job in jobs: print(fmt.format(**job))
+
