@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 '''Gstat
-  Get job information (front-end for squeue)
+  Summarize the status of all or a selection of jobs (wrapper around squeue).
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=<name>...] [--group=<name>...]
+  Gstat [options] [--user=<name>...] [--group=<name>...] [--sort=<name>...] [--name=<name>...]
 
 Options:
   -U                  Limit jobs to the current user.
-  -u --user=<name>    Limit jobs a certain user.
-  -g --group=<name>   Limit jobs a certain group.
+  -u --user=<name>    Limit jobs to a certain user (may be regex).
+  -g --group=<name>   Limit jobs to a certain group (may be regex).
+  -n --name=<name>    Limit jobs to a certain job-name (may be regex).
+  -s --sort=<name>    Sort by name.
+  -r --reverse        Reverse sort [default: False].
   -h --help           Show help.
   --version           Show version.
 
@@ -19,44 +22,108 @@ Copyright:
   www.geus.me
 '''
 
-# --------------------------------------------------------------------------------------------------
+# ==================================================================================================
 
 import subprocess, shutil, docopt, pwd, os, time, re
 
-# --------------------------------------------------------------------------------------------------
+# ==================================================================================================
+# class to represent a duration in seconds as e.g. "3h"
+# (allow to specify a string which is not converted, e.g. "N/A")
+# ==================================================================================================
 
-def Memory(data):
+class Duration:
 
-  if type(data) == str: return data
+  def __init__(self,data):
+    self.data = data
 
-  byte = [1e12, 1e9, 1e6, 1e3, 1]
-  name = ['T', 'G', 'M', 'K', 'B']
+  def __int__(self):
+    if type(self.data) == int  : return     self.data
+    if type(self.data) == float: return int(self.data)
+    return 0
 
-  for i,txt in zip(byte,name):
-    if abs(data) >= i:
-      n = float(data)/float(i)
-      return '%.0f%s'%(round(n),txt)
+  def __float__(self):
+    if type(self.data) == float: return       self.data
+    if type(self.data) == int  : return float(self.data)
+    return 0.0
 
-  return '%.0fs'%float(data)
+  def __lt__(self,other):
+    if type(self.data) == str: return -1
+    return float(self) < float(other)
 
-# --------------------------------------------------------------------------------------------------
+  def __format__(self,fmt):
+    return ('{0:'+fmt+'}').format(str(self))
 
-def Duration(data):
+  def __len__(self):
+    return len(str(self))
 
-  if type(data) == str: return data
+  def __repr__(self):
+    return self.__str__()
 
-  secs = [60*60*24, 60*60, 60, 1]
-  name = ['d', 'h', 'm', 's']
+  def __str__(self):
 
-  for i,txt in zip(secs,name):
-    if abs(data) >= i:
-      n = float(data)/float(i)
-      if abs(round(n)) < 10.: return '%.1f%s'%(      n ,txt)
-      else                  : return '%.0f%s'%(round(n),txt)
+    if type(self.data) == str: return self.data
 
-  return '%.0fs'%float(data)
+    secs = [60*60*24, 60*60, 60, 1]
+    name = ['d', 'h', 'm', 's']
 
-# --------------------------------------------------------------------------------------------------
+    for i,txt in zip(secs,name):
+      if abs(self.data) >= i:
+        n = float(self.data)/float(i)
+        if abs(round(n)) < 10.: return '%.1f%s'%(      n ,txt)
+        else                  : return '%.0f%s'%(round(n),txt)
+
+    return '%.0fs'%float(self.data)
+
+# ==================================================================================================
+# class to represent memory in bytes as e.g. "4G"
+# (allow to specify a string which is not converted, e.g. "N/A")
+# ==================================================================================================
+
+class Memory:
+
+  def __init__(self,data):
+    self.data = data
+
+  def __int__(self):
+    if type(self.data) == int  : return     self.data
+    if type(self.data) == float: return int(self.data)
+    return 0
+
+  def __float__(self):
+    if type(self.data) == float: return       self.data
+    if type(self.data) == int  : return float(self.data)
+    return 0.0
+
+  def __lt__(self,other):
+    if type(self.data) == str: return -1
+    return float(self) < float(other)
+
+  def __format__(self,fmt):
+    return ('{0:'+fmt+'}').format(str(self))
+
+  def __len__(self):
+    return len(str(self))
+
+  def __repr__(self):
+    return self.__str__()
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    byte = [1e12, 1e9, 1e6, 1e3, 1]
+    name = ['T', 'G', 'M', 'K', 'B']
+
+    for i,txt in zip(byte,name):
+      if abs(self.data) >= i:
+        n = float(self.data)/float(i)
+        return '%.0f%s'%(round(n),txt)
+
+    return '%.0fs'%float(self.data)
+
+# ==================================================================================================
+# parse command-line arguments
+# ==================================================================================================
 
 # parse command-line options
 args = docopt.docopt(__doc__,version='0.0.1')
@@ -67,18 +134,40 @@ if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 # set alias between options of this function and the slurm field-names
 args['USER'   ] = args.pop('--user' )
 args['ACCOUNT'] = args.pop('--group')
+args['NAME'   ] = args.pop('--name' )
 
-# --------------------------------------------------------------------------------------------------
+# squeue headers -> custom headers
+alias = {
+  'JOBID'           :'JOBID'  ,
+  'USER'            :'USER'   ,
+  'ACCOUNT'         :'ACCOUNT',
+  'NAME'            :'NAME'   ,
+  'START_TIME'      :'T_START',
+  'TIME_LEFT'       :'T_LEFT' ,
+  'NODES'           :'NODES'  ,
+  'CPUS'            :'CPUS'   ,
+  'MIN_MEMORY'      :'MEM'    ,
+  'ST'              :'ST'     ,
+  'NODELIST(REASON)':'EXEC'   ,
+}
+
+# custom headers -> squeue headers
+aliasInv = {alias[key]:key for key in alias}
+
+# ==================================================================================================
+# load the output of "squeue"
+# ==================================================================================================
 
 # get all job-info
 cmd  = 'squeue -o "%A|%u|%j|%a|%C|%D|%m|%l|%L|%M|%S|%t|%N|%R|%p"'
 data = subprocess.check_output(cmd,shell=True).decode('utf-8')
+now  = time.mktime(time.localtime())
 
 # extract the header and the jobs
 header,data = data.split('\n',1)
 data        = data.split('\n')
 
-# get the filed names
+# get the field names
 header = header.split('|')
 
 # convert to list of dictionaries
@@ -86,85 +175,113 @@ header = header.split('|')
 jobs = []
 # - loop over jobs
 for job in data:
-  # -- check if there is content
+  # -- check if there is any content
   if len(job) == 0: continue
-  # -- empty dictionary
+  # -- initialize empty dictionary
   info = {}
-  # -- fill dictionary using keys from the header
+  # -- fill dictionary using fields names from the header
   for key,val in zip(header,job.split('|')): info[key] = val
-  # -- store
+  # -- store to list of jobs
   jobs += [info]
 
 # limit based on command-line options
-for key in ['USER','ACCOUNT']:
+for key in ['USER','ACCOUNT','NAME']:
   if args[key]:
-    jobs = [job for job in jobs if job[key] == args[key]]
+    for name in args[key]:
+      jobs = [job for job in jobs if re.match(name,job[key])]
 
 # --------------------------------------------------------------------------------------------------
+# convert relevant fields to 'Duration' and 'Memory' objects
+# --------------------------------------------------------------------------------------------------
 
+# loop over all jobs
 for job in jobs:
 
+  # convert e.g. "2017-11-05T19:09:53" -> seconds from now
+  # (allow for "N/A")
   for key in ['START_TIME']:
-
     try:
-      job[key] = int(time.mktime(time.localtime())-time.mktime(time.strptime(job[key],'%Y-%m-%dT%H:%M:%S')))
+      job[key] = Duration(int(now-time.mktime(time.strptime(job[key],'%Y-%m-%dT%H:%M:%S'))))
     except:
-      job[key] = job[key]
+      job[key] = Duration(job[key])
 
-
+  # convert e.g. "1-4:18:13" -> seconds
   for key in ['TIME_LIMIT','TIME_LEFT']:
-
+    # - initialize alias + data [days,hours,minutes,seconds]
     txt = job[key]
     dt  = [0,0,0,0]
-
-    if len(job[key].split('-')) > 1:
-      dt[0],txt = job[key].split('-')
-
+    # - read number of days
+    if len(job[key].split('-')) > 1: dt[0],txt = job[key].split('-')
+    # - split hours:minutes:seconds (all optional)
     txt = txt.split(':')
+    # - fill from seconds -> minutes (if present) -> hours (if present)
+    for i in range(len(txt)): dt[-1*(i+1)] = txt[-1*(i+1)]
+    # - store in seconds
+    job[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
 
-    for i in range(len(txt)):
-      dt[-1*(i+1)] = txt[-1*(i+1)]
-
-    job[key] = int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3])
-
-
+  # convert e.g. "4G" -> bytes
   for key in ['MIN_MEMORY']:
-
+    # - read value and units
     val  = int(job[key][:-1])
     unit =     job[key][ -1]
-
+    # - convert to bytes
     if   unit == 'K': unit = 1e3
     elif unit == 'M': unit = 1e6
     elif unit == 'G': unit = 1e9
     elif unit == 'T': unit = 1e12
     else            : unit = 1
-
-    job[key] = val*unit
+    # - store
+    job[key] = Memory(val*unit)
 
 # --------------------------------------------------------------------------------------------------
+# sort based on command-line options (otherwise keep order of "squeue")
+# --------------------------------------------------------------------------------------------------
 
-# convert all fields to strings
-for job in jobs:
-  for key in ['START_TIME','TIME_LIMIT','TIME_LEFT']:
-    job[key] = Duration(job[key])
-  for key in ['MIN_MEMORY']:
-    job[key] = Memory(job[key])
+if args['--sort']:
+  for key in args['--sort']:
+    jobs = sorted(jobs, key=lambda job: job[aliasInv[key]], reverse=args['--reverse'])
+
+# ==================================================================================================
+# convert to formatted output
+# ==================================================================================================
+
+# --------------------------------------------------------------------------------------------------
+# support function: convert column settings "fields" to print format
+# --------------------------------------------------------------------------------------------------
+
+def field2fmt(key,width,align,color=None,header=False,**kwargs):
+
+  if header: fmt = '{%s:%s%d.%ds}'%(key,'<',width,width)
+  else     : fmt = '{%s:%s%d.%ds}'%(key,align,width,width)
+
+  if color: fmt = '\x1b[%sm'%color+fmt+'\x1b[0m'
+
+  return fmt
+
+# --------------------------------------------------------------------------------------------------
+# compute + create print format
+# --------------------------------------------------------------------------------------------------
 
 # select columns, and compute print width
 # - initialize (width == minimum width, real == real width (computed below))
 fields = [
-  {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>','head':'JOBID'  },
-  {'key':'USER'            ,'width':7 ,'real':0,'align':'<','head':'USER'   },
-  {'key':'ACCOUNT'         ,'width':7 ,'real':0,'align':'<','head':'ACCOUNT'},
-  {'key':'NAME'            ,'width':11,'real':0,'align':'<','head':'NAME'   },
-  {'key':'START_TIME'      ,'width':7 ,'real':0,'align':'>','head':'T_START'},
-  {'key':'TIME_LEFT'       ,'width':6 ,'real':0,'align':'>','head':'T_LEFT' },
-  {'key':'NODES'           ,'width':5 ,'real':0,'align':'>','head':'NODES'  },
-  {'key':'CPUS'            ,'width':4 ,'real':0,'align':'>','head':'CPUS'   },
-  {'key':'MIN_MEMORY'      ,'width':3 ,'real':0,'align':'>','head':'MEM'    },
-  {'key':'ST'              ,'width':2 ,'real':0,'align':'<','head':'ST'     },
-  {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<','head':'EXEC'   },
+  {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>'},
+  {'key':'USER'            ,'width':7 ,'real':0,'align':'<'},
+  {'key':'ACCOUNT'         ,'width':7 ,'real':0,'align':'<'},
+  {'key':'NAME'            ,'width':11,'real':0,'align':'<'},
+  {'key':'START_TIME'      ,'width':7 ,'real':0,'align':'>'},
+  {'key':'TIME_LEFT'       ,'width':6 ,'real':0,'align':'>'},
+  {'key':'NODES'           ,'width':5 ,'real':0,'align':'>'},
+  {'key':'CPUS'            ,'width':4 ,'real':0,'align':'>'},
+  {'key':'MIN_MEMORY'      ,'width':3 ,'real':0,'align':'>'},
+  {'key':'ST'              ,'width':2 ,'real':0,'align':'<'},
+  {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<'},
 ]
+# - add color for selection
+for field in fields:
+  if field['key'] in args:
+    if args[field['key']]:
+      field['color'] = '1;32;40'
 # - get the terminal size
 cols,_ = shutil.get_terminal_size()
 # - get the cumulative minimum size of the columns (+ spacing between the columns)
@@ -192,14 +309,15 @@ for prio in [high,low]:
     field['width'] += dw
     room           -= dw
 # - convert to print format
-head = ' '.join(['{%s:%s%d.%ds}'%(field['key'],'<'           ,field['width'],field['width']) for field in fields])
-fmt  = ' '.join(['{%s:%s%d.%ds}'%(field['key'],field['align'],field['width'],field['width']) for field in fields])
+head = ' '.join([field2fmt(**field,header=True ) for field in fields])
+fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
 
+# --------------------------------------------------------------------------------------------------
+# print result to screen
 # --------------------------------------------------------------------------------------------------
 
 # header
-print(head.format(**{field['key']:    field['head' ] for field in fields}))
-print(head.format(**{field['key']:'='*field['width'] for field in fields}))
+print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
+print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
 # jobs
 for job in jobs: print(fmt.format(**job))
-
