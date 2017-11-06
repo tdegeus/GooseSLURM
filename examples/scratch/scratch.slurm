@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name heavy-io
-#SBATCH --out heavy-io.out
-#SBATCH --error heavy-io.out
+#SBATCH --job-name scratch
+#SBATCH --out scratch.out
+#SBATCH --error scratch.out
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
@@ -40,17 +40,17 @@ cd ${computedir}
 # ================================
 
 # a simple script (replace by your commands)
-echo "Job ID: " > "heavy-io.log"
-echo "${SLURM_JOB_ID}" >> "heavy-io.log"
-echo "" >> "heavy-io.log"
-echo "Host name: " >> "heavy-io.log"
-echo `hostname` >> "heavy-io.log"
-echo "" >> "heavy-io.log"
-echo "Current directory: " >> "heavy-io.log"
-echo `pwd` >> "heavy-io.log"
-echo "" >> "heavy-io.log"
-echo "Directory contents: " >> "heavy-io.log"
-echo `ls` >> "heavy-io.log"
+echo "Job ID: " > "scratch.log"
+echo "${SLURM_JOB_ID}" >> "scratch.log"
+echo "" >> "scratch.log"
+echo "Host name: " >> "scratch.log"
+echo `hostname` >> "scratch.log"
+echo "" >> "scratch.log"
+echo "Current directory: " >> "scratch.log"
+echo `pwd` >> "scratch.log"
+echo "" >> "scratch.log"
+echo "Directory contents: " >> "scratch.log"
+echo `ls` >> "scratch.log"
 
 sleep 5
 
