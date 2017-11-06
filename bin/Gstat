@@ -4,14 +4,15 @@
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=<name>...] [--group=<name>...] [--sort=<name>...] [--name=<name>...]
+  Gstat [options] [--user=STR...] [--group=STR...] [--sort=STR...] [--name=STR...] [--jobid=STR...]
 
 Options:
   -U                  Limit jobs to the current user.
-  -u --user=<name>    Limit jobs to a certain user (may be regex).
-  -g --group=<name>   Limit jobs to a certain group (may be regex).
-  -n --name=<name>    Limit jobs to a certain job-name (may be regex).
-  -s --sort=<name>    Sort by name.
+  -u --user=STR       Limit jobs to a certain user (may be regex).
+  -g --group=STR      Limit jobs to a certain group (may be regex).
+  -n --name=STR       Limit jobs to a certain job-name (may be regex).
+  -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
+  -s --sort=STR       Sort by name.
   -r --reverse        Reverse sort [default: False].
   -h --help           Show help.
   --version           Show version.
@@ -135,6 +136,7 @@ if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 args['USER'   ] = args.pop('--user' )
 args['ACCOUNT'] = args.pop('--group')
 args['NAME'   ] = args.pop('--name' )
+args['JOBID'  ] = args.pop('--jobid')
 
 # squeue headers -> custom headers
 alias = {
@@ -185,10 +187,9 @@ for job in data:
   jobs += [info]
 
 # limit based on command-line options
-for key in ['USER','ACCOUNT','NAME']:
+for key in ['USER','ACCOUNT','NAME','JOBID']:
   if args[key]:
-    for name in args[key]:
-      jobs = [job for job in jobs if re.match(name,job[key])]
+    jobs = [job for job in jobs if sum([1 if re.match(name,job[key]) else 0 for name in args[key]])]
 
 # --------------------------------------------------------------------------------------------------
 # convert relevant fields to 'Duration' and 'Memory' objects

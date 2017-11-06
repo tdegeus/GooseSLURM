@@ -76,9 +76,8 @@ if len(jobs) == 0: sys.exit(0)
 
 # ask user for confirmation
 # - print message
-cmd = 'squeue -j {jobs:s} -o "%.10A %.12j %.8a %.10u %.4D %.5C %.11m %.6t %.12r %.20S %.20N" -S S'
 print('Delete jobs : ')
-print(subprocess.check_output(cmd.format(jobs=','.join(jobs)),shell=True).decode('utf-8'),end='')
+print(subprocess.check_output('Gstat -j '+' -j '.join(jobs),shell=True).decode('utf-8'),end='')
 # - prompt response
 if not confirm(): sys.exit(1)
 
