@@ -4,12 +4,12 @@
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=STR...] [--group=STR...] [--sort=STR...] [--name=STR...] [--jobid=STR...]
+  Gstat [options] [--user=STR...] [--account=STR...] [--sort=STR...] [--name=STR...] [--jobid=STR...]
 
 Options:
   -U                  Limit jobs to the current user.
   -u --user=STR       Limit jobs to a certain user (may be regex).
-  -g --group=STR      Limit jobs to a certain group (may be regex).
+  -a --account=STR    Limit jobs to a certain account (may be regex).
   -n --name=STR       Limit jobs to a certain job-name (may be regex).
   -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
   -s --sort=STR       Sort by name.
@@ -134,7 +134,7 @@ if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 
 # set alias between options of this function and the slurm field-names
 args['USER'   ] = args.pop('--user' )
-args['ACCOUNT'] = args.pop('--group')
+args['ACCOUNT'] = args.pop('--account')
 args['NAME'   ] = args.pop('--name' )
 args['JOBID'  ] = args.pop('--jobid')
 
