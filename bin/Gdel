@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 '''Gdel
-  Delete jobs, and remove the temporary working directory :
-
-    /scratch/USERNAME/JOB-ID
+  Delete jobs and optionally copy data from working directory and/or remove it.
 
 Usage:
   Gdel [options]
-  Gdel [options] <job-id>...
+  Gdel [options] JOBID...
 
 Arguments:
-  <job-id>        ID-number of the jobs to delete (default: all user's jobs)
+  JOBID         ID-number(s) of the job(s) to delete, or path to the JSON log(s) (see 'Gsub').
+                (default: all user's jobs)
 
 Options:
-  -h --help       Show help.
-  --version       Show version.
-  --cmd=<str>     The command to execute (see below).
+  -c --copy     Copy the data from the temporary directory (only for JSON logs).
+  -r --remove   Remove the job's directory (some defaults are tried if the input is not a JSON log).
+  -h --help     Show help.
+  --version     Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -24,7 +24,7 @@ Copyright:
 
 # --------------------------------------------------------------------------------------------------
 
-import docopt, os, sys, subprocess, csv, pwd, shutil, time
+import docopt, os, sys, subprocess, csv, pwd, shutil, time, json
 
 # --------------------------------------------------------------------------------------------------
 
@@ -38,66 +38,109 @@ def confirm(message='Proceed [y/n]?\n'):
 
 # --------------------------------------------------------------------------------------------------
 
-def getjobs():
+def getrunningjobs():
 
-  jobs = subprocess.check_output('squeue --user=`whoami`',shell=True).decode('utf-8')
-  jobs = [job.strip().split(' ')[0] for job in jobs.split('\n')[1:]]
+  jobs = subprocess.check_output('squeue --user=`whoami` -o "%A|%t"',shell=True).decode('utf-8')
+  jobs = [job for job in jobs.split('\n')[1:]]
   jobs = [job for job in jobs if len(job) > 0]
+  stat = [job.split('|')[1].strip() for job in jobs]
+  jobs = [job.split('|')[0].strip() for job in jobs]
 
-  return jobs
+  out = []
+
+  for job,st in zip(jobs,stat):
+    if st == 'R':
+      out += [job]
+
+  return out
 
 # --------------------------------------------------------------------------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.1')
+args = docopt.docopt(__doc__,version='0.0.2')
 
 # rename fields
-args['jobs'] = args.pop('<job-id>')
+args['jobs'] = args.pop('JOBID')
 
 # --------------------------------------------------------------------------------------------------
 
 # get the user-name
-user = pwd.getpwuid( os.getuid() )[ 0 ]
+user = pwd.getpwuid(os.getuid())[0]
 
 # get the currently running jobs (restricted to the current user)
-jobs = getjobs()
+running = getrunningjobs()
+# default : select all jobs
+if args['jobs']: arguments = args['jobs']
+else           : arguments = [job for job in running]
 
-# check if the supplied jobs are running (otherwise use all jobs)
-if args['jobs']:
+# fill job info
+# - allocate
+jobs = []
+# - fill
+for job in arguments:
+  # -- try some things
+  if   os.path.isfile(job):
+    data = json.load(open(job,'r'))
+  elif os.path.isdir('/scratch/{user:s}/{job:s}'.format(user=user,job=job)):
+    data = {'SLURM_JOB_ID':job,'workdir':'/scratch/{user:s}/{job:s}'.format(user=user,job=job)}
+  else:
+    data = {'SLURM_JOB_ID':job}
+  # -- defaults
+  if 'workdir'   not in data: data['workdir'  ] = ''
+  if 'submitdir' not in data: data['submitdir'] = ''
+  # -- store
+  jobs += [data]
 
-  for job in args['jobs']:
-    if job not in jobs:
-      raise IOError('Job-id "%s" is not currently running'%job)
+# check if the supplied jobs are running
+for job in jobs:
+  if job['SLURM_JOB_ID'] not in running:
+    raise IOError('Job-id "%s" is not currently running'%job['SLURM_JOB_ID'])
 
-  jobs = args['jobs']
+# remove work directory: check if it exists
+if args['--remove']:
+  for job in jobs:
+    if not os.path.isdir(job['workdir']):
+      print('WARNING: "workdir" not found for job "%s"'%job['SLURM_JOB_ID'])
+
+# copy work directory: check if it exists
+if args['--copy']:
+  for job in jobs:
+    if not os.path.isdir(job['submitdir']):
+      print('WARNING: "submitdir" not found for job "%s"'%job['SLURM_JOB_ID'])
 
 # no jobs -> quit
 if len(jobs) == 0: sys.exit(0)
 
 # ask user for confirmation
 # - print message
+ids = [job['SLURM_JOB_ID'] for job in jobs]
 print('Delete jobs : ')
-print(subprocess.check_output('Gstat -j '+' -j '.join(jobs),shell=True).decode('utf-8'),end='')
+print(subprocess.check_output('Gstat -j '+' -j '.join(ids),shell=True).decode('utf-8'),end='')
 # - prompt response
 if not confirm(): sys.exit(1)
 
-# cancel all jobs
-print(subprocess.check_output('scancel '+' '.join(jobs),shell=True).decode('utf-8'),end='')
+# cancel all selected jobs
+print(subprocess.check_output('scancel '+' '.join(ids),shell=True).decode('utf-8'),end='')
 
-# filter jobs that have a scratch directory
-jobs = [job for job in jobs if os.path.isdir('/scratch/{user:s}/{job:s}'.format(user=user,job=job))]
+# copy data
+if args['--copy']:
+  # - loop over jobs
+  for job in jobs:
+    # -- check requirements
+    if not os.path.isdir(job['workdir']) or not os.path.isdir(job['submitdir']): continue
+    # -- wait for the job to quit
+    while job['SLURM_JOB_ID'] in getrunningjobs(): time.sleep(3)
+    # -- copy
+    cmd = 'cp -r %s/* %s/'%(job['workdir'],job['submitdir'])
+    print(subprocess.check_output(cmd,shell=True).decode('utf-8'),end='')
 
-# nothing to delete -> quit
-if len(jobs) == 0: sys.exit(0)
-
-# wait until all jobs have stopped
-while True:
-  # - wait a bit before (re-)probing
-  time.sleep(3)
-  # - get all running jobs
-  running = getjobs()
-  # - compare running jobs to jobs to deleted jobs
-  if len([job for job in jobs if job not in running]) == len(jobs): break
-
-# delete scratch folders
-for job in jobs: shutil.rmtree('/scratch/{user:s}/{job:s}'.format(user=user,job=job))
+# delete data
+if args['--remove']:
+  # - loop over jobs
+  for job in jobs:
+    # -- check requirements
+    if not os.path.isdir(job['workdir']): continue
+    # -- wait for the job to quit
+    while job['SLURM_JOB_ID'] in getrunningjobs(): time.sleep(3)
+    # -- copy
+    shutil.rmtree(job['workdir'])

@@ -8,6 +8,7 @@ project(slurm-epfl)
 set(SLURM_BINARIES
   bin/Gstat
   bin/Gdel
+  bin/Gcp
   bin/Gsub
 )
 

@@ -1,0 +1,10 @@
+{
+  "script"              : "/var/spool/slurmd/job2414738/slurm_script",
+  "myworkdir"           : "/scratch/tdegeus/2414738",
+  "SLURM_SUBMIT_DIR"    : "/home/tdegeus/prog/src/GooseSLURM/examples/scratch",
+  "SLURM_JOB_ID"        : "2414738",
+  "SLURM_JOB_NODELIST"  : "c26",
+  "SLURM_SUBMIT_HOST"   : "castor.cluster",
+  "SLURM_JOB_NUM_NODES" : "1",
+  "SLURM_CPUS_ON_NODE"  : "1"
+}

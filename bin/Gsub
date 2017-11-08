@@ -1,38 +1,32 @@
 #!/usr/bin/env python3
 '''Gsub
-  Submit jobs by writing and submitting a script "NAME.slurm" that:
+  Submit jobs by writing and submitting a script "NAME.slurm" for each job, that:
 
-  * "debug":
+  * "local" (almost never a good idea)
 
-    Runs the command ("cmd %s" % "<input-file>") on the debug partition. The output is written
-    to "NAME.log"
+    Runs the command ("cmd %s" % "INPUT-FILE") without creating a separate working directory.
 
-  * "scratch":
+  * "scratch" (see "examples/scratch/scratch.slurm")
 
-    1. Creates a temporary working directory on the compute-node ("/scratch/USERNAME/JOB-ID")
-    2. Copies the input file ("<input-file>")
-    3. Runs the command ("cmd %s" % "<input-file>"), the output is written to "NAME.log"
-    4. Copies all files in the temporary directory back to the directory of "<input-file>".
+    1. Creates a temporary working directory on the compute-node ("/scratch/USERNAME/JOBID").
+    2. Copies the input file ("INPUT-FILE").
+    3. Runs the command ("cmd %s" % "INPUT-FILE").
+    4. Copies all files in the temporary directory back submit directory.
     5. Removes the temporary directory.
 
-    N.B.
-    - NAME is "<input-file>" without extensions
-    - This is an automated script of the "examples/scratch/scratch.slurm" script.
-
 Usage:
-  Gsub [options] --cmd=<str> <input-file>...
+  Gsub [options] --cmd=STR INPUT-FILE...
 
 Arguments:
-  <input-file>    Input file(s)
+  INPUT-FILE        Input file(s): NAME is derived as the filename, without path or extensions.
 
 Options:
-  -t --type=<name>  The type of script to use [default: scratch].
-  -c --cmd=<str>    The command to execute. You may add "%s" somewhere to have it replaced with
-                    "<input-file>", otherwise it will be the last argument.
-  -w --write-only   Do not submit jobs.
+  -t --type=STR     The type of script to use, see above. [default: scratch]
+  -c --cmd=STR      The command to execute. You may add "%s" somewhere to have it replaced with
+                    "INPUT-FILE", otherwise "INPUT-FILE" will be the last argument.
+  -w --write-only   Only write the batch script(s); do not submit job(s).
   -h --help         Show help.
   --version         Show version.
-
 
 Copyright:
   T.W.J. de Geus
@@ -44,44 +38,60 @@ Copyright:
 
 scratch = '''#!/bin/bash
 #SBATCH --job-name {name:s}
-#SBATCH --out {name:s}.log
-#SBATCH --error {name:s}.log
+#SBATCH --out {name:s}.slurm.log
+#SBATCH --error {name:s}.slurm.log
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 4096
 #SBATCH --time 23:59:00
 
-# Generate unique directory name [DO NOT CHANGE]
-# ==============================================
+# (i) Generate unique directory name [DO NOT CHANGE]
+# ==================================================
 
 # store my username
 username=`whoami`
 
 # set the name of the temporary directory on the compute-node
 # use job-id to create a unique folder
-computedir="/scratch/$username/${{SLURM_JOB_ID}}"
+workdir="/scratch/$username/${{SLURM_JOB_ID}}"
 
-# set the submit directory
-submitdir="{path:s}"
+# manually set the directory of the batch-script (allows submitting from anywhere)
+submitdir="{abspath:s}"
+
+# (ii) Write job-info to a log-file [CHANGE TO YOUR NEED]
+# =======================================================
+
+cat <<EOF > {absname:s}.slurm.json
+{{
+  "workdir"             : "${{workdir}}",
+  "submitdir"           : "${{submitdir}}",
+  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
+  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
+  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
+  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
+  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
+  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+}}
+EOF
 
 # 1. Transfer to node [DO NOT CHANGE]
 # ===================================
 
 # create/empty the temporary directory on the compute-node
-if [ ! -d "${{computedir}}" ]; then
-  mkdir -p "${{computedir}}"
+if [ ! -d "${{workdir}}" ]; then
+  mkdir -p "${{workdir}}"
 else
-  rm -rf "${{computedir}}"/*
+  rm -rf "${{workdir}}"/*
 fi
 
 # change current directory to the location of the sbatch-command
 # (in the home directory on the head-node)
 cd "${{submitdir}}"
 # copy all files/folders in the directory of the sbatch-command
-cp -prf "{input:s}" ${{computedir}}
+cp -prf "{input:s}" ${{workdir}}
 # change directory to the temporary directory on the compute-node
-cd ${{computedir}}
+cd ${{workdir}}
 
 # 2. Execute [MODIFY TO YOUR NEED]
 # ================================
@@ -100,29 +110,42 @@ echo "Elapsed time (in seconds) : $(($ENDTIME - $STARTTIME))"
 # change directory to the location of the sbatch-command (on the head-node)
 cd "${{submitdir}}"
 # copy everything from the temporary directory on the compute-node
-cp -prf "${{computedir}}"/* .
+cp -prf "${{workdir}}"/* .
 # erase the temporary directory from the compute-node
-rm -rf "${{computedir}}"
+rm -rf "${{workdir}}"
 '''
 
 # --------------------------------------------------------------------------------------------------
 
-debug = '''#!/bin/bash
-#SBATCH -p debug
+local = '''#!/bin/bash
 #SBATCH --job-name {name:s}
-#SBATCH --out {name:s}.log
-#SBATCH --error {name:s}.log
+#SBATCH --out {name:s}.slurm.log
+#SBATCH --error {name:s}.slurm.log
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 4096
 #SBATCH --time 23:59:00
 
-# set the submit directory
-submitdir="{path:s}"
+# manually set the directory of the batch-script (allows submitting from anywhere)
+submitdir="{abspath:s}"
 
 # go to submit directory
 cd "${{submitdir}}"
+
+# write job-info to a log-file
+cat <<EOF > {absname:s}.slurm.json
+{
+  "workdir"             : "${{submitdir}}",
+  "submitdir"           : "${{submitdir}}",
+  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
+  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
+  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
+  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
+  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
+  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+}
+EOF
 
 # execute command
 {command:s}
@@ -133,13 +156,13 @@ cd "${{submitdir}}"
 import docopt, os, subprocess
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.1')
+args = docopt.docopt(__doc__,version='0.0.2')
 
 # rename fields
 args['type' ] = args.pop('--type')
 args['cmd'  ] = args.pop('--cmd')
 args['write'] = args.pop('--write-only')
-args['input'] = args.pop('<input-file>')
+args['input'] = args.pop('INPUT-FILE')
 
 # if needed, add "%s" format to insert the name of the input file
 if len( args['cmd'].split('%s') ) == 1: args['cmd'] += ' %s'
@@ -150,23 +173,25 @@ for file in args['input']:
   # - split the directory from the file name : will run as if from directory of the input-file
   dirname, filename = os.path.split(file)
 
-  # - get the name, for output-file and the job-name
-  name   = os.path.splitext(filename)[0]
+  # - job-name: relative path to input-file (without extensions)
+  name = os.path.splitext(filename)[0]
 
   # - create file-name for the batch script
   submit = os.path.join(os.path.abspath(dirname), name+'.slurm')
 
   # - create batch script
-  info   = dict(
-    path     = os.path.abspath(dirname),
+  info = dict(
     name     = os.path.join(dirname, name),
+    absname  = os.path.abspath(os.path.join(dirname, name)),
+    abspath  = os.path.abspath(dirname),
     input    = filename,
     command  = args['cmd'] % filename,
   )
 
   # - write batch script
-  if args['type'] == 'scratch': open(submit,'w').write(scratch.format(**info))
-  if args['type'] == 'debug'  : open(submit,'w').write(debug  .format(**info))
+  if   args['type'] == 'scratch': open(submit,'w').write(scratch.format(**info))
+  elif args['type'] == 'local'  : open(submit,'w').write(local  .format(**info))
+  else: raise IOError('Unknown --type '+args['type'])
 
   # - submit job
   if not args['write']:

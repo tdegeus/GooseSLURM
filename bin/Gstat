@@ -127,7 +127,7 @@ class Memory:
 # ==================================================================================================
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.1')
+args = docopt.docopt(__doc__,version='0.0.2')
 
 # handle 'alias' options
 if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
@@ -240,7 +240,7 @@ for job in jobs:
 
 if args['--sort']:
   for key in args['--sort']:
-    jobs = sorted(jobs, key=lambda job: job[aliasInv[key]], reverse=args['--reverse'])
+    jobs = sorted(jobs, key=lambda job: job[aliasInv[key.upper()]], reverse=args['--reverse'])
 
 # ==================================================================================================
 # convert to formatted output

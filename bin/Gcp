@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+'''Gcp
+  Copy data from scratch folder.
+
+Usage:
+  Gcp [options]
+  Gcp [options] JOBS...
+
+Arguments:
+  JOBS          Path to the JSON log(s) (see 'Gsub').
+
+Options:
+  -h --help     Show help.
+  --version     Show version.
+
+Copyright:
+  T.W.J. de Geus
+  tom@geus.me
+  www.geus.me
+'''
+
+# --------------------------------------------------------------------------------------------------
+
+import docopt, os, sys, subprocess, csv, pwd, shutil, time, json
+
+# --------------------------------------------------------------------------------------------------
+
+# parse command-line options
+args = docopt.docopt(__doc__,version='0.0.1')
+
+# --------------------------------------------------------------------------------------------------
+
+# fill job info
+# - allocate
+jobs = []
+# - fill
+for job in args['JOBS']:
+  # -- read JSON-log
+  if os.path.isfile(job):
+    data = json.load(open(job,'r'))
+  else:
+    raise IOError('Cannot read "%s"'%job)
+  # -- store
+  jobs += [data]
+
+# check existence of directories
+for job in jobs:
+  if not os.path.isdir(job['workdir']):
+    raise IOError('"workdir" not found for job "%s"'%job['SLURM_JOB_ID'])
+  if not os.path.isdir(job['submitdir']):
+    raise IOError('"submitdir" not found for job "%s"'%job['SLURM_JOB_ID'])
+
+# no jobs -> quit
+if len(jobs) == 0: sys.exit(0)
+
+# loop to copy
+for job in jobs:
+  cmd = 'cp -r %s/* %s/'%(job['workdir'],job['submitdir'])
+  print(subprocess.check_output(cmd,shell=True).decode('utf-8'),end='')
