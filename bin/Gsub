@@ -167,7 +167,7 @@ export OMP_NUM_THREADS={cpus:s}
 import docopt, os, subprocess
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.2')
+args = docopt.docopt(__doc__,version='0.0.3')
 
 # rename fields
 args['cpus' ] = args.pop('--cpus')
