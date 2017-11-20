@@ -49,7 +49,7 @@ def getrunningjobs():
   out = []
 
   for job,st in zip(jobs,stat):
-    if st == 'R':
+    if st in ['R','PD']:
       out += [job]
 
   return out
