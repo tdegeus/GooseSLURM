@@ -223,14 +223,14 @@ for job in jobs:
   # convert e.g. "4G" -> bytes
   for key in ['MIN_MEMORY']:
     # - read value and units
-    val  = int(job[key][:-1])
-    unit =     job[key][ -1]
+    val  = float(job[key][:-1])
+    unit =       job[key][ -1]
     # - convert to bytes
-    if   unit == 'K': unit = 1e3
-    elif unit == 'M': unit = 1e6
-    elif unit == 'G': unit = 1e9
-    elif unit == 'T': unit = 1e12
-    else            : unit = 1
+    if   unit == 'K': unit = 1.e3
+    elif unit == 'M': unit = 1.e6
+    elif unit == 'G': unit = 1.e9
+    elif unit == 'T': unit = 1.e12
+    else            : unit = 1.
     # - store
     job[key] = Memory(val*unit)
 
@@ -241,6 +241,8 @@ for job in jobs:
 if args['--sort']:
   for key in args['--sort']:
     jobs = sorted(jobs, key=lambda job: job[aliasInv[key.upper()]], reverse=args['--reverse'])
+else:
+  jobs = sorted(jobs, key=lambda job: job[aliasInv['T_START']], reverse=True)
 
 # ==================================================================================================
 # convert to formatted output
