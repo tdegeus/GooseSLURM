@@ -28,37 +28,83 @@ Copyright:
 import subprocess, shutil, docopt, pwd, os, time, re
 
 # ==================================================================================================
-# class to represent a duration in seconds as e.g. "3h"
-# (allow to specify a string which is not converted, e.g. "N/A")
+# class to represent a number, but that can also deal with non-numeric input
+# (allows to input e.g. "N/A")
 # ==================================================================================================
 
-class Duration:
+class Number:
+
+  # ------------------------------------------------------------------------------------------------
 
   def __init__(self,data):
+
     self.data = data
 
+  # ------------------------------------------------------------------------------------------------
+
   def __int__(self):
+
     if type(self.data) == int  : return     self.data
     if type(self.data) == float: return int(self.data)
+
     return 0
 
+  # ------------------------------------------------------------------------------------------------
+
   def __float__(self):
+
     if type(self.data) == float: return       self.data
     if type(self.data) == int  : return float(self.data)
+
     return 0.0
 
+  # ------------------------------------------------------------------------------------------------
+
   def __lt__(self,other):
+
+    if isinstance(other,Number):
+
+      if type(self.data)  == str and type(other.data) == str: return self.data < other.data
+      if type(self.data)  == str: return -1
+      if type(other.data) == str: return  0
+
+      return float(self) < float(other)
+
     if type(self.data) == str: return -1
+
     return float(self) < float(other)
 
+  # ------------------------------------------------------------------------------------------------
+
   def __format__(self,fmt):
+
     return ('{0:'+fmt+'}').format(str(self))
 
+  # ------------------------------------------------------------------------------------------------
+
   def __len__(self):
+
     return len(str(self))
 
+  # ------------------------------------------------------------------------------------------------
+
   def __repr__(self):
+
     return self.__str__()
+
+  # ------------------------------------------------------------------------------------------------
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    return str(self.data)
+
+# ==================================================================================================
+# class to represent a duration in seconds as e.g. "3h" (and any non-numeric value, through number)
+# ==================================================================================================
+
+class Duration(Number):
 
   def __str__(self):
 
@@ -76,37 +122,10 @@ class Duration:
     return '%.0fs'%float(self.data)
 
 # ==================================================================================================
-# class to represent memory in bytes as e.g. "4G"
-# (allow to specify a string which is not converted, e.g. "N/A")
+# class to represent memory in bytes as e.g. "4G" (and any non-numeric value, through number)
 # ==================================================================================================
 
-class Memory:
-
-  def __init__(self,data):
-    self.data = data
-
-  def __int__(self):
-    if type(self.data) == int  : return     self.data
-    if type(self.data) == float: return int(self.data)
-    return 0
-
-  def __float__(self):
-    if type(self.data) == float: return       self.data
-    if type(self.data) == int  : return float(self.data)
-    return 0.0
-
-  def __lt__(self,other):
-    if type(self.data) == str: return -1
-    return float(self) < float(other)
-
-  def __format__(self,fmt):
-    return ('{0:'+fmt+'}').format(str(self))
-
-  def __len__(self):
-    return len(str(self))
-
-  def __repr__(self):
-    return self.__str__()
+class Memory(Number):
 
   def __str__(self):
 
@@ -120,7 +139,7 @@ class Memory:
         n = float(self.data)/float(i)
         return '%.0f%s'%(round(n),txt)
 
-    return '%.0fs'%float(self.data)
+    return '-'
 
 # ==================================================================================================
 # parse command-line arguments
@@ -223,8 +242,12 @@ for job in jobs:
   # convert e.g. "4G" -> bytes
   for key in ['MIN_MEMORY']:
     # - read value and units
-    val  = float(job[key][:-1])
-    unit =       job[key][ -1]
+    if re.match('[0-9\.]*[A-Za-z]',job[key]):
+      val  = float(job[key][:-1])
+      unit =       job[key][ -1]
+    else:
+      val  = float(job[key])
+      unit = ''
     # - convert to bytes
     if   unit == 'K': unit = 1.e3
     elif unit == 'M': unit = 1.e6
@@ -234,6 +257,16 @@ for job in jobs:
     # - store
     job[key] = Memory(val*unit)
 
+    print(val, unit, job[key])
+
+  # convert try to convert to number
+  for key in ['CPUS','NODES']:
+    # - interpret
+    if re.match('[0-9]*',job[key]): val = int(job[key])
+    else                          : val =     job[key]
+    # - convert
+    job[key] = Number(val)
+
 # --------------------------------------------------------------------------------------------------
 # sort based on command-line options (otherwise keep order of "squeue")
 # --------------------------------------------------------------------------------------------------
@@ -242,7 +275,7 @@ if args['--sort']:
   for key in args['--sort']:
     jobs = sorted(jobs, key=lambda job: job[aliasInv[key.upper()]], reverse=args['--reverse'])
 else:
-  jobs = sorted(jobs, key=lambda job: job[aliasInv['T_START']], reverse=True)
+  jobs = sorted(jobs, key=lambda job: job[aliasInv['T_START']], reverse=not args['--reverse'])
 
 # ==================================================================================================
 # convert to formatted output
