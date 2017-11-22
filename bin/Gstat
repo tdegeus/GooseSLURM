@@ -257,8 +257,6 @@ for job in jobs:
     # - store
     job[key] = Memory(val*unit)
 
-    print(val, unit, job[key])
-
   # convert try to convert to number
   for key in ['CPUS','NODES']:
     # - interpret

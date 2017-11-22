@@ -164,7 +164,7 @@ export OMP_NUM_THREADS={cpus:s}
 
 # ==================================================================================================
 
-import docopt, os, subprocess
+import docopt, os, sys, subprocess
 
 # parse command-line options
 args = docopt.docopt(__doc__,version='0.0.3')
@@ -175,6 +175,17 @@ args['type' ] = args.pop('--type')
 args['cmd'  ] = args.pop('--cmd')
 args['write'] = args.pop('--write-only')
 args['input'] = args.pop('INPUT-FILE')
+
+# check input files
+if len(args['input']) == 0:
+  print('No input files, nothing to do')
+  sys.exit(1)
+
+# check input files
+for file in args['input']:
+  if not os.path.isfile(file):
+    print('"%s" does not exist'%file)
+    sys.exit(1)
 
 # if needed, add "%s" format to insert the name of the input file
 if len( args['cmd'].split('%s') ) == 1: args['cmd'] += ' %s'
