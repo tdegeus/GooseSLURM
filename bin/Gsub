@@ -1,31 +1,43 @@
 #!/usr/bin/env python3
 '''Gsub
-  Submit jobs by writing and submitting a script "NAME.slurm" for each job, that:
+
+  Write a job-script "NAME.slurm" for each INPUT-FILE. Thereby NAME is derived as INPUT-FILE,
+  without path or extensions. The jobs may be submitted from anywhere using the "sbatch" command.
+  All the paths in the job-script are absolute and also a logical name is stored as the relative
+  path to the input-file.
+
+Command:
+
+  The script expects the user to specify the command(s) to execute. Thereby "%s" should be included
+  where the input-file has be filled in. For example:
+
+    --cmd="python %s"
+
+Type:
 
   * "local" (almost never a good idea)
 
-    Runs the command ("cmd %s" % "INPUT-FILE") without creating a separate working directory.
+    Runs the command ("cmd" % "INPUT-FILE") without creating a separate working directory.
 
   * "scratch" (see "examples/scratch/scratch.slurm")
 
     1. Creates a temporary working directory on the compute-node ("/scratch/USERNAME/JOBID").
     2. Copies the input file ("INPUT-FILE").
-    3. Runs the command ("cmd %s" % "INPUT-FILE").
+    3. Runs the command ("cmd" % "INPUT-FILE").
     4. Copies all files in the temporary directory back submit directory.
     5. Removes the temporary directory.
 
 Usage:
-  Gsub [options] --cmd=STR INPUT-FILE...
+  Gsub [options] INPUT-FILE...
 
 Arguments:
   INPUT-FILE        Input file(s): NAME is derived as the filename, without path or extensions.
 
 Options:
-  -t --type=STR     The type of script to use, see above. [default: scratch]
-  -c --cmd=STR      The command to execute. You may add "%s" somewhere to have it replaced with
-                    "INPUT-FILE", otherwise "INPUT-FILE" will be the last argument.
+  -t --type=STR     The type of script to use, see 'Type' above. [default: scratch]
+  -c --cmd=STR      The command(s) to execute, see 'Command' above.
+  -f --file=FILE    The command(s) to execute, stored in a file, see 'Command' above.
   -N --cpus=INT     Number of CPUs-per-task. [default: 1]
-  -w --write-only   Only write the batch script(s); do not submit job(s).
   -h --help         Show help.
   --version         Show version.
 
@@ -39,8 +51,8 @@ Copyright:
 
 scratch = '''#!/bin/bash
 #SBATCH --job-name {name:s}
-#SBATCH --out {name:s}.slurm.log
-#SBATCH --error {name:s}.slurm.log
+#SBATCH --out {absname:s}.slurm.out
+#SBATCH --error {absname:s}.slurm.error
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task {cpus:s}
@@ -127,8 +139,8 @@ rm -rf "${{workdir}}"
 
 local = '''#!/bin/bash
 #SBATCH --job-name {name:s}
-#SBATCH --out {name:s}.slurm.log
-#SBATCH --error {name:s}.slurm.log
+#SBATCH --out {absname:s}.slurm.out
+#SBATCH --error {absname:s}.slurm.error
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task {cpus:s}
@@ -164,31 +176,44 @@ export OMP_NUM_THREADS={cpus:s}
 
 # ==================================================================================================
 
-import docopt, os, sys, subprocess
+import docopt, os, sys, re
+
+# function to raise error
+def Error(txt):
+  print(txt)
+  sys.exit(1)
 
 # parse command-line options
 args = docopt.docopt(__doc__,version='0.0.3')
+
+# exclusive options
+if args['--cmd'] and args['--file']: Error('The options "--cmd" and "--file" are exclusive')
 
 # rename fields
 args['cpus' ] = args.pop('--cpus')
 args['type' ] = args.pop('--type')
 args['cmd'  ] = args.pop('--cmd')
-args['write'] = args.pop('--write-only')
 args['input'] = args.pop('INPUT-FILE')
 
+# get command from input file
+if args['--file']:
+  # - get filename
+  name = args['--file']
+  # - check existence
+  if not os.path.isfile(name): Error('No file "%s"'%name)
+  # - read
+  args['cmd'] = open(name,'r').read()
+
+# check command
+if len(args['cmd'].split('%s')) <= 1: Error('"%s" must be specified in the command')
+
 # check input files
-if len(args['input']) == 0:
-  print('No input files, nothing to do')
-  sys.exit(1)
+if len(args['input']) == 0: Error('No input files, nothing to do')
 
 # check input files
 for file in args['input']:
   if not os.path.isfile(file):
-    print('"%s" does not exist'%file)
-    sys.exit(1)
-
-# if needed, add "%s" format to insert the name of the input file
-if len( args['cmd'].split('%s') ) == 1: args['cmd'] += ' %s'
+    Error('"%s" does not exist'%file)
 
 # loop over input files
 for file in args['input']:
@@ -204,7 +229,7 @@ for file in args['input']:
 
   # - create batch script
   info = dict(
-    name     = os.path.join(dirname, name),
+    name     = re.sub("^./|/$", "", os.path.join(dirname, name)),
     absname  = os.path.abspath(os.path.join(dirname, name)),
     abspath  = os.path.abspath(dirname),
     input    = filename,
@@ -216,8 +241,4 @@ for file in args['input']:
   if   args['type'] == 'scratch': open(submit,'w').write(scratch.format(**info))
   elif args['type'] == 'local'  : open(submit,'w').write(local  .format(**info))
   else: raise IOError('Unknown --type '+args['type'])
-
-  # - submit job
-  if not args['write']:
-    print(subprocess.check_output('sbatch '+submit,shell=True).decode('utf-8'),end='')
 
