@@ -90,7 +90,6 @@ cd ${{workdir}}
 # set the number of CPUs to be used by an OpenMP application
 export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
 
-# execute command
 {command:s}
 
 # 3. Transfer back to the head-node [DO NOT CHANGE]
@@ -131,7 +130,6 @@ EOF
 # set the number of CPUs to be used by an OpenMP application
 export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
 
-# execute command
 {command:s}
 '''
 
@@ -149,6 +147,9 @@ def Error(txt):
 
 # parse command-line options
 args = docopt.docopt(__doc__,version='0.0.3')
+
+# evaluate new-line characters
+args['--cmd'] = args['--cmd'].replace('\\n','\n')
 
 # convert input
 # -------------
