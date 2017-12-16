@@ -182,15 +182,18 @@ for inp in args.pop('<INPUT>'):
     command  = args['--cmd']
 
   # set options
-  option  = []
-  option += ['#SBATCH --job-name %s'       % jobname                 ]
-  option += ['#SBATCH --out %s.out'        % filename                ]
-  option += ['#SBATCH --error %s.error'    % filename                ]
-  option += ['#SBATCH --nodes 1'                                     ]
-  option += ['#SBATCH --ntasks 1'                                    ]
-  option += ['#SBATCH --cpus-per-task %s'  % args['--cpus-per-task'] ]
-  option += ['#SBATCH --mem 4096'                                    ]
-  option += ['#SBATCH --time 24:00:00'                               ]
+  option  = [ ]
+  option += [ '#SBATCH --job-name %s' % jobname ]
+  option += [ '#SBATCH --out %s.out' % filename ]
+  option += [ '#SBATCH --error %s.error' % filename ]
+  option += [ '#SBATCH --nodes 1' ]
+  option += [ '#SBATCH --ntasks 1' ]
+  option += [ '#SBATCH --cpus-per-task %s' % args['--cpus-per-task'] ]
+  option += [ '#SBATCH --mem 4096' ]
+  option += [ '#SBATCH --time 24:00:00' ]
+
+  if args['--account']: option += [ '#SBATCH --account %s' % args['--account'] ]
+
   option  = '\n'.join(option)
 
   # store to list
