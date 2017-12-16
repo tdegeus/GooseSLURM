@@ -1,0 +1,10 @@
+{
+  "workdir"             : "/scratch/tdegeus/3105343",
+  "submitdir"           : "/home/tdegeus/examples/tempdir",
+  "SLURM_SUBMIT_DIR"    : "/home/tdegeus/examples/tempdir",
+  "SLURM_JOB_ID"        : "3105343",
+  "SLURM_JOB_NODELIST"  : "c07",
+  "SLURM_SUBMIT_HOST"   : "castor.cluster",
+  "SLURM_JOB_NUM_NODES" : "1",
+  "SLURM_CPUS_ON_NODE"  : "1"
+}

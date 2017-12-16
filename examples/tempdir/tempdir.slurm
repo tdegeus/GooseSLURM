@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name scratch
-#SBATCH --out scratch.slurm.out
-#SBATCH --error scratch.slurm.out
+#SBATCH --job-name tempdir
+#SBATCH --out tempdir.slurm.out
+#SBATCH --error tempdir.slurm.error
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
@@ -18,13 +18,17 @@ username=`whoami`
 # use job-id to create a unique folder
 workdir="/scratch/$username/${SLURM_JOB_ID}"
 
-# (ii) Write job-info to a log-file [CHANGE TO YOUR NEED]
-# =======================================================
+# store submit directory
+# (every file/folder below this directory is copied to the compute-node)
+submitdir="${SLURM_SUBMIT_DIR}"
 
-cat <<EOF > scratch.slurm.json
+# (ii) Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# ==========================================================
+
+cat <<EOF > tempdir.slurm.json
 {
   "workdir"             : "${workdir}",
-  "submitdir"           : "${SLURM_SUBMIT_DIR}",
+  "submitdir"           : "${submitdir}",
   "SLURM_SUBMIT_DIR"    : "${SLURM_SUBMIT_DIR}",
   "SLURM_JOB_ID"        : "${SLURM_JOB_ID}",
   "SLURM_JOB_NODELIST"  : "${SLURM_JOB_NODELIST}",
@@ -45,36 +49,29 @@ else
 fi
 
 # change current directory to the location of the sbatch-command
-# (in the home directory on the head-node)
-cd "${SLURM_SUBMIT_DIR}"
-# copy all files/folders in the directory of the sbatch-command
+# ("submitdir" is somewhere in the home directory on the head-node)
+cd "${submitdir}"
+# copy all files/folders in "submitdir" to "workdir"
+# ("workdir" == temporary directory on the compute-node)
 cp -prf * ${workdir}
 # change directory to the temporary directory on the compute-node
 cd ${workdir}
 
-# 2. Execute [MODIFY TO YOUR NEED]
-# ================================
+# 2. Execute [MODIFY COMPLETELY TO YOUR NEED]
+# ===========================================
 
-# a simple script (replace by your commands)
-echo "Job ID: " > "scratch.slurm.log"
-echo "${SLURM_JOB_ID}" >> "scratch.slurm.log"
-echo "" >> "scratch.slurm.log"
-echo "Host name: " >> "scratch.slurm.log"
-echo `hostname` >> "scratch.slurm.log"
-echo "" >> "scratch.slurm.log"
-echo "Current directory: " >> "scratch.slurm.log"
-echo `pwd` >> "scratch.slurm.log"
-echo "" >> "scratch.slurm.log"
-echo "Directory contents: " >> "scratch.slurm.log"
-echo `ls` >> "scratch.slurm.log"
+# set the number of CPUs to be used by an OpenMP application
+export OMP_NUM_THREADS=${SLURM_CPUS_ON_NODE}
 
-sleep 5
+# simplest example in the world, sleep a bit to allow a bit of monitoring
+echo "hello world"
+sleep 10
 
 # 3. Transfer back to the head-node [DO NOT CHANGE]
 # =================================================
 
 # change directory to the location of the sbatch-command (on the head-node)
-cd "${SLURM_SUBMIT_DIR}"
+cd "${submitdir}"
 # copy everything from the temporary directory on the compute-node
 cp -prf "${workdir}"/* .
 # erase the temporary directory from the compute-node

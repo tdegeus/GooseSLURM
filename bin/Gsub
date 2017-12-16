@@ -1,45 +1,18 @@
 #!/usr/bin/env python3
 '''Gsub
 
-  Write a job-script "NAME.slurm" for each INPUT-FILE. Thereby NAME is derived as INPUT-FILE,
-  without path or extensions. The jobs may be submitted from anywhere using the "sbatch" command.
-  All the paths in the job-script are absolute and also a logical name is stored as the relative
-  path to the input-file.
-
-Command:
-
-  The script expects the user to specify the command(s) to execute. Thereby "%s" should be included
-  where the input-file has be filled in. For example:
-
-    --cmd="python %s"
-
-Type:
-
-  * "local" (almost never a good idea)
-
-    Runs the command ("cmd" % "INPUT-FILE") without creating a separate working directory.
-
-  * "scratch" (see "examples/scratch/scratch.slurm")
-
-    1. Creates a temporary working directory on the compute-node ("/scratch/USERNAME/JOBID").
-    2. Copies the input file ("INPUT-FILE").
-    3. Runs the command ("cmd" % "INPUT-FILE").
-    4. Copies all files in the temporary directory back submit directory.
-    5. Removes the temporary directory.
+  Submit job-scripts.
 
 Usage:
-  Gsub [options] INPUT-FILE...
+  Gsub [options] <FILES>...
 
 Arguments:
-  INPUT-FILE        Input file(s): NAME is derived as the filename, without path or extensions.
+  <FILES>...          Job-scripts
 
 Options:
-  -t --type=STR     The type of script to use, see 'Type' above. [default: scratch]
-  -c --cmd=STR      The command(s) to execute, see 'Command' above.
-  -f --file=FILE    The command(s) to execute, stored in a file, see 'Command' above.
-  -N --cpus=INT     Number of CPUs-per-task. [default: 1]
-  -h --help         Show help.
-  --version         Show version.
+  --verbose           Print commands to screen, without executing.
+  -h --help           Show help.
+  --version           Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -49,134 +22,10 @@ Copyright:
 
 # ==================================================================================================
 
-scratch = '''#!/bin/bash
-#SBATCH --job-name {name:s}
-#SBATCH --out {absname:s}.slurm.out
-#SBATCH --error {absname:s}.slurm.error
-#SBATCH --nodes 1
-#SBATCH --ntasks 1
-#SBATCH --cpus-per-task {cpus:s}
-#SBATCH --mem 4096
-#SBATCH --time 23:59:00
+import docopt, os, sys, re, subprocess
 
-# (i) Generate unique directory name [DO NOT CHANGE]
-# ==================================================
-
-# store my username
-username=`whoami`
-
-# set the name of the temporary directory on the compute-node
-# use job-id to create a unique folder
-workdir="/scratch/$username/${{SLURM_JOB_ID}}"
-
-# manually set the directory of the batch-script (allows submitting from anywhere)
-submitdir="{abspath:s}"
-
-# (ii) Write job-info to a log-file [CHANGE TO YOUR NEED]
-# =======================================================
-
-cat <<EOF > {absname:s}.slurm.json
-{{
-  "workdir"             : "${{workdir}}",
-  "submitdir"           : "${{submitdir}}",
-  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
-  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
-  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
-  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
-  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
-}}
-EOF
-
-# 1. Transfer to node [DO NOT CHANGE]
-# ===================================
-
-# create/empty the temporary directory on the compute-node
-if [ ! -d "${{workdir}}" ]; then
-  mkdir -p "${{workdir}}"
-else
-  rm -rf "${{workdir}}"/*
-fi
-
-# change current directory to the location of the sbatch-command
-# (in the home directory on the head-node)
-cd "${{submitdir}}"
-# copy all files/folders in the directory of the sbatch-command
-cp -prf "{input:s}" ${{workdir}}
-# change directory to the temporary directory on the compute-node
-cd ${{workdir}}
-
-# 2. Execute [MODIFY TO YOUR NEED]
-# ================================
-
-# set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS={cpus:s}
-
-# store the current time
-STARTTIME=$(date +%s)
-
-# execute command
-{command:s}
-
-# store the current time
-ENDTIME=$(date +%s)
-
-# print the total elapsed time for later reference
-echo "Elapsed time (in seconds) : $(($ENDTIME - $STARTTIME))"
-
-# 3. Transfer back to the head-node [DO NOT CHANGE]
-# =================================================
-
-# change directory to the location of the sbatch-command (on the head-node)
-cd "${{submitdir}}"
-# copy everything from the temporary directory on the compute-node
-cp -prf "${{workdir}}"/* .
-# erase the temporary directory from the compute-node
-rm -rf "${{workdir}}"
-'''
-
-# --------------------------------------------------------------------------------------------------
-
-local = '''#!/bin/bash
-#SBATCH --job-name {name:s}
-#SBATCH --out {absname:s}.slurm.out
-#SBATCH --error {absname:s}.slurm.error
-#SBATCH --nodes 1
-#SBATCH --ntasks 1
-#SBATCH --cpus-per-task {cpus:s}
-#SBATCH --mem 4096
-#SBATCH --time 23:59:00
-
-# manually set the directory of the batch-script (allows submitting from anywhere)
-submitdir="{abspath:s}"
-
-# go to submit directory
-cd "${{submitdir}}"
-
-# write job-info to a log-file
-cat <<EOF > {absname:s}.slurm.json
-{
-  "workdir"             : "${{submitdir}}",
-  "submitdir"           : "${{submitdir}}",
-  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
-  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
-  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
-  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
-  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
-}
-EOF
-
-# set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS={cpus:s}
-
-# execute command
-{command:s}
-'''
-
-# ==================================================================================================
-
-import docopt, os, sys, re
+# parse command-line options
+# --------------------------
 
 # function to raise error
 def Error(txt):
@@ -184,61 +33,27 @@ def Error(txt):
   sys.exit(1)
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.3')
+args = docopt.docopt(__doc__,version='0.0.1')
 
-# exclusive options
-if args['--cmd'] and args['--file']: Error('The options "--cmd" and "--file" are exclusive')
+# check
+# -----
 
-# rename fields
-args['cpus' ] = args.pop('--cpus')
-args['type' ] = args.pop('--type')
-args['cmd'  ] = args.pop('--cmd')
-args['input'] = args.pop('INPUT-FILE')
+for file in args['<FILES>']:
 
-# get command from input file
-if args['--file']:
-  # - get filename
-  name = args['--file']
-  # - check existence
-  if not os.path.isfile(name): Error('No file "%s"'%name)
-  # - read
-  args['cmd'] = open(name,'r').read()
-
-# check command
-if len(args['cmd'].split('%s')) <= 1: Error('"%s" must be specified in the command')
-
-# check input files
-if len(args['input']) == 0: Error('No input files, nothing to do')
-
-# check input files
-for file in args['input']:
   if not os.path.isfile(file):
-    Error('"%s" does not exist'%file)
+    Error('"%s" does not exist' % file)
 
-# loop over input files
-for file in args['input']:
+# submit
+# ------
 
-  # - split the directory from the file name : will run as if from directory of the input-file
-  dirname, filename = os.path.split(file)
+for file in args['<FILES>']:
 
-  # - job-name: relative path to input-file (without extensions)
-  name = os.path.splitext(filename)[0]
+  path, name = os.path.split(file)
 
-  # - create file-name for the batch script
-  submit = os.path.join(os.path.abspath(dirname), name+'.slurm')
+  if len(path) > 0 : cmd = 'cd %s; sbatch %s' % ( path, name )
+  else             : cmd = 'sbatch %s'        % ( name       )
 
-  # - create batch script
-  info = dict(
-    name     = re.sub("^./|/$", "", os.path.join(dirname, name)),
-    absname  = os.path.abspath(os.path.join(dirname, name)),
-    abspath  = os.path.abspath(dirname),
-    input    = filename,
-    command  = args['cmd'] % filename,
-    cpus     = args['cpus'],
-  )
+  print(cmd)
 
-  # - write batch script
-  if   args['type'] == 'scratch': open(submit,'w').write(scratch.format(**info))
-  elif args['type'] == 'local'  : open(submit,'w').write(local  .format(**info))
-  else: raise IOError('Unknown --type '+args['type'])
-
+  if not args['--verbose']:
+    print(subprocess.check_output(cmd,shell=True).decode('utf-8'))

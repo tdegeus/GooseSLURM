@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+'''Gscript
+
+  Automatically generate job-scripts with logical job-names set. The generated scripts must be
+  submitted using "sbatch NAME" from the folder in which they are written. This can be automized
+  using the "Gsub" command.
+
+Usage:
+  Gscript [options] <INPUT>...
+
+Arguments:
+  <INPUT>...                Input files, or simulations folders. In the case of input files, its
+                            name is written to the command using ("cmd % inputfile"). In the case
+                            of folders the commands is used as is.
+
+Options:
+      --type=<TEXT>         The type of script to use: tempdir or local. [default: tempdir]
+      --cmd=<TEXT>          The command(s) to execute. [default: ]
+      --extension=<TEXT>    Extension of the job-script. [default: .slurm]
+      --filename=<TEXT>     Filename of the job-script (ignored for input-files). [default: job]
+  -J, --job-name=<TEXT>     Set the job-name. (default: relative path)
+  -c, --cpus-per-task=<N>   Number of CPUs-per-task. [default: 1]
+  -A, --account=<TEXT>      Specify account name. (default: )
+  -h --help                 Show help.
+  --version                 Show version.
+
+Copyright:
+  T.W.J. de Geus
+  tom@geus.me
+  www.geus.me
+'''
+
+# ==================================================================================================
+
+tempdir = '''#!/bin/bash
+{slurm:s}
+
+# (i) Generate unique directory name [DO NOT CHANGE]
+# ==================================================
+
+# store my username
+username=`whoami`
+
+# set the name of the temporary directory on the compute-node
+# use job-id to create a unique folder
+workdir="/scratch/$username/${{SLURM_JOB_ID}}"
+
+# store submit directory
+# (every file/folder below this directory is copied to the compute-node)
+submitdir="${{SLURM_SUBMIT_DIR}}"
+
+# (ii) Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# ==========================================================
+
+cat <<EOF > {name:s}.json
+{{
+  "workdir"             : "${{workdir}}",
+  "submitdir"           : "${{submitdir}}",
+  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
+  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
+  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
+  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
+  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
+  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+}}
+EOF
+
+# 1. Transfer to node [DO NOT CHANGE]
+# ===================================
+
+# create/empty the temporary directory on the compute-node
+if [ ! -d "${{workdir}}" ]; then
+  mkdir -p "${{workdir}}"
+else
+  rm -rf "${{workdir}}"/*
+fi
+
+# change current directory to the location of the sbatch-command
+# ("submitdir" is somewhere in the home directory on the head-node)
+cd "${{submitdir}}"
+# copy all files/folders in "submitdir" to "workdir"
+# ("workdir" == temporary directory on the compute-node)
+cp -prf * ${{workdir}}
+# change directory to the temporary directory on the compute-node
+cd ${{workdir}}
+
+# 2. Execute [MODIFY COMPLETELY TO YOUR NEED]
+# ===========================================
+
+# set the number of CPUs to be used by an OpenMP application
+export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
+
+# execute command
+{command:s}
+
+# 3. Transfer back to the head-node [DO NOT CHANGE]
+# =================================================
+
+# change directory to the location of the sbatch-command (on the head-node)
+cd "${{submitdir}}"
+# copy everything from the temporary directory on the compute-node
+cp -prf "${{workdir}}"/* .
+# erase the temporary directory from the compute-node
+rm -rf "${{workdir}}"
+'''
+
+# --------------------------------------------------------------------------------------------------
+
+local = '''#!/bin/bash
+{slurm:s}
+
+# 1. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# ========================================================
+
+cat <<EOF > {name:s}.json
+{{
+  "workdir"             : "${{workdir}}",
+  "submitdir"           : "${{submitdir}}",
+  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
+  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
+  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
+  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
+  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
+  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+}}
+EOF
+
+# 2. Execute [MODIFY COMPLETELY TO YOUR NEED]
+# ===========================================
+
+# set the number of CPUs to be used by an OpenMP application
+export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
+
+# execute command
+{command:s}
+'''
+
+# ==================================================================================================
+
+import docopt, os, sys, re
+
+# parse command-line options
+# --------------------------
+
+# function to raise error
+def Error(txt):
+  print(txt)
+  sys.exit(1)
+
+# parse command-line options
+args = docopt.docopt(__doc__,version='0.0.3')
+
+# convert input
+# -------------
+
+# allocate
+jobnames  = []
+filenames = []
+paths     = []
+commands  = []
+options   = []
+
+# loop over arguments
+for inp in args.pop('<INPUT>'):
+
+  # input is file -> add filename to the command
+  if os.path.isfile(inp):
+
+    jobname  = inp
+    filename = os.path.splitext(os.path.split(inp)[1])[0] + args['--extension']
+    path     = os.path.split(inp)[0]
+
+    try   : command = args['--cmd'] % os.path.split(inp)[1]
+    except: command = args['--cmd'] + os.path.split(inp)[1]
+
+  # input is directory -> use command as is
+  else:
+
+    jobname  = inp
+    filename = args['--filename'] + args['--extension']
+    path     = inp
+    command  = args['--cmd']
+
+  # set options
+  option  = []
+  option += ['#SBATCH --job-name %s'       % jobname                 ]
+  option += ['#SBATCH --out %s.out'        % filename                ]
+  option += ['#SBATCH --error %s.error'    % filename                ]
+  option += ['#SBATCH --nodes 1'                                     ]
+  option += ['#SBATCH --ntasks 1'                                    ]
+  option += ['#SBATCH --cpus-per-task %s'  % args['--cpus-per-task'] ]
+  option += ['#SBATCH --mem 4096'                                    ]
+  option += ['#SBATCH --time 24:00:00'                               ]
+  option  = '\n'.join(option)
+
+  # store to list
+  jobnames  += [ jobname  ]
+  filenames += [ filename ]
+  paths     += [ path     ]
+  commands  += [ command  ]
+  options   += [ option   ]
+
+# write scripts
+for jobname, filename, path, command, option in zip(jobnames, filenames, paths, commands, options):
+
+  if   args['--type'] == 'tempdir': text = tempdir
+  elif args['--type'] == 'local'  : text = local
+
+  open(os.path.join(path,filename),'w').write(text.format(
+    slurm   = option,
+    name    = filename,
+    command = command,
+  ))
+
+  print('Written "%s"' % os.path.join(path,filename))

@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-'''Gcp
+'''Gcopy
   Copy data from scratch folder.
 
 Usage:
-  Gcp [options]
-  Gcp [options] JOBS...
+  Gcopy [options]
+  Gcopy [options] JOBS...
 
 Arguments:
   JOBS          Path to the JSON log(s) (see 'Gsub').
 
 Options:
+  --remove      Remove scratch folder after copying.
   -h --help     Show help.
   --version     Show version.
 
@@ -57,3 +58,7 @@ if len(jobs) == 0: sys.exit(0)
 for job in jobs:
   cmd = 'cp -r %s/* %s/'%(job['workdir'],job['submitdir'])
   print(subprocess.check_output(cmd,shell=True).decode('utf-8'),end='')
+
+# remove if needed
+if args['--remove']:
+  shutil.rmtree(job['workdir'])

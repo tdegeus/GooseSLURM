@@ -2,18 +2,19 @@
 cmake_minimum_required(VERSION 3.0)
 
 # define project information
-project(slurm-epfl)
+project(GooseCluster)
 
 # list with binaries
-set(SLURM_BINARIES
-  bin/Gstat
+set(PROJECT_BINARIES
+  bin/Gcopy
   bin/Gdel
-  bin/Gcp
+  bin/Gscript
+  bin/Gstat
   bin/Gsub
 )
 
 # install binaries
-INSTALL(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/${SLURM_BINARIES} DESTINATION bin)
+INSTALL(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_BINARIES} DESTINATION bin)
 
 # print information to screen
 message(STATUS "")
