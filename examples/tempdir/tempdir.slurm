@@ -8,22 +8,21 @@
 #SBATCH --mem 4096
 #SBATCH --time 12:30:00
 
-# (i) Generate unique directory name [DO NOT CHANGE]
-# ==================================================
+# 1. Generate unique directory name [DO NOT CHANGE]
+# =================================================
 
 # store my username
 username=`whoami`
 
-# set the name of the temporary directory on the compute-node
-# use job-id to create a unique folder
-workdir="/scratch/$username/${SLURM_JOB_ID}"
+# get name of the temporary directory working directory, physically on the compute-node
+workdir="$TMPDIR"
 
 # store submit directory
 # (every file/folder below this directory is copied to the compute-node)
 submitdir="${SLURM_SUBMIT_DIR}"
 
-# (ii) Write job-info to a log-file [MAY BE CHANDED/OMITTED]
-# ==========================================================
+# 2. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# ========================================================
 
 cat <<EOF > tempdir.slurm.json
 {
@@ -38,7 +37,7 @@ cat <<EOF > tempdir.slurm.json
 }
 EOF
 
-# 1. Transfer to node [DO NOT CHANGE]
+# 3. Transfer to node [DO NOT CHANGE]
 # ===================================
 
 # create/empty the temporary directory on the compute-node
@@ -57,22 +56,32 @@ cp -prf * ${workdir}
 # change directory to the temporary directory on the compute-node
 cd ${workdir}
 
-# 2. Execute [MODIFY COMPLETELY TO YOUR NEED]
+# 4. Function to transfer back to the head-node [DO NOT CHANGE]
+# =============================================================
+
+# define clean-up function
+function clean_up {
+  # - change directory to the location of the sbatch-command (on the head-node)
+  cd "${submitdir}"
+  # - copy everything from the temporary directory on the compute-node
+  cp -prf "${workdir}"/* .
+  # - erase the temporary directory from the compute-node
+  rm -rf "${workdir}"
+  # - exit the script
+  exit
+}
+
+# call "clean_up" function when this script exits, it is run even if SLURM cancels the job
+trap 'clean_up' EXIT
+
+# 5. Execute [MODIFY COMPLETELY TO YOUR NEED]
 # ===========================================
 
 # set the number of CPUs to be used by an OpenMP application
 export OMP_NUM_THREADS=${SLURM_CPUS_ON_NODE}
 
 # simplest example in the world, sleep a bit to allow a bit of monitoring
-echo "hello world"
+echo "hello world" > "test.log"
 sleep 10
 
-# 3. Transfer back to the head-node [DO NOT CHANGE]
-# =================================================
 
-# change directory to the location of the sbatch-command (on the head-node)
-cd "${submitdir}"
-# copy everything from the temporary directory on the compute-node
-cp -prf "${workdir}"/* .
-# erase the temporary directory from the compute-node
-rm -rf "${workdir}"

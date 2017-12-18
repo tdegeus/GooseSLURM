@@ -1,8 +1,8 @@
 {
-  "workdir"             : "/scratch/tdegeus/3105343",
-  "submitdir"           : "/home/tdegeus/examples/tempdir",
-  "SLURM_SUBMIT_DIR"    : "/home/tdegeus/examples/tempdir",
-  "SLURM_JOB_ID"        : "3105343",
+  "workdir"             : "/tmp/3106402",
+  "submitdir"           : "/home/tdegeus/prog/src/GooseSLURM/examples/tempdir",
+  "SLURM_SUBMIT_DIR"    : "/home/tdegeus/prog/src/GooseSLURM/examples/tempdir",
+  "SLURM_JOB_ID"        : "3106402",
   "SLURM_JOB_NODELIST"  : "c07",
   "SLURM_SUBMIT_HOST"   : "castor.cluster",
   "SLURM_JOB_NUM_NODES" : "1",

@@ -14,8 +14,9 @@ Options:
   -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
   -s --sort=STR       Sort by name.
   -r --reverse        Reverse sort [default: False].
+     --debug=FILE     Debug by reading file with output of "squeue", in stead of running it live.
   -h --help           Show help.
-  --version           Show version.
+     --version        Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -179,10 +180,14 @@ aliasInv = {alias[key]:key for key in alias}
 # load the output of "squeue"
 # ==================================================================================================
 
-# get all job-info
-cmd  = 'squeue -o "%A|%u|%j|%a|%C|%D|%m|%l|%L|%M|%S|%t|%N|%R|%p"'
-data = subprocess.check_output(cmd,shell=True).decode('utf-8')
-now  = time.mktime(time.localtime())
+# get live job-info, or mimic live behavior by reading file
+if not args['--debug']:
+  cmd  = 'squeue -o "%A|%u|%j|%a|%C|%D|%m|%l|%L|%M|%S|%t|%N|%R|%p"'
+  data = subprocess.check_output(cmd,shell=True).decode('utf-8')
+  now  = time.mktime(time.localtime())
+else:
+  data = open(args['--debug'],'r').read()
+  now  = os.path.getctime(args['--debug'])
 
 # extract the header and the jobs
 header,data = data.split('\n',1)
@@ -237,7 +242,8 @@ for job in jobs:
     # - fill from seconds -> minutes (if present) -> hours (if present)
     for i in range(len(txt)): dt[-1*(i+1)] = txt[-1*(i+1)]
     # - store in seconds
-    job[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
+    try   : job[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
+    except: job[key] = Duration(job[key])
 
   # convert e.g. "4G" -> bytes
   for key in ['MIN_MEMORY']:
