@@ -83,5 +83,3 @@ export OMP_NUM_THREADS=${SLURM_CPUS_ON_NODE}
 # simplest example in the world, sleep a bit to allow a bit of monitoring
 echo "hello world" > "test.log"
 sleep 10
-
-
