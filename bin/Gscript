@@ -90,6 +90,7 @@ function clean_up {{
   # - copy everything from the temporary directory on the compute-node
   cp -prf "${{workdir}}"/* .
   # - erase the temporary directory from the compute-node
+  rm -rf "${{workdir}}"/*
   rm -rf "${{workdir}}"
   # - exit the script
   exit
@@ -171,6 +172,7 @@ function clean_up {{
   # - copy everything from the temporary directory on the compute-node
   cp -prf "${{workdir}}"/* .
   # - erase the temporary directory from the compute-node
+  rm -rf "${{workdir}}"/*
   rm -rf "${{workdir}}"
   # - exit the script
   exit
