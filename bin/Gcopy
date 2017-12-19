@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 '''Gcopy
-  Copy data from scratch folder.
+  Copy data from temporary working directory.
 
 Usage:
   Gcopy [options] JOBS...
@@ -9,9 +9,10 @@ Arguments:
   JOBS          Path to the JSON log(s) (see 'Gscript').
 
 Options:
-  --remove      Remove scratch folder after copying.
+     --remove   Remove temporary working directory after copying.
+     --verbose  Verbose all commands and their output.
   -h --help     Show help.
-  --version     Show version.
+     --version  Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -61,20 +62,35 @@ for job in args['JOBS']:
     cmd = cmd.format(**data)
     out = subprocess.check_output(cmd,shell=True).decode('utf-8')
 
+    if args['--verbose']:
+      print(cmd)
+      print(out)
+
     if out == 'False':
       txt = '["{key:s}" ({SLURM_JOB_ID:s})] "workdir" not found found'.format(key=job,**data)
       Error(txt)
 
-  # - copy command
+  # - copy
   if local: cmd = "cp -r {workdir:s}/* {submitdir:s}/".format(**data)
-  else    : cmd = "scp -r '{SLURM_JOB_NODELIST:s}:{workdir:s}/\\*' {submitdir:s}/".format(**data)
+  else    : cmd = "scp -r '{SLURM_JOB_NODELIST:s}:{workdir:s}/*' {submitdir:s}/".format(**data)
+
+  out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+
+  if args['--verbose']:
+    print(cmd)
+    print(out)
 
   # - remove if needed
   if args['--remove']:
+
     if local:
       shutil.rmtree(data['workdir'])
       print('rm -r {workdir:s}'.format(**data))
+
     else:
       cmd = "ssh {SLURM_JOB_NODELIST:s} 'rm -r {workdir:s}'".format(**data)
-      print(cmd)
       out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+
+      if args['--verbose']:
+        print(cmd)
+        print(out)
