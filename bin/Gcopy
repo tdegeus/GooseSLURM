@@ -64,7 +64,7 @@ for job in args['JOBS']:
 
     if args['--verbose']:
       print(cmd)
-      print(out)
+      print(out,end='')
 
     if out == 'False':
       txt = '["{key:s}" ({SLURM_JOB_ID:s})] "workdir" not found found'.format(key=job,**data)
@@ -78,7 +78,7 @@ for job in args['JOBS']:
 
   if args['--verbose']:
     print(cmd)
-    print(out)
+    print(out,end='')
 
   # - remove if needed
   if args['--remove']:
@@ -93,4 +93,4 @@ for job in args['JOBS']:
 
       if args['--verbose']:
         print(cmd)
-        print(out)
+        print(out,end='')

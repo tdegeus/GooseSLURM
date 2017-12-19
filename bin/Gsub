@@ -56,4 +56,4 @@ for file in args['<FILES>']:
   print(cmd)
 
   if not args['--verbose']:
-    print(subprocess.check_output(cmd,shell=True).decode('utf-8'))
+    print(subprocess.check_output(cmd,shell=True).decode('utf-8'),end='')
