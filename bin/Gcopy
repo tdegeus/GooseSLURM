@@ -3,11 +3,10 @@
   Copy data from scratch folder.
 
 Usage:
-  Gcopy [options]
   Gcopy [options] JOBS...
 
 Arguments:
-  JOBS          Path to the JSON log(s) (see 'Gsub').
+  JOBS          Path to the JSON log(s) (see 'Gscript').
 
 Options:
   --remove      Remove scratch folder after copying.
@@ -24,41 +23,58 @@ Copyright:
 
 import docopt, os, sys, subprocess, csv, pwd, shutil, time, json
 
-# --------------------------------------------------------------------------------------------------
+# function to raise error
+def Error(txt):
+  print(txt)
+  sys.exit(1)
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.1')
+args = docopt.docopt(__doc__,version='0.0.2')
 
-# --------------------------------------------------------------------------------------------------
-
-# fill job info
-# - allocate
-jobs = []
-# - fill
+# loop over jobs
 for job in args['JOBS']:
-  # -- read JSON-log
+
+  # - read job info
   if os.path.isfile(job):
     data = json.load(open(job,'r'))
   else:
-    raise IOError('Cannot read "%s"'%job)
-  # -- store
-  jobs += [data]
+    Error('Cannot read "%s"'%job)
 
-# check existence of directories
-for job in jobs:
-  if not os.path.isdir(job['workdir']):
-    raise IOError('"workdir" not found for job "%s"'%job['SLURM_JOB_ID'])
-  if not os.path.isdir(job['submitdir']):
-    raise IOError('"submitdir" not found for job "%s"'%job['SLURM_JOB_ID'])
+  # - verify that destination exists
+  if not os.path.isdir(data['submitdir']):
+    txt = '["{key:s}" ({SLURM_JOB_ID:s})] "submitdir" not found'.format(key=job,**data)
+    Error(txt)
 
-# no jobs -> quit
-if len(jobs) == 0: sys.exit(0)
+  # - find workdir locally
+  if os.path.isdir(data['workdir']): local = True
+  else                             : local = False
 
-# loop to copy
-for job in jobs:
-  cmd = 'cp -r %s/* %s/'%(job['workdir'],job['submitdir'])
-  print(subprocess.check_output(cmd,shell=True).decode('utf-8'),end='')
+  # - check remote directory
+  if not local:
 
-# remove if needed
-if args['--remove']:
-  shutil.rmtree(job['workdir'])
+    if int(data['SLURM_JOB_NUM_NODES']) > 1:
+      txt = '["{key:s}" ({SLURM_JOB_ID:s})] Automatic copy only possible for 1 compute node'
+      txt = txt.format(key=job,**data)
+      Error(txt)
+
+    cmd = "if ssh {SLURM_JOB_NODELIST:s} '[ -d {workdir:s} ]'; then echo True; else echo False; fi"
+    cmd = cmd.format(**data)
+    out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+
+    if out == 'False':
+      txt = '["{key:s}" ({SLURM_JOB_ID:s})] "workdir" not found found'.format(key=job,**data)
+      Error(txt)
+
+  # - copy command
+  if local: cmd = "cp -r {workdir:s}/* {submitdir:s}/".format(**data)
+  else    : cmd = "scp -r '{SLURM_JOB_NODELIST:s}:{workdir:s}/\\*' {submitdir:s}/".format(**data)
+
+  # - remove if needed
+  if args['--remove']:
+    if local:
+      shutil.rmtree(data['workdir'])
+      print('rm -r {workdir:s}'.format(**data))
+    else:
+      cmd = "ssh {SLURM_JOB_NODELIST:s} 'rm -r {workdir:s}'".format(**data)
+      print(cmd)
+      out = subprocess.check_output(cmd,shell=True).decode('utf-8')
