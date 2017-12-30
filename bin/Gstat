@@ -4,7 +4,7 @@
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=STR...] [--account=STR...] [--sort=STR...] [--name=STR...] [--jobid=STR...]
+  Gstat [options] [--user=STR...] [--account=STR...] [--sort=STR...] [--name=STR...] [--jobid=STR...] [--output=STR...]
 
 Options:
   -U                  Limit jobs to the current user.
@@ -14,6 +14,7 @@ Options:
   -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
   -s --sort=STR       Sort by name.
   -r --reverse        Reverse sort [default: False].
+     --output=STR     Select output columns.
      --no-header      Suppress header, for easy parsing.
      --debug=FILE     Debug by reading file with output of "squeue", in stead of running it live.
   -h --help           Show help.
@@ -303,8 +304,10 @@ def field2fmt(key,width,align,color=None,header=False,**kwargs):
 # compute + create print format
 # --------------------------------------------------------------------------------------------------
 
-# select columns, and compute print width
-# - initialize (width == minimum width, real == real width (computed below))
+# initialize
+# ----------
+
+# width == minimum width, real == real width (computed below)
 fields = [
   {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>'},
   {'key':'USER'            ,'width':7 ,'real':0,'align':'<'},
@@ -318,38 +321,71 @@ fields = [
   {'key':'ST'              ,'width':2 ,'real':0,'align':'<'},
   {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<'},
 ]
-# - add color for selection
-for field in fields:
-  if field['key'] in args:
-    if args[field['key']]:
-      field['color'] = '1;32;40'
-# - get the terminal size
-cols,_ = shutil.get_terminal_size()
-# - get the cumulative minimum size of the columns (+ spacing between the columns)
-if True:                       fields[0]['total'] = fields[0  ]['width']
-for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
-# - truncate at terminal size
-fields = [field for field in fields if field['total'] <= cols]
-# - get actual width
-for job in jobs:
+
+# adjust fields and their width
+# -----------------------------
+
+if not args['--output']:
+
+  # add color for selection
   for field in fields:
-    field['real'] = max(field['real'],len(job[field['key']]))
-# - get the available size to expand
-room = cols - fields[-1]['total']
-# - expand minimum width, as long there is room
-# -- distinguish priorities for expanding
-low  = ['NAME']
-high = [field['key'] for field in fields if field['key'] not in low]
-# -- expand
-for prio in [high,low]:
+    if field['key'] in args:
+      if args[field['key']]:
+        field['color'] = '1;32;40'
+
+  # get the terminal size
+  cols,_ = shutil.get_terminal_size()
+
+  # get the cumulative minimum size of the columns (+ spacing between the columns)
+  if True:                       fields[0]['total'] = fields[0  ]['width']
+  for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
+
+  # truncate at terminal size
+  fields = [field for field in fields if field['total'] <= cols]
+
+  # get actual width
+  for job in jobs:
+    for field in fields:
+      field['real'] = max(field['real'],len(job[field['key']]))
+
+  # get the available size to expand
+  room = cols - fields[-1]['total']
+
+  # expand minimum width, as long there is room
+  # - distinguish priorities for expanding
+  low  = ['NAME']
+  high = [field['key'] for field in fields if field['key'] not in low]
+  # - expand
+  for prio in [high,low]:
+    for field in fields:
+      if field['key'] not in prio: continue
+      if room <= 0: break
+      dw = min(field['real']-field['width'],room)
+      if dw <= 0: continue
+      field['width'] += dw
+      room           -= dw
+
+# fixed output
+# ------------
+
+if args['--output']:
+
+  # select fields
+  filelds = [field for field in fields if field['key'] in args['--output']]
+
+  # get actual width
+  for job in jobs:
+    for field in fields:
+      field['real'] = max(field['real'],len(job[field['key']]))
+
+  # set width
   for field in fields:
-    if field['key'] not in prio: continue
-    if room <= 0: break
-    dw = min(field['real']-field['width'],room)
-    if dw <= 0: continue
-    field['width'] += dw
-    room           -= dw
-# - convert to print format
+    field['width'] = field['real']
+
+
+# convert to print format
+# -----------------------
+
 head = ' '.join([field2fmt(**field,header=True ) for field in fields])
 fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
 
@@ -361,5 +397,6 @@ fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
 if not args['--no-header']:
   print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
   print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
+
 # jobs
 for job in jobs: print(fmt.format(**job))
