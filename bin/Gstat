@@ -370,8 +370,11 @@ if not args['--output']:
 
 if args['--output']:
 
+  # avoid case conflicts
+  output = [name.upper() for name in args['--output']]
+
   # select fields
-  filelds = [field for field in fields if field['key'] in args['--output']]
+  fields = [field for field in fields if field['key'] in output]
 
   # get actual width
   for job in jobs:
