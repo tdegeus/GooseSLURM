@@ -20,6 +20,15 @@ Options:
   -h --help           Show help.
      --version        Show version.
 
+Examples:
+  Thing you can do with Gstat:
+
+  * Get the name of all your jobs in an array:
+
+      arr=( $(Gstat --output=name -U --no-header ) )
+      echo ${#arr[@]}
+      echo ${arr[@]}
+
 Copyright:
   T.W.J. de Geus
   tom@geus.me
