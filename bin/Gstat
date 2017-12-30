@@ -14,6 +14,7 @@ Options:
   -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
   -s --sort=STR       Sort by name.
   -r --reverse        Reverse sort [default: False].
+     --no-header      Suppress header, for easy parsing.
      --debug=FILE     Debug by reading file with output of "squeue", in stead of running it live.
   -h --help           Show help.
      --version        Show version.
@@ -357,7 +358,8 @@ fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
 # --------------------------------------------------------------------------------------------------
 
 # header
-print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
-print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
+if not args['--no-header']:
+  print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
+  print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
 # jobs
 for job in jobs: print(fmt.format(**job))
