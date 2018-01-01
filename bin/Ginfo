@@ -435,7 +435,7 @@ for partition in partitions:
 
 # width == minimum width, real == real width (computed below)
 fields = [
-  {'key':'PARTITION' ,'width':4 ,'real':0,'align':'<'},
+  {'key':'PARTITION' ,'width':9 ,'real':0,'align':'<'},
   {'key':'CPUS_T'    ,'width':4 ,'real':0,'align':'>'},
   {'key':'CPUS_I'    ,'width':5 ,'real':0,'align':'>'},
 ]
