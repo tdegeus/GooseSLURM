@@ -7,14 +7,11 @@ Usage:
   Gdel [options] JOBID...
 
 Arguments:
-  JOBID         ID-number(s) of the job(s) to delete, or path to the JSON log(s) (see 'Gsub').
-                (default: all user's jobs)
+  JOBID           ID-number(s) of the job(s) to delete. (default: all user's jobs)
 
 Options:
-  -c --copy     Copy the data from the temporary directory (only for JSON logs).
-  -r --remove   Remove the job's directory (some defaults are tried if the input is not a JSON log).
-  -h --help     Show help.
-  --version     Show version.
+  -h  --help      Show help.
+      --version   Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -22,11 +19,19 @@ Copyright:
   www.geus.me
 '''
 
-# --------------------------------------------------------------------------------------------------
+# ========================================= LOAD LIBRARIES =========================================
 
 import docopt, os, sys, subprocess, csv, pwd, shutil, time, json
 
-# --------------------------------------------------------------------------------------------------
+# ======================================= SUPPORT FUNCTIONS ========================================
+
+# ------------------------------------ raise command-line error ------------------------------------
+
+def Error(msg,exit_code=1):
+  print(msg)
+  sys.exit(exit_code)
+
+# ------------------------------------ prompt user confirmation ------------------------------------
 
 def confirm(message='Proceed [y/n]?\n'):
   while True:
@@ -36,7 +41,7 @@ def confirm(message='Proceed [y/n]?\n'):
     if user     in ['y','Y'        ]: return True
     if user     in ['n','N'        ]: return False
 
-# --------------------------------------------------------------------------------------------------
+# ------------------------------ get list of the user's running jobs -------------------------------
 
 def getrunningjobs():
 
@@ -54,7 +59,9 @@ def getrunningjobs():
 
   return out
 
-# --------------------------------------------------------------------------------------------------
+# ========================================== MAIN PROGRAM ==========================================
+
+# ----------------------------------- parse command line options -----------------------------------
 
 # parse command-line options
 args = docopt.docopt(__doc__,version='0.0.2')
@@ -62,7 +69,7 @@ args = docopt.docopt(__doc__,version='0.0.2')
 # rename fields
 args['jobs'] = args.pop('JOBID')
 
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------- get/check running jobs -------------------------------------
 
 # get the user-name
 user = pwd.getpwuid(os.getuid())[0]
@@ -70,50 +77,22 @@ user = pwd.getpwuid(os.getuid())[0]
 # get the currently running jobs (restricted to the current user)
 running = getrunningjobs()
 # default : select all jobs
-if args['jobs']: arguments = args['jobs']
-else           : arguments = [job for job in running]
-
-# fill job info
-# - allocate
-jobs = []
-# - fill
-for job in arguments:
-  # -- try some things
-  if   os.path.isfile(job):
-    data = json.load(open(job,'r'))
-  elif os.path.isdir('/scratch/{user:s}/{job:s}'.format(user=user,job=job)):
-    data = {'SLURM_JOB_ID':job,'workdir':'/scratch/{user:s}/{job:s}'.format(user=user,job=job)}
-  else:
-    data = {'SLURM_JOB_ID':job}
-  # -- defaults
-  if 'workdir'   not in data: data['workdir'  ] = ''
-  if 'submitdir' not in data: data['submitdir'] = ''
-  # -- store
-  jobs += [data]
+if args['jobs']: jobs = args['jobs']
+else           : jobs = [job for job in running]
 
 # check if the supplied jobs are running
 for job in jobs:
-  if job['SLURM_JOB_ID'] not in running:
-    raise IOError('Job-id "%s" is not currently running'%job['SLURM_JOB_ID'])
-
-# remove work directory: check if it exists
-if args['--remove']:
-  for job in jobs:
-    if not os.path.isdir(job['workdir']):
-      print('WARNING: "workdir" not found for job "%s"'%job['SLURM_JOB_ID'])
-
-# copy work directory: check if it exists
-if args['--copy']:
-  for job in jobs:
-    if not os.path.isdir(job['submitdir']):
-      print('WARNING: "submitdir" not found for job "%s"'%job['SLURM_JOB_ID'])
+  if job not in running:
+    raise Error('Job-id "{job:s}" is not currently running'.format(job=job))
 
 # no jobs -> quit
 if len(jobs) == 0: sys.exit(0)
 
+# -------------------------------- prompt confirmation, cancel jobs --------------------------------
+
 # ask user for confirmation
 # - print message
-ids = [job['SLURM_JOB_ID'] for job in jobs]
+ids = [job for job in jobs]
 print('Delete jobs : ')
 print(subprocess.check_output('Gstat -j '+' -j '.join(ids),shell=True).decode('utf-8'),end='')
 # - prompt response
@@ -121,26 +100,3 @@ if not confirm(): sys.exit(1)
 
 # cancel all selected jobs
 print(subprocess.check_output('scancel '+' '.join(ids),shell=True).decode('utf-8'),end='')
-
-# copy data
-if args['--copy']:
-  # - loop over jobs
-  for job in jobs:
-    # -- check requirements
-    if not os.path.isdir(job['workdir']) or not os.path.isdir(job['submitdir']): continue
-    # -- wait for the job to quit
-    while job['SLURM_JOB_ID'] in getrunningjobs(): time.sleep(3)
-    # -- copy
-    cmd = 'cp -r %s/* %s/'%(job['workdir'],job['submitdir'])
-    print(subprocess.check_output(cmd,shell=True).decode('utf-8'),end='')
-
-# delete data
-if args['--remove']:
-  # - loop over jobs
-  for job in jobs:
-    # -- check requirements
-    if not os.path.isdir(job['workdir']): continue
-    # -- wait for the job to quit
-    while job['SLURM_JOB_ID'] in getrunningjobs(): time.sleep(3)
-    # -- copy
-    shutil.rmtree(job['workdir'])

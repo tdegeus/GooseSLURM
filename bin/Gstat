@@ -12,10 +12,13 @@ Options:
   -a --account=STR    Limit jobs to a certain account (may be regex).
   -n --name=STR       Limit jobs to a certain job-name (may be regex).
   -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
+     --status=STR     Limit jobs to a certain status (may be regex).
   -s --sort=STR       Sort by name.
   -r --reverse        Reverse sort [default: False].
      --output=STR     Select output columns.
      --no-header      Suppress header, for easy parsing.
+     --list           Print column as list.
+     --sep=STR        Column separator. [default:  ] (space)
      --debug=FILE     Debug by reading file with output of "squeue", in stead of running it live.
   -h --help           Show help.
      --version        Show version.
@@ -28,7 +31,7 @@ Copyright:
 
 # ==================================================================================================
 
-import subprocess, shutil, docopt, pwd, os, time, re
+import subprocess, shutil, docopt, pwd, os, sys, time, re
 
 # ==================================================================================================
 # class to represent a number, but that can also deal with non-numeric input
@@ -145,6 +148,14 @@ class Memory(Number):
     return '-'
 
 # ==================================================================================================
+# raise command line error
+# ==================================================================================================
+
+def Error(msg,exit_code=1):
+  print(msg)
+  sys.exit(exit_code)
+
+# ==================================================================================================
 # parse command-line arguments
 # ==================================================================================================
 
@@ -155,10 +166,11 @@ args = docopt.docopt(__doc__,version='0.0.2')
 if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 
 # set alias between options of this function and the slurm field-names
-args['USER'   ] = args.pop('--user' )
+args['USER'   ] = args.pop('--user'   )
 args['ACCOUNT'] = args.pop('--account')
-args['NAME'   ] = args.pop('--name' )
-args['JOBID'  ] = args.pop('--jobid')
+args['NAME'   ] = args.pop('--name'   )
+args['JOBID'  ] = args.pop('--jobid'  )
+args['ST'     ] = args.pop('--status' )
 
 # squeue headers -> custom headers
 alias = {
@@ -213,7 +225,7 @@ for job in data:
   jobs += [info]
 
 # limit based on command-line options
-for key in ['USER','ACCOUNT','NAME','JOBID']:
+for key in ['USER','ACCOUNT','NAME','JOBID','ST']:
   if args[key]:
     jobs = [job for job in jobs if sum([1 if re.match(name,job[key]) else 0 for name in args[key]])]
 
@@ -282,6 +294,27 @@ if args['--sort']:
     jobs = sorted(jobs, key=lambda job: job[aliasInv[key.upper()]], reverse=args['--reverse'])
 else:
   jobs = sorted(jobs, key=lambda job: job[aliasInv['T_START']], reverse=not args['--reverse'])
+
+# ==================================================================================================
+# optionally: print as list and quit
+# ==================================================================================================
+
+if args['--list']:
+
+  if not args['--output']:
+    Error('"--list" can only be used with one column, select using "--output"')
+
+  if len(args['--output']) > 1:
+    Error('"--list" can only be used with one column, select using "--output"')
+
+  field = args['--output'][0].upper()
+
+  for job in jobs:
+    print(job[field],end=args['--sep'])
+
+  print('')
+
+  sys.exit(0)
 
 # ==================================================================================================
 # convert to formatted output
@@ -389,8 +422,8 @@ if args['--output']:
 # convert to print format
 # -----------------------
 
-head = ' '.join([field2fmt(**field,header=True ) for field in fields])
-fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
+head = args['--sep'].join([field2fmt(**field,header=True ) for field in fields])
+fmt  = args['--sep'].join([field2fmt(**field,header=False) for field in fields])
 
 # --------------------------------------------------------------------------------------------------
 # print result to screen
