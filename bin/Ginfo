@@ -1,0 +1,498 @@
+#!/usr/bin/env python3
+'''Ginfo
+  Summarize the status of all or a selection of nodes (wrapper around squeue).
+
+Usage:
+  Ginfo [options]
+  Ginfo [options] [--sort=STR...] [--node=<NAME>...]
+
+Options:
+  -s --sort=STR       Sort by name.
+  -r --reverse        Reverse sort [default: False].
+     --debug=FILE     Debug by reading file with output of "squeue", in stead of running it live.
+     --node=<NAME>    Select a specific node (may be regex).
+     --long           Print all information.
+  -h --help           Show help.
+     --version        Show version.
+
+Copyright:
+  T.W.J. de Geus
+  tom@geus.me
+  www.geus.me
+'''
+
+# ========================================= LOAD LIBRARIES =========================================
+
+import subprocess, shutil, docopt, pwd, os, sys, time, re
+
+# ================================== CLASS TO REPRESENT A NUMBER ===================================
+
+class Number:
+  r'''
+Class to represent a number.
+
+This class can also deal with non-numeric input, it allows to input e.g. "N/A".
+  '''
+
+  # ------------------------------------------- __init__ -------------------------------------------
+
+  def __init__(self,data):
+
+    self.data = data
+
+  # ------------------------------------------- __int__ --------------------------------------------
+
+  def __int__(self):
+
+    if type(self.data) == int  : return     self.data
+    if type(self.data) == float: return int(self.data)
+
+    return 0
+
+  # ------------------------------------------ __float__ -------------------------------------------
+
+  def __float__(self):
+
+    if type(self.data) == float: return       self.data
+    if type(self.data) == int  : return float(self.data)
+
+    return 0.0
+
+  # ------------------------------------------- isnum() --------------------------------------------
+
+  def isnum(self):
+
+    if type(self.data) == float: return True
+    if type(self.data) == int  : return True
+
+    return False
+
+  # -------------------------------------------- __lt__ --------------------------------------------
+
+  def __lt__(self,other):
+
+    if isinstance(other,Number):
+
+      if type(self.data)  == str and type(other.data) == str: return self.data < other.data
+      if type(self.data)  == str: return -1
+      if type(other.data) == str: return  0
+
+      return float(self) < float(other)
+
+    if type(self.data) == str: return -1
+
+    return float(self) < float(other)
+
+  # ------------------------------------------ __format__ ------------------------------------------
+
+  def __format__(self,fmt):
+
+    return ('{0:'+fmt+'}').format(str(self))
+
+  # ------------------------------------------- __len__ --------------------------------------------
+
+  def __len__(self):
+
+    return len(str(self))
+
+  # ------------------------------------------- __repr__ -------------------------------------------
+
+  def __repr__(self):
+
+    return self.__str__()
+
+  # ------------------------------------------- __str__ --------------------------------------------
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    return str(self.data)
+
+# ======================== CHILD-CLASS TO REPRESENT A DURATION IN SECTIONS =========================
+
+class Duration(Number):
+  r'''
+Class to represent a duration in seconds as e.g. "3h".
+
+Any non-numeric value will be kept as-is, through the parent-class "Number".
+  '''
+
+  # ------------------------------------------- __str__ --------------------------------------------
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    secs = [60*60*24, 60*60, 60, 1]
+    name = ['d', 'h', 'm', 's']
+
+    for i,txt in zip(secs,name):
+      if abs(self.data) >= i:
+        n = float(self.data)/float(i)
+        if abs(round(n)) < 10.: return '%.1f%s'%(      n ,txt)
+        else                  : return '%.0f%s'%(round(n),txt)
+
+    return '%.0fs'%float(self.data)
+
+# =========================== CHILD-CLASS TO REPRESENT A MEMORY IN BYTES ===========================
+
+class Memory(Number):
+  r'''
+Class to represent memory in bytes as e.g. "4G"
+
+Any non-numeric value will be kept as-is, through the parent-class "Number".
+  '''
+
+  # ------------------------------------------- __str__ --------------------------------------------
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    byte = [1e12, 1e9, 1e6, 1e3, 1]
+    name = ['T', 'G', 'M', 'K', 'B']
+
+    for i,txt in zip(byte,name):
+      if abs(self.data) >= i:
+        n = float(self.data)/float(i)
+        return '%.0f%s'%(round(n),txt)
+
+    return '-'
+
+# ============================= CHILD-CLASS TO REPRESENT A PERCENTAGE ==============================
+
+class Percentage(Number):
+  r'''
+Class to represent a percentage, with precision 2.
+
+Any non-numeric value will be kept as-is, through the parent-class "Number".
+  '''
+
+  # ------------------------------------------- __str__ --------------------------------------------
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    return '%4.2f' % self.data
+
+# ========================================== MAIN PROGRAM ==========================================
+
+# --------------------------- support function: raise command line error ---------------------------
+
+def Error(msg,exit_code=1):
+  print(msg)
+  sys.exit(exit_code)
+
+# --------------------------------- parse command line interaction ---------------------------------
+
+# parse command-line options
+args = docopt.docopt(__doc__,version='0.0.2')
+
+# set alias between options of this function and the slurm field-names
+args['HOSTNAMES'] = args.pop('--node')
+
+# sinfo headers -> custom headers
+alias = {
+  'HOSTNAMES':'Host',
+  'CPUS_T'   :'Ctot',
+  'CPUS_I'   :'Cfree',
+  'CPU_REL'  :'CPU%',
+  'PARTITION':'Partition',
+  'MEMORY'   :'Mem',
+  'MEM_REL'  :'Mem%',
+  'TIMELIMIT':'Tlim',
+  'STATE'    :'State',
+  'CPU_LOAD' :'Load',
+}
+
+# custom headers -> sinfo headers
+aliasInv = {alias[key]:key for key in alias}
+
+# ----------------------------------- load the output of "sinfo" -----------------------------------
+
+# get live node-info, or mimic live behavior by reading file
+if not args['--debug']:
+  cmd  = 'sinfo -o "%all"'
+  data = subprocess.check_output(cmd,shell=True).decode('utf-8')
+else:
+  data = open(args['--debug'],'r').read()
+  now  = os.path.getctime(args['--debug'])
+
+# extract the header and the node-info
+header,data = data.split('\n',1)
+data        = data.split('\n')
+
+# get the field names
+header = header.split('|')
+
+# convert to list of dictionaries
+# - initialize
+nodes = []
+# - loop over nodes
+for node in data:
+  # -- check if there is any content
+  if len(node) == 0: continue
+  # -- initialize empty dictionary
+  info = {}
+  # -- fill dictionary using fields names from the header
+  for key,val in zip(header,node.split('|')): info[key.strip()] = val.strip()
+  # -- store to list of nodes
+  nodes += [info]
+
+# limit based on command-line options
+for key in ['HOSTNAMES']:
+  if args[key]:
+    nodes = [node for node in nodes if sum([1 if re.match(name,node[key]) else 0 for name in args[key]])]
+
+# ------------------------------------- decode specific fields -------------------------------------
+
+# loop over all nodes
+for node in nodes:
+
+  # CPUs: allocated/idle/other/total
+  node['CPUS_A'], node['CPUS_I'], node['CPUS_O'], node['CPUS_T'] = node['CPUS(A/I/O/T)'].split('/')
+
+  # convert to numbers
+  for key in ['CPUS_A', 'CPUS_I', 'CPUS_O', 'CPUS_T']:
+    node[key] = Number(int(node[key]))
+
+  # convert to numbers
+  for key in ['CPU_LOAD']:
+    if not re.match('.*[0-9].*',node[key]): node[key] = Number(node[key])
+    else                                  : node[key] = Number(float(node[key]))
+
+  # convert e.g. "1-4:18:13" -> seconds
+  for key in ['TIMELIMIT']:
+    # - initialize alias + data [days,hours,minutes,seconds]
+    txt = node[key]
+    dt  = [0,0,0,0]
+    # - read number of days
+    if len(node[key].split('-')) > 1: dt[0],txt = node[key].split('-')
+    # - split hours:minutes:seconds (all optional)
+    txt = txt.split(':')
+    # - fill from seconds -> minutes (if present) -> hours (if present)
+    for i in range(len(txt)): dt[-1*(i+1)] = txt[-1*(i+1)]
+    # - store in seconds
+    try   : node[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
+    except: node[key] = Duration(node[key])
+
+  # convert to memory
+  for key, byte in zip(['MEMORY','FREE_MEM'], [1.e6,1.e6]):
+    # - read value and units
+    if not re.match('.*[0-9].*',node[key]):
+      node[key] = Memory(node[key])
+      continue
+    if re.match('[0-9\.]*[A-Za-z]',node[key]):
+      val  = float(node[key][:-1])
+      unit =       node[key][ -1]
+    else:
+      val  = float(node[key])
+      unit = ''
+    # - convert to bytes
+    if   unit == 'K': unit = byte * 1.e3
+    elif unit == 'M': unit = byte * 1.e6
+    elif unit == 'G': unit = byte * 1.e9
+    elif unit == 'T': unit = byte * 1.e12
+    else            : unit = byte * 1.
+    # - store
+    node[key] = Memory(val*unit)
+
+  # convert memory to score
+  if node['FREE_MEM'].isnum() and node['MEMORY'].isnum():
+    node['MEM_REL'] = Percentage((float(node['MEMORY'])-float(node['FREE_MEM']))/float(node['MEMORY']))
+  else:
+    node['MEM_REL'] = Percentage('')
+
+  # convert load to score
+  if node['CPU_LOAD'].isnum() and node['CPUS_T'].isnum():
+    node['CPU_REL'] = Percentage(float(node['CPU_LOAD'])/float(node['CPUS_T']))
+  else:
+    node['CPU_REL'] = Percentage('')
+
+# ---------------------------------------------- sort ----------------------------------------------
+
+if args['--sort']:
+  for key in args['--sort']:
+    nodes = sorted(nodes, key=lambda node: node[aliasInv[key]], reverse=args['--reverse'])
+else:
+  nodes = sorted(nodes, key=lambda node: node[aliasInv['Host']],      reverse=args['--reverse'])
+  nodes = sorted(nodes, key=lambda node: node[aliasInv['Partition']], reverse=args['--reverse'])
+
+# ------------------------------------- print long information -------------------------------------
+
+if args['--long']:
+
+  for node in nodes:
+    for key in sorted(node):
+      print('{key:<20s}: '.format(key=key) + str(node[key]))
+    print('')
+
+  sys.exit(0)
+
+# ------------------- support function: convert column settings to print format --------------------
+
+def field2fmt(key,width,align,color=None,header=False,**kwargs):
+
+  if header: fmt = '{%s:%s%d.%ds}'%(key,'<',width,width)
+  else     : fmt = '{%s:%s%d.%ds}'%(key,align,width,width)
+
+  if color: fmt = '\x1b[%sm'%color+fmt+'\x1b[0m'
+
+  return fmt
+
+# --------------------------------- compute + create print format ----------------------------------
+
+# initialize
+# ----------
+
+# width == minimum width, real == real width (computed below)
+fields = [
+  {'key':'HOSTNAMES' ,'width':4 ,'real':0,'align':'<'},
+  {'key':'CPUS_T'    ,'width':4 ,'real':0,'align':'>'},
+  {'key':'CPUS_I'    ,'width':5 ,'real':0,'align':'>'},
+  {'key':'CPU_REL'   ,'width':4 ,'real':0,'align':'<'},
+  {'key':'MEMORY'    ,'width':3 ,'real':0,'align':'>'},
+  {'key':'MEM_REL'   ,'width':4 ,'real':0,'align':'>'},
+  {'key':'PARTITION' ,'width':9 ,'real':0,'align':'<'},
+  {'key':'TIMELIMIT' ,'width':4 ,'real':0,'align':'>'},
+  {'key':'STATE'     ,'width':5 ,'real':0,'align':'<'},
+]
+
+# adjust fields and their width
+# -----------------------------
+
+# add color for selection
+for field in fields:
+  if field['key'] in args:
+    if args[field['key']]:
+      field['color'] = '1;32;40'
+
+# get the terminal size
+cols,_ = shutil.get_terminal_size()
+
+# get the cumulative minimum size of the columns (+ spacing between the columns)
+if True:                       fields[0]['total'] = fields[0  ]['width']
+for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
+
+# truncate at terminal size
+fields = [field for field in fields if field['total'] <= cols]
+
+# get actual width
+for node in nodes:
+  for field in fields:
+    field['real'] = max(field['real'],len(node[field['key']]))
+
+# get the available size to expand
+room = cols - fields[-1]['total']
+
+# expand minimum width, as long there is room
+# - distinguish priorities for expanding
+low  = ['NAME']
+high = [field['key'] for field in fields if field['key'] not in low]
+# - expand
+for prio in [high,low]:
+  for field in fields:
+    if field['key'] not in prio: continue
+    if room <= 0: break
+    dw = min(field['real']-field['width'],room)
+    if dw <= 0: continue
+    field['width'] += dw
+    room           -= dw
+
+# print result to screen
+# ----------------------
+
+# convert to print format
+head = ' '.join([field2fmt(**field,header=True ) for field in fields])
+fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
+
+# header
+print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
+print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
+
+# nodes
+for node in nodes: print(fmt.format(**node))
+
+# ----------------------------------------- print summary ------------------------------------------
+
+# select
+# ------
+
+partitions = set([node['PARTITION'] for node in nodes])
+partitions = [{'PARTITION':key} for key in partitions]
+
+for partition in partitions:
+
+  N = [node for node in nodes if node['PARTITION'] == partition['PARTITION']]
+
+  partition['CPUS_T'] = Number(sum([int(node['CPUS_T']) for node in N if node['CPUS_T'].isnum()]))
+  partition['CPUS_I'] = Number(sum([int(node['CPUS_I']) for node in N if node['CPUS_I'].isnum()]))
+
+# adjust fields and their width
+# -----------------------------
+
+# width == minimum width, real == real width (computed below)
+fields = [
+  {'key':'PARTITION' ,'width':4 ,'real':0,'align':'<'},
+  {'key':'CPUS_T'    ,'width':4 ,'real':0,'align':'>'},
+  {'key':'CPUS_I'    ,'width':5 ,'real':0,'align':'>'},
+]
+
+# adjust fields and their width
+# -----------------------------
+
+# add color for selection
+for field in fields:
+  if field['key'] in args:
+    if args[field['key']]:
+      field['color'] = '1;32;40'
+
+# get the terminal size
+cols,_ = shutil.get_terminal_size()
+
+# get the cumulative minimum size of the columns (+ spacing between the columns)
+if True:                       fields[0]['total'] = fields[0  ]['width']
+for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
+
+# truncate at terminal size
+fields = [field for field in fields if field['total'] <= cols]
+
+# get actual width
+for partition in partitions:
+  for field in fields:
+    field['real'] = max(field['real'],len(partition[field['key']]))
+
+# get the available size to expand
+room = cols - fields[-1]['total']
+
+# expand minimum width, as long there is room
+# - distinguish priorities for expanding
+low  = ['NAME']
+high = [field['key'] for field in fields if field['key'] not in low]
+# - expand
+for prio in [high,low]:
+  for field in fields:
+    if field['key'] not in prio: continue
+    if room <= 0: break
+    dw = min(field['real']-field['width'],room)
+    if dw <= 0: continue
+    field['width'] += dw
+    room           -= dw
+
+# print result to screen
+# ----------------------
+
+print('')
+
+# convert to print format
+head = ' '.join([field2fmt(**field,header=True ) for field in fields])
+fmt  = ' '.join([field2fmt(**field,header=False) for field in fields])
+
+# header
+print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
+print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
+
+# partitions
+for partition in partitions: print(fmt.format(**partition))

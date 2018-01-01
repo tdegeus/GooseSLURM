@@ -10,6 +10,7 @@ set(PROJECT_BINARIES
   bin/Gdel
   bin/Gscript
   bin/Gstat
+  bin/Ginfo
   bin/Gsub
 )
 

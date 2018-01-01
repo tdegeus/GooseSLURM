@@ -6,7 +6,7 @@
   using the "Gsub" command.
 
 Usage:
-  Gscript [options] <INPUT>...
+  Gscript [options] [--sbatch=<TEXT>...] <INPUT>...
 
 Arguments:
   <INPUT>...                Input files, or simulations folders. In the case of input files, its
@@ -20,9 +20,11 @@ Options:
       --filename=<TEXT>     Filename of the job-script (ignored for input-files). [default: job]
   -J, --job-name=<TEXT>     Set the job-name. (default: relative path)
   -c, --cpus-per-task=<N>   Number of CPUs-per-task. [default: 1]
+  -t, --time=<TEXT>         Specify the maximum walltime. [default: 1d]
   -A, --account=<TEXT>      Specify account name. (default: )
-  -h --help                 Show help.
-  --version                 Show version.
+      --sbatch<TEXT>        Miscellaneous SBATCH options.
+  -h, --help                Show help.
+      --version             Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -222,7 +224,7 @@ export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
 
 # ==================================================================================================
 
-import docopt, os, sys, re
+import docopt, os, sys, re, time
 
 # parse command-line options
 # --------------------------
@@ -237,6 +239,25 @@ args = docopt.docopt(__doc__,version='0.0.3')
 
 # evaluate new-line characters
 args['--cmd'] = args['--cmd'].replace('\\n','\n')
+
+# convert human readable time format
+if not re.match('[0-9]*\:[0-9]*\:[0-9]*',args['--time']):
+  # - alias
+  T = args['--time']
+  # - convert input to seconds
+  if   T[-1] == 'd': T = float(T[:-1]) * float(60*60*24)
+  elif T[-1] == 'h': T = float(T[:-1]) * float(60*60)
+  elif T[-1] == 'm': T = float(T[:-1]) * float(60)
+  elif T[-1] == 's': T = float(T[:-1]) * float(1)
+  else             : T = float(T)
+  # - convert seconds back to hours:minutes:seconds
+  T = int(T)
+  s = int( T % 60 );  T = ( T - s ) / 60
+  m = int( T % 60 );  T = ( T - m ) / 60
+  h = int( T )
+  T = '%d:%02d:%02d' % (h,m,s)
+  # - alias
+  args['--time'] = T
 
 # convert input
 # -------------
@@ -278,9 +299,13 @@ for inp in args.pop('<INPUT>'):
   option += [ '#SBATCH --ntasks 1' ]
   option += [ '#SBATCH --cpus-per-task %s' % args['--cpus-per-task'] ]
   option += [ '#SBATCH --mem 4096' ]
-  option += [ '#SBATCH --time 24:00:00' ]
+  option += [ '#SBATCH --time %s' % args['--time']]
 
   if args['--account']: option += [ '#SBATCH --account %s' % args['--account'] ]
+
+  if args['--sbatch']:
+    for opt in args['--sbatch']:
+      option += ['#SBATCH %s' % opt]
 
   option  = '\n'.join(option)
 
