@@ -4,24 +4,25 @@
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=STR...] [--account=STR...] [--sort=STR...] [--name=STR...] [--jobid=STR...] [--output=STR...]
+  Gstat [options] [--user=N...] [--account=N...] [--sort=N...] [--name=N...] [--jobid=N...] [--output=N...]
 
 Options:
-  -U                  Limit jobs to the current user.
-  -u --user=STR       Limit jobs to a certain user (may be regex).
-  -a --account=STR    Limit jobs to a certain account (may be regex).
-  -n --name=STR       Limit jobs to a certain job-name (may be regex).
-  -j --jobid=STR      Limit jobs to a certain job-id (may be regex).
-     --status=STR     Limit jobs to a certain status (may be regex).
-  -s --sort=STR       Sort by name.
-  -r --reverse        Reverse sort [default: False].
-     --output=STR     Select output columns.
-     --no-header      Suppress header, for easy parsing.
-     --list           Print column as list.
-     --sep=STR        Column separator. [default:  ] (space)
-     --debug=FILE     Debug by reading file with output of "squeue", in stead of running it live.
-  -h --help           Show help.
-     --version        Show version.
+  -U                     Limit jobs to the current user.
+  -u, --user=<NAME>      Limit jobs to a certain user (may be a regex).
+  -a, --account=<NAME>   Limit jobs to a certain account (may be a regex).
+  -n, --name=<NAME>      Limit jobs to a certain job-name (may be a regex).
+  -j, --jobid=<NAME>     Limit jobs to a certain job-id (may be a regex).
+      --status=<NAME>    Limit jobs to a certain status (may be a regex).
+  -s, --sort=<NAME>      Sort by name.
+  -r, --reverse          Reverse sort [default: False].
+      --output=<NAME>    Select output columns.
+      --no-header        Suppress header, for easy parsing.
+      --list             Print column as list.
+      --sep=<NAME>       Column separator. [default:  ] (space)
+      --long             Print all information.
+      --debug=<FILE>     Debug with output 'squeue -o "%all"' provided from file.
+  -h, --help             Show help.
+      --version          Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -204,7 +205,7 @@ aliasInv = {alias[key]:key for key in alias}
 
 # get live job-info, or mimic live behavior by reading file
 if not args['--debug']:
-  cmd  = 'squeue -o "%A|%u|%j|%a|%C|%D|%m|%l|%L|%M|%S|%t|%N|%R|%p"'
+  cmd  = 'squeue -o "%all"'
   data = subprocess.check_output(cmd,shell=True).decode('utf-8')
   now  = time.mktime(time.localtime())
 else:
@@ -228,7 +229,9 @@ for job in data:
   # -- initialize empty dictionary
   info = {}
   # -- fill dictionary using fields names from the header
-  for key,val in zip(header,job.split('|')): info[key] = val
+  for key,val in zip(header,job.split('|')):
+    if len(key.strip()) > 0:
+      info[key.strip()] = val.strip()
   # -- store to list of jobs
   jobs += [info]
 
@@ -244,14 +247,14 @@ for job in jobs:
 
   # convert e.g. "2017-11-05T19:09:53" -> seconds from now
   # (allow for "N/A")
-  for key in ['START_TIME']:
+  for key in ['START_TIME','SUBMIT_TIME']:
     try:
       job[key] = Duration(int(now-time.mktime(time.strptime(job[key],'%Y-%m-%dT%H:%M:%S'))))
     except:
       job[key] = Duration(job[key])
 
   # convert e.g. "1-4:18:13" -> seconds
-  for key in ['TIME_LIMIT','TIME_LEFT']:
+  for key in ['TIME_LIMIT','TIME_LEFT','TIME']:
     # - initialize alias + data [days,hours,minutes,seconds]
     txt = job[key]
     dt  = [0,0,0,0]
@@ -315,6 +318,28 @@ if args['--list']:
     print(job[field],end=args['--sep'])
 
   print('')
+
+  sys.exit(0)
+
+# ------------------------------------- print long information -------------------------------------
+
+if args['--long']:
+
+  fmt = 0
+
+  for job in jobs:
+    for key in sorted(job):
+      fmt = max(fmt,len(key))
+
+  head = '{key:<%d.%ss}'           % (fmt+1,fmt+1)
+  fmt  = '{key:<%d.%ss}: {data:s}' % (fmt+1,fmt+1)
+
+  print(head.format(key='-'*100,data=''))
+
+  for job in jobs:
+    for key in sorted(job):
+      print(fmt.format(key=key,data=str(job[key])))
+    print(head.format(key='-'*100,data=''))
 
   sys.exit(0)
 
