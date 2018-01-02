@@ -16,6 +16,7 @@ Options:
   -s, --sort=<NAME>      Sort by name.
   -r, --reverse          Reverse sort [default: False].
       --output=<NAME>    Select output columns.
+      --full-name        Show full user names.
       --no-header        Suppress header, for easy parsing.
       --list             Print column as list.
       --sep=<NAME>       Column separator. [default:  ] (space)
@@ -234,6 +235,30 @@ for job in data:
       info[key.strip()] = val.strip()
   # -- store to list of jobs
   jobs += [info]
+
+# ------------------------- convert name (deals with an error of "squeue") -------------------------
+
+# get the user information of all currently running users
+uname = set([job['USER'] for job in jobs])
+cmd   = 'getent passwd ' + ' '.join(['"{name:s}"'.format(name=name) for name in uname])
+uinfo = subprocess.check_output(cmd,shell=True).decode('utf-8').strip().split('\n')
+
+# create dictionary to look-up information (from user-id, or user-name)
+# - allocate
+uname = {}
+# - extract info
+for name in uinfo:
+  n,_,i,g,f,_,_ = name.split(':')
+  uname[i] = dict(id=i,username=n,fullname=f)
+  uname[n] = dict(id=i,username=n,fullname=f)
+# - convert jobs
+for job in jobs:
+  # -- basic info
+  if args['--full-name']: job['USER'] = uname[job['USER']]['fullname']
+  else                  : job['USER'] = uname[job['USER']]['username']
+  # -- for "--long"
+  job['USER_FULLNAME'] = uname[job['USER']]['fullname']
+  job['USER_ID']       = uname[job['USER']]['id']
 
 # limit based on command-line options
 for key in ['USER','ACCOUNT','NAME','JOBID','ST']:
