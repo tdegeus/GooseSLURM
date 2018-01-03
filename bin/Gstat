@@ -13,7 +13,7 @@ Options:
   -n, --name=<NAME>      Limit jobs to a certain job-name (may be a regex).
   -j, --jobid=<NAME>     Limit jobs to a certain job-id (may be a regex).
       --status=<NAME>    Limit jobs to a certain status (may be a regex).
-  -s, --sort=<NAME>      Sort by name.
+  -s, --sort=<NAME>      Sort by field (selected by the header-name).
   -r, --reverse          Reverse sort [default: False].
       --output=<NAME>    Select output columns.
       --full-name        Show full user names.
@@ -67,6 +67,15 @@ This class can also deal with non-numeric input, it allows to input e.g. "N/A".
     if type(self.data) == int  : return float(self.data)
 
     return 0.0
+
+  # ------------------------------------------- isnum() --------------------------------------------
+
+  def isnum(self):
+
+    if type(self.data) == float: return True
+    if type(self.data) == int  : return True
+
+    return False
 
   # -------------------------------------------- __lt__ --------------------------------------------
 
@@ -161,6 +170,23 @@ Any non-numeric value will be kept as-is, through the parent-class "Number".
 
     return '-'
 
+# ============================= CHILD-CLASS TO REPRESENT A PERCENTAGE ==============================
+
+class Percentage(Number):
+  r'''
+Class to represent a percentage, with precision 2.
+
+Any non-numeric value will be kept as-is, through the parent-class "Number".
+  '''
+
+  # ------------------------------------------- __str__ --------------------------------------------
+
+  def __str__(self):
+
+    if type(self.data) == str: return self.data
+
+    return '%4.2f' % self.data
+
 # ========================================== MAIN PROGRAM ==========================================
 
 # --------------------------- support function: raise command line error ---------------------------
@@ -177,14 +203,14 @@ args = docopt.docopt(__doc__,version='0.0.2')
 # handle 'alias' options
 if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 
-# set alias between options of this function and the slurm field-names
+# rename fields
 args['USER'   ] = args.pop('--user'   )
 args['ACCOUNT'] = args.pop('--account')
 args['NAME'   ] = args.pop('--name'   )
 args['JOBID'  ] = args.pop('--jobid'  )
 args['ST'     ] = args.pop('--status' )
 
-# squeue headers -> custom headers
+# default headers -> custom headers
 alias = {
   'JOBID'           :'JOBID'  ,
   'USER'            :'USER'   ,
@@ -199,8 +225,23 @@ alias = {
   'NODELIST(REASON)':'EXEC'   ,
 }
 
-# custom headers -> squeue headers
-aliasInv = {alias[key]:key for key in alias}
+# custom headers -> default headers
+aliasInv = {alias[key].upper():key for key in alias}
+
+# print settings: width == minimum width, real == real width (computed below)
+fields = [
+  {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>'},
+  {'key':'USER'            ,'width':7 ,'real':0,'align':'<'},
+  {'key':'ACCOUNT'         ,'width':7 ,'real':0,'align':'<'},
+  {'key':'NAME'            ,'width':11,'real':0,'align':'<'},
+  {'key':'START_TIME'      ,'width':7 ,'real':0,'align':'>'},
+  {'key':'TIME_LEFT'       ,'width':6 ,'real':0,'align':'>'},
+  {'key':'NODES'           ,'width':5 ,'real':0,'align':'>'},
+  {'key':'CPUS'            ,'width':4 ,'real':0,'align':'>'},
+  {'key':'MIN_MEMORY'      ,'width':3 ,'real':0,'align':'>'},
+  {'key':'ST'              ,'width':2 ,'real':0,'align':'<'},
+  {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<'},
+]
 
 # ---------------------------------- load the output of "squeue" -----------------------------------
 
@@ -213,9 +254,9 @@ else:
   data = open(args['--debug'],'r').read()
   now  = os.path.getctime(args['--debug'])
 
-# extract the header and the jobs
+# extract the header and the info
 header,data = data.split('\n',1)
-data        = data.split('\n')
+data        = list(filter(None,data.split('\n')))
 
 # get the field names
 header = header.split('|')
@@ -225,11 +266,9 @@ header = header.split('|')
 jobs = []
 # - loop over jobs
 for job in data:
-  # -- check if there is any content
-  if len(job) == 0: continue
   # -- initialize empty dictionary
   info = {}
-  # -- fill dictionary using fields names from the header
+  # -- fill dictionary
   for key,val in zip(header,job.split('|')):
     if len(key.strip()) > 0:
       info[key.strip()] = val.strip()
@@ -260,12 +299,13 @@ for job in jobs:
   job['USER_FULLNAME'] = uname[job['USER']]['fullname']
   job['USER_ID']       = uname[job['USER']]['id']
 
-# limit based on command-line options
+# ------------------------------ limit based on command-line options -------------------------------
+
 for key in ['USER','ACCOUNT','NAME','JOBID','ST']:
   if args[key]:
-    jobs = [job for job in jobs if sum([1 if re.match(name,job[key]) else 0 for name in args[key]])]
+    jobs = [job for job in jobs if sum([1 if re.match(name,str(job[key])) else 0 for name in args[key]])]
 
-# ------------------- convert relevant fields to 'Duration' and 'Memory' objects -------------------
+# -------------------------------- convert type of relevant fields ---------------------------------
 
 # loop over all jobs
 for job in jobs:
@@ -311,7 +351,7 @@ for job in jobs:
     # - store
     job[key] = Memory(val*unit)
 
-  # convert try to convert to number
+  # convert to number
   for key in ['CPUS','NODES']:
     # - interpret
     if re.match('[0-9]*',job[key]): val = int(job[key])
@@ -327,7 +367,7 @@ if args['--sort']:
 else:
   jobs = sorted(jobs, key=lambda job: job[aliasInv['T_START']], reverse=not args['--reverse'])
 
-# ------------------------------- optionally: print as list and quit -------------------------------
+# --------------------------------- option: print as list and quit ---------------------------------
 
 if args['--list']:
 
@@ -346,7 +386,7 @@ if args['--list']:
 
   sys.exit(0)
 
-# ------------------------------------- print long information -------------------------------------
+# ---------------------------- option: print long information and quit -----------------------------
 
 if args['--long']:
 
@@ -379,25 +419,7 @@ def field2fmt(key,width,align,color=None,header=False,**kwargs):
 
   return fmt
 
-# --------------------------------- compute + create print format ----------------------------------
-
-# initialize
-# ----------
-
-# width == minimum width, real == real width (computed below)
-fields = [
-  {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>'},
-  {'key':'USER'            ,'width':7 ,'real':0,'align':'<'},
-  {'key':'ACCOUNT'         ,'width':7 ,'real':0,'align':'<'},
-  {'key':'NAME'            ,'width':11,'real':0,'align':'<'},
-  {'key':'START_TIME'      ,'width':7 ,'real':0,'align':'>'},
-  {'key':'TIME_LEFT'       ,'width':6 ,'real':0,'align':'>'},
-  {'key':'NODES'           ,'width':5 ,'real':0,'align':'>'},
-  {'key':'CPUS'            ,'width':4 ,'real':0,'align':'>'},
-  {'key':'MIN_MEMORY'      ,'width':3 ,'real':0,'align':'>'},
-  {'key':'ST'              ,'width':2 ,'real':0,'align':'<'},
-  {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<'},
-]
+# --------------------------------- create print format and print ----------------------------------
 
 # adjust fields and their width
 # -----------------------------
@@ -462,14 +484,15 @@ if args['--output']:
   for field in fields:
     field['width'] = field['real']
 
+# print result to screen
+# ----------------------
 
 # convert to print format
-# -----------------------
-
 head = args['--sep'].join([field2fmt(**field,header=True ) for field in fields])
 fmt  = args['--sep'].join([field2fmt(**field,header=False) for field in fields])
 
-# ------------------------------------- print result to screen -------------------------------------
+# print to screen
+# ---------------
 
 # header
 if not args['--no-header']:
@@ -477,4 +500,5 @@ if not args['--no-header']:
   print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
 
 # jobs
-for job in jobs: print(fmt.format(**job))
+for job in jobs:
+  print(fmt.format(**job))

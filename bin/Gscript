@@ -21,6 +21,7 @@ Options:
   -J, --job-name=<TEXT>     Set the job-name. (default: relative path)
   -c, --cpus-per-task=<N>   Number of CPUs-per-task. [default: 1]
   -t, --time=<TEXT>         Specify the maximum walltime. [default: 1d]
+  -m, --mem=<N>             Specify the maximum memory usage in MB. [default: 1028]
   -A, --account=<TEXT>      Specify account name. (default: )
       --sbatch<TEXT>        Miscellaneous SBATCH options.
   -h, --help                Show help.
@@ -298,7 +299,7 @@ for inp in args.pop('<INPUT>'):
   option += [ '#SBATCH --nodes 1' ]
   option += [ '#SBATCH --ntasks 1' ]
   option += [ '#SBATCH --cpus-per-task %s' % args['--cpus-per-task'] ]
-  option += [ '#SBATCH --mem 4096' ]
+  option += [ '#SBATCH --mem %s' % args['--mem'] ]
   option += [ '#SBATCH --time %s' % args['--time']]
 
   if args['--account']: option += [ '#SBATCH --account %s' % args['--account'] ]

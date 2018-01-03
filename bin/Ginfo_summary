@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-'''Ginfo
+'''Ginfo_sumary
   Summarize the status of all or a selection of jobs (wrapper around sinfo).
 
 Usage:
-  Ginfo [options]
-  Ginfo [options] [--sort=N...] [--job=N...] [--free=N...]
+  Ginfo_summary [options]
+  Ginfo_summary [options] [--sort=N...] [--job=N...] [--free=N...]
 
 Options:
   -n, --node=<NAME>       Limit jobs to a certain node (may be a regex).
-  -f, --free=<NAME>       Limit jobs to a certain free CPUs (may be a regex).
   -p, --partition=<NAME>  Limit jobs to a certain partition (may be a regex).
   -s, --sort=<NAME>       Sort by field (selected by the header-name).
   -r, --reverse           Reverse sort [default: False].
@@ -196,8 +195,8 @@ def Error(msg,exit_code=1):
 args = docopt.docopt(__doc__,version='0.0.2')
 
 # rename fields
-args['HOSTNAMES'] = args.pop('--job'      )
-args['CPUS_I'   ] = args.pop('--free'     )
+args['HOSTNAMES'] = args.pop('--job')
+args['CPUS_I'   ] = args.pop('--free')
 args['PARTITION'] = args.pop('--partition')
 
 # default headers -> custom headers
@@ -205,7 +204,7 @@ alias = {
   'HOSTNAMES':'Host',
   'CPUS_T'   :'Ctot',
   'CPUS_I'   :'Cfree',
-  'CPU_REL'  :'%CPU',
+  'CPU_REL'  :'CPU%',
   'PARTITION':'Partition',
   'MEMORY'   :'Mem',
   'MEM_REL'  :'Mem%',
@@ -219,15 +218,9 @@ aliasInv = {alias[key].upper():key for key in alias}
 
 # print settings: width == minimum width, real == real width (computed below)
 fields = [
-  {'key':'HOSTNAMES' ,'width':4 ,'real':0,'align':'<'},
+  {'key':'PARTITION' ,'width':9 ,'real':0,'align':'<'},
   {'key':'CPUS_T'    ,'width':4 ,'real':0,'align':'>'},
   {'key':'CPUS_I'    ,'width':5 ,'real':0,'align':'>'},
-  {'key':'CPU_REL'   ,'width':4 ,'real':0,'align':'<'},
-  {'key':'MEMORY'    ,'width':3 ,'real':0,'align':'>'},
-  {'key':'MEM_REL'   ,'width':4 ,'real':0,'align':'>'},
-  {'key':'PARTITION' ,'width':9 ,'real':0,'align':'<'},
-  {'key':'TIMELIMIT' ,'width':4 ,'real':0,'align':'>'},
-  {'key':'STATE'     ,'width':5 ,'real':0,'align':'<'},
 ]
 
 # ----------------------------------- load the output of "sinfo" -----------------------------------
@@ -332,36 +325,28 @@ for job in jobs:
   else:
     job['CPU_REL'] = Percentage('')
 
+# ------------------------------------- summarize information --------------------------------------
+
+partitions = sorted(set([job['PARTITION'] for job in jobs]))
+partitions = [{'PARTITION':key} for key in partitions]
+
+for partition in partitions:
+
+  N = [job for job in jobs if job['PARTITION'] == partition['PARTITION']]
+
+  partition['CPUS_T'] = Number(sum([int(job['CPUS_T']) for job in N if job['CPUS_T'].isnum()]))
+  partition['CPUS_I'] = Number(sum([int(job['CPUS_I']) for job in N if job['CPUS_I'].isnum()]))
+
+# rename
+jobs = partitions
+
 # ---------------------------------------------- sort ----------------------------------------------
 
 if args['--sort']:
   for key in args['--sort']:
-    jobs = sorted(jobs, key=lambda job: job[aliasInv[key.upper()]], reverse=args['--reverse'])
+    jobs = sorted(jobs, key=lambda job: job[aliasInv[key]], reverse=args['--reverse'])
 else:
-  jobs = sorted(jobs, key=lambda job: job[aliasInv['HOST']],      reverse=args['--reverse'])
   jobs = sorted(jobs, key=lambda job: job[aliasInv['PARTITION']], reverse=args['--reverse'])
-
-# ---------------------------- option: print long information and quit -----------------------------
-
-if args['--long']:
-
-  fmt = 0
-
-  for job in jobs:
-    for key in sorted(job):
-      fmt = max(fmt,len(key))
-
-  head = '{key:<%d.%ss}'           % (fmt+1,fmt+1)
-  fmt  = '{key:<%d.%ss}: {data:s}' % (fmt+1,fmt+1)
-
-  print(head.format(key='-'*100,data=''))
-
-  for job in jobs:
-    for key in sorted(job):
-      print(fmt.format(key=key,data=str(job[key])))
-    print(head.format(key='-'*100,data=''))
-
-  sys.exit(0)
 
 # ------------------- support function: convert column settings to print format --------------------
 
