@@ -60,7 +60,7 @@ cat <<EOF > {name:s}.json
   "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
   "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
   "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+  "SLURM_CPUS_PER_TASK" : "${{SLURM_CPUS_PER_TASK}}"
 }}
 EOF
 
@@ -106,7 +106,7 @@ trap 'clean_up' EXIT
 # ===========================================
 
 # set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
+export OMP_NUM_THREADS=${{SLURM_CPUS_PER_TASK}}
 
 {command:s}
 '''
@@ -142,7 +142,7 @@ cat <<EOF > {name:s}.json
   "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
   "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
   "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+  "SLURM_CPUS_PER_TASK" : "${{SLURM_CPUS_PER_TASK}}"
 }}
 EOF
 
@@ -188,7 +188,7 @@ trap 'clean_up' EXIT
 # ===========================================
 
 # set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
+export OMP_NUM_THREADS=${{SLURM_CPUS_PER_TASK}}
 
 {command:s}
 '''
@@ -210,7 +210,7 @@ cat <<EOF > {name:s}.json
   "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
   "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
   "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_ON_NODE"  : "${{SLURM_CPUS_ON_NODE}}"
+  "SLURM_CPUS_PER_TASK" : "${{SLURM_CPUS_PER_TASK}}"
 }}
 EOF
 
@@ -218,7 +218,7 @@ EOF
 # ===========================================
 
 # set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS=${{SLURM_CPUS_ON_NODE}}
+export OMP_NUM_THREADS=${{SLURM_CPUS_PER_TASK}}
 
 {command:s}
 '''

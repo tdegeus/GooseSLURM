@@ -33,7 +33,7 @@ cat <<EOF > tempdir.slurm.json
   "SLURM_JOB_NODELIST"  : "${SLURM_JOB_NODELIST}",
   "SLURM_SUBMIT_HOST"   : "${SLURM_SUBMIT_HOST}",
   "SLURM_JOB_NUM_NODES" : "${SLURM_JOB_NUM_NODES}",
-  "SLURM_CPUS_ON_NODE"  : "${SLURM_CPUS_ON_NODE}"
+  "SLURM_CPUS_PER_TASK" : "${SLURM_CPUS_PER_TASK}"
 }
 EOF
 
@@ -79,7 +79,7 @@ trap 'clean_up' EXIT
 # ===========================================
 
 # set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS=${SLURM_CPUS_ON_NODE}
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 # simplest example in the world, sleep a bit to allow a bit of monitoring
 echo "hello world" > "test.log"
