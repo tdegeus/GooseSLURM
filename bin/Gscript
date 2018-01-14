@@ -276,7 +276,7 @@ for inp in args.pop('<INPUT>'):
   # input is file -> add filename to the command
   if os.path.isfile(inp):
 
-    jobname  = inp
+    jobname  = inp[2:] if inp[:2] == './' else inp
     filename = os.path.splitext(os.path.split(inp)[1])[0] + args['--extension']
     path     = os.path.split(inp)[0]
 
@@ -286,7 +286,7 @@ for inp in args.pop('<INPUT>'):
   # input is directory -> use command as is
   else:
 
-    jobname  = inp
+    jobname  = inp[2:] if inp[:2] == './' else inp
     filename = args['--filename'] + args['--extension']
     path     = inp
     command  = args['--cmd']
