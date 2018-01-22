@@ -2,6 +2,23 @@
 '''Ginfo
   Summarize the status of all or a selection of jobs (wrapper around sinfo).
 
+  Some scores per node are computed:
+
+  * CPU% : the CPU load of the node, relative to the total number of CPUs in the node.
+           cpu_load / cpu_tot
+           should be <1
+
+  * CPU# : the CPU load of the node, relative to the number of jobs.
+           cpu_load / cpu_used
+           should be ~1
+
+  * Mem% : the amount of used memory, relative to the total amount of memory in the node.
+           mem_used / mem_tot
+           should be <1
+
+  * Mem# : the amount of used memory, relative to the average memory available per job.
+           ( mem_used / cpu_used ) / ( mem_tot / cpu_tot )
+           is >1 for (several) heavy memory consumption jobs
 Usage:
   Ginfo [options]
   Ginfo [options] [--sort=N...] [--job=N...] [--free=N...]
@@ -182,6 +199,16 @@ Any non-numeric value will be kept as-is, through the parent-class "Number".
 
     return '%4.2f' % self.data
 
+# ====================== SUPPORT FUNCTION: CHECK THAT ALL FIELDS ARE NUMERIC =======================
+
+def isnum(job,keys):
+
+  for key in keys:
+    if not job[key].isnum():
+      return False
+
+  return True
+
 # ========================================== MAIN PROGRAM ==========================================
 
 # --------------------------- support function: raise command line error ---------------------------
@@ -202,16 +229,18 @@ args['PARTITION'] = args.pop('--partition')
 
 # default headers -> custom headers
 alias = {
-  'HOSTNAMES':'Host',
-  'CPUS_T'   :'Ctot',
-  'CPUS_I'   :'Cfree',
-  'CPU_REL'  :'%CPU',
-  'PARTITION':'Partition',
-  'MEMORY'   :'Mem',
-  'MEM_REL'  :'Mem%',
-  'TIMELIMIT':'Tlim',
-  'STATE'    :'State',
-  'CPU_LOAD' :'Load',
+  'HOSTNAMES'  :'Host',
+  'CPUS_T'     :'Ctot',
+  'CPUS_I'     :'Cfree',
+  'CPU_REL'    :'CPU%',
+  'PARTITION'  :'Partition',
+  'MEMORY'     :'Mem',
+  'MEM_REL'    :'Mem%',
+  'MEM_RELJOB' :'Mem#',
+  'TIMELIMIT'  :'Tlim',
+  'STATE'      :'State',
+  'CPU_LOAD'   :'Load',
+  'CPU_RELJOB' :'CPU#'
 }
 
 # custom headers -> default headers
@@ -219,14 +248,16 @@ aliasInv = {alias[key].upper():key for key in alias}
 
 # print settings: width == minimum width, real == real width (computed below)
 fields = [
-  {'key':'HOSTNAMES' ,'width':4 ,'real':0,'align':'<'},
-  {'key':'CPUS_T'    ,'width':4 ,'real':0,'align':'>'},
+  {'key':'HOSTNAMES' ,'width':5 ,'real':0,'align':'<'},
+  {'key':'CPUS_T'    ,'width':5 ,'real':0,'align':'>'},
   {'key':'CPUS_I'    ,'width':5 ,'real':0,'align':'>'},
-  {'key':'CPU_REL'   ,'width':4 ,'real':0,'align':'<'},
+  {'key':'CPU_REL'   ,'width':5 ,'real':0,'align':'>'},
+  {'key':'CPU_RELJOB','width':5 ,'real':0,'align':'>'},
   {'key':'MEMORY'    ,'width':3 ,'real':0,'align':'>'},
-  {'key':'MEM_REL'   ,'width':4 ,'real':0,'align':'>'},
+  {'key':'MEM_REL'   ,'width':5 ,'real':0,'align':'>'},
+  {'key':'MEM_RELJOB','width':5 ,'real':0,'align':'>'},
   {'key':'PARTITION' ,'width':9 ,'real':0,'align':'<'},
-  {'key':'TIMELIMIT' ,'width':4 ,'real':0,'align':'>'},
+  {'key':'TIMELIMIT' ,'width':5 ,'real':0,'align':'>'},
   {'key':'STATE'     ,'width':5 ,'real':0,'align':'<'},
 ]
 
@@ -320,17 +351,46 @@ for job in jobs:
     # - store
     job[key] = Memory(val*unit)
 
-  # convert memory to score
-  if job['FREE_MEM'].isnum() and job['MEMORY'].isnum():
-    job['MEM_REL'] = Percentage((float(job['MEMORY'])-float(job['FREE_MEM']))/float(job['MEMORY']))
-  else:
-    job['MEM_REL'] = Percentage('')
-
-  # convert load to score
-  if job['CPU_LOAD'].isnum() and job['CPUS_T'].isnum():
-    job['CPU_REL'] = Percentage(float(job['CPU_LOAD'])/float(job['CPUS_T']))
-  else:
-    job['CPU_REL'] = Percentage('')
+  # compute memory and CPU scores
+  # - initialize
+  job['MEM_REL'   ] = Percentage('')
+  job['MEM_RELJOB'] = Percentage('')
+  job['CPU_REL'   ] = Percentage('')
+  job['CPU_RELJOB'] = Percentage('')
+  # - memory usage, relative to the total memory in the node
+  if isnum(job,['FREE_MEM','MEMORY']):
+    # -- extract parameters
+    mem_used = float(job['MEMORY'])-float(job['FREE_MEM'])
+    mem_tot  = float(job['MEMORY'])
+    # -- compute
+    if mem_tot > 0:
+      job['MEM_REL'] = Percentage(mem_used/mem_tot)
+  # - memory usage, relative to the average available memory per job
+  if isnum(job,['FREE_MEM','MEMORY','CPUS_A','CPUS_T']):
+    # -- extract parameters
+    mem_used = float(job['MEMORY'])-float(job['FREE_MEM'])
+    mem_tot  = float(job['MEMORY'])
+    cpu_used = float(job['CPUS_A'])
+    cpu_tot  = float(job['CPUS_T'])
+    # -- compute
+    if mem_tot > 0 and cpu_used > 0:
+      job['MEM_RELJOB'] = Percentage(mem_used/mem_tot * cpu_tot/cpu_used)
+  # - CPU load, relative to the total number of CPUs in the node
+  if isnum(job,['CPU_LOAD','CPUS_T']):
+    # -- extract parameters
+    cpu_load = float(job['CPU_LOAD'])
+    cpu_tot  = float(job['CPUS_T'])
+    # -- compute
+    if cpu_tot > 0:
+      job['CPU_REL'] = Percentage(cpu_load/cpu_tot)
+  # - CPU load, relative to the average available load per job
+  if isnum(job,['CPU_LOAD','CPUS_A']):
+    # -- extract parameters
+    cpu_load = float(job['CPU_LOAD'])
+    cpu_used = float(job['CPUS_A'])
+    # -- compute
+    if cpu_used > 0:
+      job['CPU_RELJOB'] = Percentage(cpu_load/cpu_used)
 
 # ---------------------------------------------- sort ----------------------------------------------
 
