@@ -18,6 +18,7 @@ Options:
       --output=<NAME>    Select output columns.
       --full-name        Show full user names.
       --no-header        Suppress header, for easy parsing.
+      --no-truncate      Print full columns, do not truncate based on screen width.
       --list             Print column as list.
       --sep=<NAME>       Column separator. [default:  ] (space)
       --long             Print all information.
@@ -433,7 +434,8 @@ if not args['--output']:
         field['color'] = '1;32;40'
 
   # get the terminal size
-  cols,_ = shutil.get_terminal_size()
+  if args['--no-truncate']: cols   = 99999999
+  else                    : cols,_ = shutil.get_terminal_size()
 
   # get the cumulative minimum size of the columns (+ spacing between the columns)
   if True:                       fields[0]['total'] = fields[0  ]['width']
