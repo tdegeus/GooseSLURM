@@ -94,7 +94,7 @@ if len(jobs) == 0: sys.exit(0)
 # - print message
 ids = [job for job in jobs]
 print('Delete jobs : ')
-print(subprocess.check_output('Gstat -j '+' -j '.join(ids),shell=True).decode('utf-8'),end='')
+print(subprocess.check_output('Gstat --no-truncate -j '+' -j '.join(ids),shell=True).decode('utf-8'),end='')
 # - prompt response
 if not confirm(): sys.exit(1)
 
