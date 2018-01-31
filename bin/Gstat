@@ -4,27 +4,29 @@
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=N...] [--account=N...] [--sort=N...] [--name=N...] [--jobid=N...] [--output=N...]
+  Gstat [options] [--user=N...] [--account=N...] [--host=N...] [--sort=N...] [--name=N...] [--jobid=N...] [--output=N...]
 
 Options:
-  -U                     Limit jobs to the current user.
-  -u, --user=<NAME>      Limit jobs to a certain user (may be a regex).
-  -a, --account=<NAME>   Limit jobs to a certain account (may be a regex).
-  -n, --name=<NAME>      Limit jobs to a certain job-name (may be a regex).
-  -j, --jobid=<NAME>     Limit jobs to a certain job-id (may be a regex).
-      --status=<NAME>    Limit jobs to a certain status (may be a regex).
-  -s, --sort=<NAME>      Sort by field (selected by the header-name).
-  -r, --reverse          Reverse sort [default: False].
-      --output=<NAME>    Select output columns.
-      --full-name        Show full user names.
-      --no-header        Suppress header, for easy parsing.
-      --no-truncate      Print full columns, do not truncate based on screen width.
-      --list             Print column as list.
-      --sep=<NAME>       Column separator. [default:  ] (space)
-      --long             Print all information.
-      --debug=<FILE>     Debug with output 'squeue -o "%all"' provided from file.
-  -h, --help             Show help.
-      --version          Show version.
+  -U                      Limit output to the current user.
+  -u, --user=<NAME>       Limit output to user(s)     (may be a regex).
+  -a, --account=<NAME>    Limit output to account(s)  (may be a regex).
+  -n, --name=<NAME>       Limit output to job-name(s) (may be a regex).
+  -j, --jobid=<NAME>      Limit output to job-id(s)   (may be a regex).
+      --host=<NAME>       Limit output to host(s)     (may be a regex).
+      --status=<NAME>     Limit output to status      (may be a regex).
+  -s, --sort=<NAME>       Sort by field (selected by the header name).
+  -r, --reverse           Reverse sort.
+      --output=<NAME>     Select output columns (selected by the header name).
+      --full-name         Show full user names.
+      --no-header         Suppress header.
+      --no-truncate       Print full columns, do not truncate based on screen width.
+      --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
+      --list              Print columns as list.
+      --sep=<NAME>        Set column separator. [default:  ] (space)
+      --long              Print full information (each column is printed as a line).
+      --debug=<FILE>      Debug. Output 'squeue -o "%all"' provided from file.
+  -h, --help              Show help.
+      --version           Show version.
 
 Copyright:
   T.W.J. de Geus
@@ -188,72 +190,126 @@ Any non-numeric value will be kept as-is, through the parent-class "Number".
 
     return '%4.2f' % self.data
 
-# ========================================== MAIN PROGRAM ==========================================
+# ======================================= SUPPORT FUNCTIONS ========================================
 
-# --------------------------- support function: raise command line error ---------------------------
+# --------------------------- check that fields under "keys" are numeric ---------------------------
+
+def isnum(line,keys):
+
+  for key in keys:
+    if not line[key].isnum():
+      return False
+
+  return True
+
+# ---------------------------- convert column settings to print format -----------------------------
+
+def field2fmt(key,width,align,color=None,header=False,**kwargs):
+
+  if header: fmt = '{%s:%s%d.%ds}' % ( key, '<'  , width, width )
+  else     : fmt = '{%s:%s%d.%ds}' % ( key, align, width, width )
+
+  if color: fmt = '\x1b[%sm'%color+fmt+'\x1b[0m'
+
+  return fmt
+
+# ------------------------------------ raise command line error ------------------------------------
 
 def Error(msg,exit_code=1):
   print(msg)
   sys.exit(exit_code)
 
-# --------------------------------- parse command line interaction ---------------------------------
+# ========================================== MAIN PROGRAM ==========================================
+
+# ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.2')
+args = docopt.docopt(__doc__,version='0.0.3')
+
+# change keys to simplify implementation:
+# - remove leading "-" and "--" from options
+args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+# - change "-" to "_" to facilitate direct use in print format
+args = {key.replace('-','_'): args[key] for key in args}
+
+# --------------------------------- field names and print settings ---------------------------------
 
 # handle 'alias' options
-if args['-U']: args['--user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
-
-# rename fields
-args['USER'   ] = args.pop('--user'   )
-args['ACCOUNT'] = args.pop('--account')
-args['NAME'   ] = args.pop('--name'   )
-args['JOBID'  ] = args.pop('--jobid'  )
-args['ST'     ] = args.pop('--status' )
+if args['U']: args['user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 
 # default headers -> custom headers
 alias = {
-  'JOBID'           :'JOBID'  ,
-  'USER'            :'USER'   ,
-  'ACCOUNT'         :'ACCOUNT',
-  'NAME'            :'NAME'   ,
-  'START_TIME'      :'T_START',
-  'TIME_LEFT'       :'T_LEFT' ,
-  'NODES'           :'NODES'  ,
-  'CPUS'            :'CPUS'   ,
+  'JOBID'           :'JobID'  ,
+  'USER'            :'User'   ,
+  'ACCOUNT'         :'Account',
+  'NAME'            :'Name'   ,
+  'START_TIME'      :'Tstart' ,
+  'TIME_LEFT'       :'Tleft'  ,
+  'NODES'           :'#node'  ,
+  'CPUS'            :'#CPU'   ,
   'MIN_MEMORY'      :'MEM'    ,
   'ST'              :'ST'     ,
-  'NODELIST(REASON)':'EXEC'   ,
+  'NODELIST(REASON)':'Host'   ,
 }
 
 # custom headers -> default headers
 aliasInv = {alias[key].upper():key for key in alias}
 
-# print settings: width == minimum width, real == real width (computed below)
+# add names to use as arguments
+aliasInv['STATUS'] = 'ST'
+
+# rename fields
+for key in [key for key in args]:
+  if key.upper() in aliasInv:
+    args[aliasInv[key.upper()]] = args.pop(key)
+
+# print settings:
+# - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
+# - "real"    : real width, computed below
+# - "align"   : alignment of the columns (except the header)
+# - "priority": priority of column expansing, columns marked "True" are expanded first
 fields = [
-  {'key':'JOBID'           ,'width':7 ,'real':0,'align':'>'},
-  {'key':'USER'            ,'width':7 ,'real':0,'align':'<'},
-  {'key':'ACCOUNT'         ,'width':7 ,'real':0,'align':'<'},
-  {'key':'NAME'            ,'width':11,'real':0,'align':'<'},
-  {'key':'START_TIME'      ,'width':7 ,'real':0,'align':'>'},
-  {'key':'TIME_LEFT'       ,'width':6 ,'real':0,'align':'>'},
-  {'key':'NODES'           ,'width':5 ,'real':0,'align':'>'},
-  {'key':'CPUS'            ,'width':4 ,'real':0,'align':'>'},
-  {'key':'MIN_MEMORY'      ,'width':3 ,'real':0,'align':'>'},
-  {'key':'ST'              ,'width':2 ,'real':0,'align':'<'},
-  {'key':'NODELIST(REASON)','width':5 ,'real':0,'align':'<'},
+  {'key':'JOBID'           , 'width':7 , 'real':0, 'align':'>', 'priority': True },
+  {'key':'USER'            , 'width':7 , 'real':0, 'align':'<', 'priority': True },
+  {'key':'ACCOUNT'         , 'width':7 , 'real':0, 'align':'<', 'priority': True },
+  {'key':'NAME'            , 'width':11, 'real':0, 'align':'<', 'priority': False},
+  {'key':'START_TIME'      , 'width':6 , 'real':0, 'align':'>', 'priority': True },
+  {'key':'TIME_LEFT'       , 'width':5 , 'real':0, 'align':'>', 'priority': True },
+  {'key':'NODES'           , 'width':5 , 'real':0, 'align':'>', 'priority': True },
+  {'key':'CPUS'            , 'width':4 , 'real':0, 'align':'>', 'priority': True },
+  {'key':'MIN_MEMORY'      , 'width':3 , 'real':0, 'align':'>', 'priority': True },
+  {'key':'ST'              , 'width':2 , 'real':0, 'align':'<', 'priority': True },
+  {'key':'NODELIST(REASON)', 'width':5 , 'real':0, 'align':'<', 'priority': False},
 ]
+
+# color scheme
+if args['colors'].lower() == 'dark':
+  theme = {
+    'selection' : '1;32;40',
+    'free'      : '1;32',
+    'error'     : '9;31',
+    'warning'   : '1;31',
+    'low'       : '1;36',
+  }
+else:
+  theme = {
+    'selection' : '',
+    'free'      : '',
+    'error'     : '',
+    'warning'   : '',
+    'low'       : '',
+  }
 
 # ---------------------------------- load the output of "squeue" -----------------------------------
 
 # get live job-info, or mimic live behavior by reading file
-if not args['--debug']:
+if not args['debug']:
   cmd  = 'squeue -o "%all"'
   data = subprocess.check_output(cmd,shell=True).decode('utf-8')
   now  = time.mktime(time.localtime())
 else:
-  data = open(args['--debug'],'r').read()
-  now  = os.path.getctime(args['--debug'])
+  data = open(args['debug'],'r').read()
+  now  = os.path.getctime(args['debug'])
 
 # extract the header and the info
 header,data = data.split('\n',1)
@@ -264,22 +320,22 @@ header = header.split('|')
 
 # convert to list of dictionaries
 # - initialize
-jobs = []
-# - loop over jobs
-for job in data:
+lines = []
+# - loop over lines
+for line in data:
   # -- initialize empty dictionary
   info = {}
   # -- fill dictionary
-  for key,val in zip(header,job.split('|')):
+  for key,val in zip(header,line.split('|')):
     if len(key.strip()) > 0:
       info[key.strip()] = val.strip()
-  # -- store to list of jobs
-  jobs += [info]
+  # -- store to list of lines
+  lines += [info]
 
 # ------------------------- convert name (deals with an error of "squeue") -------------------------
 
 # get the user information of all currently running users
-uname = set([job['USER'] for job in jobs])
+uname = set([line['USER'] for line in lines])
 cmd   = 'getent passwd ' + ' '.join(['"{name:s}"'.format(name=name) for name in uname])
 uinfo = subprocess.check_output(cmd,shell=True).decode('utf-8').strip().split('\n')
 
@@ -291,57 +347,53 @@ for name in uinfo:
   n,_,i,g,f,_,_ = name.split(':')
   uname[i] = dict(id=i,username=n,fullname=f)
   uname[n] = dict(id=i,username=n,fullname=f)
-# - convert jobs
-for job in jobs:
+# - convert lines
+for line in lines:
   # -- basic info
-  if args['--full-name']: job['USER'] = uname[job['USER']]['fullname']
-  else                  : job['USER'] = uname[job['USER']]['username']
+  if args['full_name']: line['USER'] = uname[line['USER']]['fullname']
+  else                  : line['USER'] = uname[line['USER']]['username']
   # -- for "--long"
-  job['USER_FULLNAME'] = uname[job['USER']]['fullname']
-  job['USER_ID']       = uname[job['USER']]['id']
+  line['USER_FULLNAME'] = uname[line['USER']]['fullname']
+  line['USER_ID']       = uname[line['USER']]['id']
 
-# ------------------------------ limit based on command-line options -------------------------------
+# ---------------- convert type of relevant fields, provide a color interpretation -----------------
 
-for key in ['USER','ACCOUNT','NAME','JOBID','ST']:
-  if args[key]:
-    jobs = [job for job in jobs if sum([1 if re.match(name,str(job[key])) else 0 for name in args[key]])]
+# loop over all lines
+for line in lines:
 
-# -------------------------------- convert type of relevant fields ---------------------------------
+  # string (-> integer) -> Number
+  for key in ['CPUS','NODES']:
+    try   : line[key] = Number(int(line[key]))
+    except: line[key] = Number(    line[key] )
 
-# loop over all jobs
-for job in jobs:
-
-  # convert e.g. "2017-11-05T19:09:53" -> seconds from now
-  # (allow for "N/A")
+  # "year-month-dayThour:minute:second" (e.g. "2017-11-05T19:09:53") -> seconds from now
   for key in ['START_TIME','SUBMIT_TIME']:
-    try:
-      job[key] = Duration(int(now-time.mktime(time.strptime(job[key],'%Y-%m-%dT%H:%M:%S'))))
-    except:
-      job[key] = Duration(job[key])
+    try:    line[key] = Duration(int(now-time.mktime(time.strptime(line[key],'%Y-%m-%dT%H:%M:%S'))))
+    except: line[key] = Duration(line[key])
 
-  # convert e.g. "1-4:18:13" -> seconds
+  # "days-hours:mins:secs" (e.g. "1-4:18:13") -> seconds
   for key in ['TIME_LIMIT','TIME_LEFT','TIME']:
     # - initialize alias + data [days,hours,minutes,seconds]
-    txt = job[key]
+    txt = line[key]
     dt  = [0,0,0,0]
-    # - read number of days
-    if len(job[key].split('-')) > 1: dt[0],txt = job[key].split('-')
+    # - split days
+    if len(line[key].split('-')) > 1: dt[0],txt = line[key].split('-')
     # - split hours:minutes:seconds (all optional)
     txt = txt.split(':')
     # - fill from seconds -> minutes (if present) -> hours (if present)
     for i in range(len(txt)): dt[-1*(i+1)] = txt[-1*(i+1)]
     # - store in seconds
-    try   : job[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
-    except: job[key] = Duration(job[key])
+    try   : line[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
+    except: line[key] = Duration(line[key])
 
-  # convert e.g. "4G" -> bytes
+  # convert memory (e.g. "4G") -> bytes
   for key in ['MIN_MEMORY']:
     # - read value and units
-    if re.match('[0-9\.]*[A-Za-z]',job[key]):
-      val  = float(job[key][:-1])
-      unit =       job[key][ -1]
+    if re.match('[0-9\.]*[A-Za-z]',line[key]):
+      val  = float(line[key][:-1])
+      unit =       line[key][ -1]
     else:
-      val  = float(job[key])
+      val  = float(line[key])
       unit = ''
     # - convert to bytes
     if   unit == 'K': unit = 1.e3
@@ -350,111 +402,118 @@ for job in jobs:
     elif unit == 'T': unit = 1.e12
     else            : unit = 1.
     # - store
-    job[key] = Memory(val*unit)
+    line[key] = Memory(val*unit)
 
-  # convert to number
-  for key in ['CPUS','NODES']:
-    # - interpret
-    if re.match('[0-9]*',job[key]): val = int(job[key])
-    else                          : val =     job[key]
-    # - convert
-    job[key] = Number(val)
+  # initialize colors
+  line['color'] = {key:None for key in line}
+
+# ------------------------------ limit based on command-line options -------------------------------
+
+# initialize header colors
+header_colors = {field['key']:None for field in fields}
+
+# select data
+for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)']:
+  if args[key]:
+    # - limit data
+    lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
+    # - set color selection
+    for line in lines: line['color'][key] = theme['selection']
+    # - set header color
+    header_colors[key] = theme['selection']
 
 # ---------------------------------------------- sort ----------------------------------------------
 
-if args['--sort']:
-  for key in args['--sort']:
-    jobs = sorted(jobs, key=lambda job: job[aliasInv[key.upper()]], reverse=args['--reverse'])
+# apply sort
+# - custom
+if args['sort']:
+  for key in args['sort']:
+    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+# - default
 else:
-  jobs = sorted(jobs, key=lambda job: job[aliasInv['T_START']], reverse=not args['--reverse'])
+  lines = sorted(lines, key=lambda line: line['START_TIME'], reverse=not args['reverse'])
 
-# --------------------------------- option: print as list and quit ---------------------------------
+# -------------------------------- optional: print as list and quit --------------------------------
 
-if args['--list']:
+if args['list']:
 
-  if not args['--output']:
+  if not args['output']:
     Error('"--list" can only be used with one column, select using "--output"')
 
-  if len(args['--output']) > 1:
+  if len(args['output']) > 1:
     Error('"--list" can only be used with one column, select using "--output"')
 
-  field = args['--output'][0].upper()
+  field = args['output'][0].upper()
 
-  for job in jobs:
-    print(job[field],end=args['--sep'])
+  for line in lines:
+    print(line[field],end=args['sep'])
 
   print('')
 
   sys.exit(0)
 
-# ---------------------------- option: print long information and quit -----------------------------
+# --------------------------- optional: print long information and quit ----------------------------
 
-if args['--long']:
+if args['long']:
 
   fmt = 0
 
-  for job in jobs:
-    for key in sorted(job):
+  for line in lines:
+    for key in sorted(line):
       fmt = max(fmt,len(key))
 
-  head = '{key:<%d.%ss}'           % (fmt+1,fmt+1)
-  fmt  = '{key:<%d.%ss}: {data:s}' % (fmt+1,fmt+1)
+  head = '{key:<%d.%ss}'           % ( fmt+1, fmt+1 )
+  fmt  = '{key:<%d.%ss}: {data:s}' % ( fmt+1, fmt+1 )
 
   print(head.format(key='-'*100,data=''))
 
-  for job in jobs:
-    for key in sorted(job):
-      print(fmt.format(key=key,data=str(job[key])))
+  for line in lines:
+    for key in sorted(line):
+      print(fmt.format(key=key,data=str(line[key])))
     print(head.format(key='-'*100,data=''))
 
   sys.exit(0)
 
-# ------------------- support function: convert column settings to print format --------------------
-
-def field2fmt(key,width,align,color=None,header=False,**kwargs):
-
-  if header: fmt = '{%s:%s%d.%ds}'%(key,'<',width,width)
-  else     : fmt = '{%s:%s%d.%ds}'%(key,align,width,width)
-
-  if color: fmt = '\x1b[%sm'%color+fmt+'\x1b[0m'
-
-  return fmt
-
 # --------------------------------- create print format and print ----------------------------------
 
-# adjust fields and their width
-# -----------------------------
+# limit columns
+# -------------
 
-if not args['--output']:
+if args['output']:
+  # - avoid case conflicts
+  output = [name.upper() for name in args['output']]
+  # - select columns
+  fields = [field for field in fields if field['key'] in output]
 
-  # add color for selection
-  for field in fields:
-    if field['key'] in args:
-      if args[field['key']]:
-        field['color'] = '1;32;40'
+# auto-limit columns, auto-adjust their width
+# -------------------------------------------
+
+if not args['no_truncate']:
 
   # get the terminal size
-  if args['--no-truncate']: cols   = 99999999
-  else                    : cols,_ = shutil.get_terminal_size()
+  cols,_ = shutil.get_terminal_size()
 
   # get the cumulative minimum size of the columns (+ spacing between the columns)
-  if True:                       fields[0]['total'] = fields[0  ]['width']
-  for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
+  # - first entry
+  fields[0]['total'] = fields[0]['width']
+  # - all other entries
+  for i in range(1,len(fields)):
+    fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + len(args['sep'])
 
   # truncate at terminal size
   fields = [field for field in fields if field['total'] <= cols]
 
   # get actual width
-  for job in jobs:
+  for line in lines:
     for field in fields:
-      field['real'] = max(field['real'],len(job[field['key']]))
+      field['real'] = max(field['real'], len(line[field['key']]))
 
   # get the available size to expand
   room = cols - fields[-1]['total']
 
   # expand minimum width, as long there is room
   # - distinguish priorities for expanding
-  low  = ['NAME']
+  low  = [field['key'] for field in fields if not field.get('priority',False)]
   high = [field['key'] for field in fields if field['key'] not in low]
   # - expand
   for prio in [high,low]:
@@ -466,41 +525,34 @@ if not args['--output']:
       field['width'] += dw
       room           -= dw
 
-# fixed output
-# ------------
+# compute column width to fit all data
+# ------------------------------------
 
-if args['--output']:
-
-  # avoid case conflicts
-  output = [name.upper() for name in args['--output']]
-
-  # select fields
-  fields = [field for field in fields if field['key'] in output]
+if args['no_truncate']:
 
   # get actual width
-  for job in jobs:
+  for line in lines:
     for field in fields:
-      field['real'] = max(field['real'],len(job[field['key']]))
+      field['real'] = max(field['real'],len(line[field['key']]))
 
   # set width
   for field in fields:
     field['width'] = field['real']
 
-# print result to screen
-# ----------------------
-
-# convert to print format
-head = args['--sep'].join([field2fmt(**field,header=True ) for field in fields])
-fmt  = args['--sep'].join([field2fmt(**field,header=False) for field in fields])
-
 # print to screen
 # ---------------
 
 # header
-if not args['--no-header']:
-  print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
-  print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
+if not args['no_header']:
+  # - print format
+  fmt = args['sep'].join([field2fmt(**f,color=header_colors[f['key']],header=True) for f in fields])
+  # - header and separator line
+  print(fmt.format(**{f['key']:alias[f['key' ]] for f in fields}))
+  print(fmt.format(**{f['key']:'='*  f['width'] for f in fields}))
 
-# jobs
-for job in jobs:
-  print(fmt.format(**job))
+# lines
+for line in lines:
+  # - print format
+  fmt = args['sep'].join([field2fmt(**f,color=line['color'][f['key']]) for f in fields])
+  # - print line
+  print(fmt.format(**line))

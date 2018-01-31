@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
 '''Ginfo_sumary
-  Summarize the status of all or a selection of jobs (wrapper around sinfo).
+  Summarize the status of all or a selection of compute nodes (wrapper around "sinfo").
 
 Usage:
   Ginfo_summary [options]
-  Ginfo_summary [options] [--sort=N...] [--job=N...] [--free=N...]
+  Ginfo_summary [options] [--cfree=N...] [--host=N...] [--sort=N...]
 
 Options:
-  -n, --node=<NAME>       Limit jobs to a certain node (may be a regex).
-  -p, --partition=<NAME>  Limit jobs to a certain partition (may be a regex).
-  -s, --sort=<NAME>       Sort by field (selected by the header-name).
-  -r, --reverse           Reverse sort [default: False].
-      --output=<NAME>     Select output columns.
-      --no-header         Suppress header, for easy parsing.
+  -f, --cfree=<NAME>      Limit output to free CPU(s)  (may be a regex).
+  -p, --partition=<NAME>  Limit output to partition(s) (may be a regex).
+      --host=<NAME>       Limit output to host(s)      (may be a regex).
+  -s, --sort=<NAME>       Sort by field (selected by the header name).
+  -r, --reverse           Reverse sort.
+      --output=<NAME>     Select output columns (selected by the header name).
+      --no-header         Suppress header.
       --no-truncate       Print full columns, do not truncate based on screen width.
-      --sep=<NAME>        Column separator. [default:  ] (space)
-      --long              Print all information.
-      --debug=<FILE>      Debug with output 'sinfo -o "%all"' provided from file.
+      --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
+      --sep=<NAME>        Set column separator. [default:  ] (space)
+      --long              Print full information (each column is printed as a line).
+      --debug=<FILE>      Debug. Output 'sinfo -o "%all"' provided from file.
   -h, --help              Show help.
       --version           Show version.
 
@@ -182,57 +184,104 @@ Any non-numeric value will be kept as-is, through the parent-class "Number".
 
     return '%4.2f' % self.data
 
-# ========================================== MAIN PROGRAM ==========================================
+# ======================================= SUPPORT FUNCTIONS ========================================
 
-# --------------------------- support function: raise command line error ---------------------------
+# --------------------------- check that fields under "keys" are numeric ---------------------------
+
+def isnum(line,keys):
+
+  for key in keys:
+    if not line[key].isnum():
+      return False
+
+  return True
+
+# ---------------------------- convert column settings to print format -----------------------------
+
+def field2fmt(key,width,align,color=None,header=False,**kwargs):
+
+  if header: fmt = '{%s:%s%d.%ds}' % ( key, '<'  , width, width )
+  else     : fmt = '{%s:%s%d.%ds}' % ( key, align, width, width )
+
+  if color: fmt = '\x1b[%sm'%color+fmt+'\x1b[0m'
+
+  return fmt
+
+# ------------------------------------ raise command line error ------------------------------------
 
 def Error(msg,exit_code=1):
   print(msg)
   sys.exit(exit_code)
 
-# --------------------------------- parse command line interaction ---------------------------------
+# ========================================== MAIN PROGRAM ==========================================
+
+# ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.2')
+args = docopt.docopt(__doc__,version='0.0.3')
 
-# rename fields
-args['HOSTNAMES'] = args.pop('--job')
-args['CPUS_I'   ] = args.pop('--free')
-args['PARTITION'] = args.pop('--partition')
+# change keys to simplify implementation:
+# - remove leading "-" and "--" from options
+args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+# - change "-" to "_" to facilitate direct use in print format
+args = {key.replace('-','_'): args[key] for key in args}
+
+# --------------------------------- field names and print settings ---------------------------------
 
 # default headers -> custom headers
 alias = {
-  'HOSTNAMES':'Host',
-  'CPUS_T'   :'Ctot',
-  'CPUS_I'   :'Cfree',
-  'CPU_REL'  :'CPU%',
-  'PARTITION':'Partition',
-  'MEMORY'   :'Mem',
-  'MEM_REL'  :'Mem%',
-  'TIMELIMIT':'Tlim',
-  'STATE'    :'State',
-  'CPU_LOAD' :'Load',
+  'HOSTNAMES'  : 'Host',
+  'CPUS_T'     : 'CPUs',
+  'CPUS_I'     : 'Cfree',
+  'PARTITION'  : 'Partition',
 }
 
 # custom headers -> default headers
 aliasInv = {alias[key].upper():key for key in alias}
 
-# print settings: width == minimum width, real == real width (computed below)
+# rename fields
+for key in [key for key in args]:
+  if key.upper() in aliasInv:
+    args[aliasInv[key.upper()]] = args.pop(key)
+
+# print settings:
+# - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
+# - "real"    : real width, computed below
+# - "align"   : alignment of the columns (except the header)
+# - "priority": priority of column expansing, columns marked "True" are expanded first
 fields = [
-  {'key':'PARTITION' ,'width':9 ,'real':0,'align':'<'},
-  {'key':'CPUS_T'    ,'width':4 ,'real':0,'align':'>'},
-  {'key':'CPUS_I'    ,'width':5 ,'real':0,'align':'>'},
+  {'key':'PARTITION','width':9, 'real':0, 'align':'<', 'priority':True},
+  {'key':'CPUS_T'   ,'width':5, 'real':0, 'align':'>', 'priority':True},
+  {'key':'CPUS_I'   ,'width':5, 'real':0, 'align':'>', 'priority':True},
 ]
+
+# color scheme
+if args['colors'].lower() == 'dark':
+  theme = {
+    'selection' : '1;32;40',
+    'free'      : '1;32',
+    'error'     : '9;31',
+    'warning'   : '1;31',
+    'low'       : '1;36',
+  }
+else:
+  theme = {
+    'selection' : '',
+    'free'      : '',
+    'error'     : '',
+    'warning'   : '',
+    'low'       : '',
+  }
 
 # ----------------------------------- load the output of "sinfo" -----------------------------------
 
-# get live job-info, or mimic live behavior by reading file
-if not args['--debug']:
+# get live compute-node-info, or mimic live behavior by reading file
+if not args['debug']:
   cmd  = 'sinfo -o "%all"'
   data = subprocess.check_output(cmd,shell=True).decode('utf-8')
 else:
-  data = open(args['--debug'],'r').read()
-  now  = os.path.getctime(args['--debug'])
+  data = open(args['debug'],'r').read()
+  now  = os.path.getctime(args['debug'])
 
 # extract the header and the info
 header,data = data.split('\n',1)
@@ -243,67 +292,62 @@ header = header.split('|')
 
 # convert to list of dictionaries
 # - initialize
-jobs = []
-# - loop over jobs
-for job in data:
+lines = []
+# - loop over lines
+for line in data:
   # -- initialize empty dictionary
   info = {}
   # -- fill dictionary
-  for key,val in zip(header,job.split('|')):
+  for key,val in zip(header,line.split('|')):
     if len(key.strip()) > 0:
       info[key.strip()] = val.strip()
-  # -- store to list of jobs
-  jobs += [info]
+  # -- store to list of lines
+  lines += [info]
 
-# ------------------------------ limit based on command-line options -------------------------------
+# ---------------- convert type of relevant fields, provide a color interpretation -----------------
 
-for key in ['HOSTNAMES','PARTITION']:
-  if args[key]:
-    jobs = [job for job in jobs if sum([1 if re.match(name,str(job[key])) else 0 for name in args[key]])]
+# loop over all lines
+for line in lines:
 
-# -------------------------------- convert type of relevant fields ---------------------------------
+  # CPUs, split: allocated/idle/other/total
+  line['CPUS_A'], line['CPUS_I'], line['CPUS_O'], line['CPUS_T'] = line['CPUS(A/I/O/T)'].split('/')
 
-# loop over all jobs
-for job in jobs:
-
-  # CPUs: allocated/idle/other/total
-  job['CPUS_A'], job['CPUS_I'], job['CPUS_O'], job['CPUS_T'] = job['CPUS(A/I/O/T)'].split('/')
-
-  # convert to numbers
+  # string (-> integer) -> Number
   for key in ['CPUS_A', 'CPUS_I', 'CPUS_O', 'CPUS_T']:
-    job[key] = Number(int(job[key]))
+    try   : line[key] = Number(int(line[key]))
+    except: line[key] = Number(    line[key] )
 
-  # convert to numbers
+  # string (-> float) -> Number
   for key in ['CPU_LOAD']:
-    if not re.match('.*[0-9].*',job[key]): job[key] = Number(job[key])
-    else                                  : job[key] = Number(float(job[key]))
+    try   : line[key] = Number(float(line[key]))
+    except: line[key] = Number(      line[key] )
 
-  # convert e.g. "1-4:18:13" -> seconds
+  # "days-hours:mins:secs" (e.g. "1-4:18:13") -> seconds
   for key in ['TIMELIMIT']:
     # - initialize alias + data [days,hours,minutes,seconds]
-    txt = job[key]
+    txt = line[key]
     dt  = [0,0,0,0]
-    # - read number of days
-    if len(job[key].split('-')) > 1: dt[0],txt = job[key].split('-')
+    # - split days
+    if len(line[key].split('-')) > 1: dt[0],txt = line[key].split('-')
     # - split hours:minutes:seconds (all optional)
     txt = txt.split(':')
     # - fill from seconds -> minutes (if present) -> hours (if present)
     for i in range(len(txt)): dt[-1*(i+1)] = txt[-1*(i+1)]
     # - store in seconds
-    try   : job[key] = Duration(int(dt[0])*24*60*60 + int(dt[1])*60*60 + int(dt[2])*60 + int(dt[3]))
-    except: job[key] = Duration(job[key])
+    try   : line[key] = Duration(int(dt[0])*24*60*60+int(dt[1])*60*60+int(dt[2])*60+int(dt[3]))
+    except: line[key] = Duration(line[key])
 
-  # convert to memory
+  # convert memory (e.g. "4G") -> bytes
   for key, byte in zip(['MEMORY','FREE_MEM'], [1.e6,1.e6]):
     # - read value and units
-    if not re.match('.*[0-9].*',job[key]):
-      job[key] = Memory(job[key])
+    if not re.match('.*[0-9].*',line[key]):
+      line[key] = Memory(line[key])
       continue
-    if re.match('[0-9\.]*[A-Za-z]',job[key]):
-      val  = float(job[key][:-1])
-      unit =       job[key][ -1]
+    if re.match('[0-9\.]*[A-Za-z]',line[key]):
+      val  = float(line[key][:-1])
+      unit =       line[key][ -1]
     else:
-      val  = float(job[key])
+      val  = float(line[key])
       unit = ''
     # - convert to bytes
     if   unit == 'K': unit = byte * 1.e3
@@ -312,89 +356,87 @@ for job in jobs:
     elif unit == 'T': unit = byte * 1.e12
     else            : unit = byte * 1.
     # - store
-    job[key] = Memory(val*unit)
+    line[key] = Memory(val*unit)
 
-  # convert memory to score
-  if job['FREE_MEM'].isnum() and job['MEMORY'].isnum():
-    job['MEM_REL'] = Percentage((float(job['MEMORY'])-float(job['FREE_MEM']))/float(job['MEMORY']))
-  else:
-    job['MEM_REL'] = Percentage('')
+# ------------------------------ limit based on command-line options -------------------------------
 
-  # convert load to score
-  if job['CPU_LOAD'].isnum() and job['CPUS_T'].isnum():
-    job['CPU_REL'] = Percentage(float(job['CPU_LOAD'])/float(job['CPUS_T']))
-  else:
-    job['CPU_REL'] = Percentage('')
+# initialize header colors
+header_colors = {field['key']:None for field in fields}
+
+# select data
+for key in ['HOSTNAMES','PARTITION']:
+  if args[key]:
+    lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
 
 # ------------------------------------- summarize information --------------------------------------
 
-partitions = sorted(set([job['PARTITION'] for job in jobs]))
+partitions = sorted(set([line['PARTITION'] for line in lines]))
 partitions = [{'PARTITION':key} for key in partitions]
 
 for partition in partitions:
 
-  N = [job for job in jobs if job['PARTITION'] == partition['PARTITION']]
+  N = [line for line in lines if line['PARTITION'] == partition['PARTITION']]
 
-  partition['CPUS_T'] = Number(sum([int(job['CPUS_T']) for job in N if job['CPUS_T'].isnum()]))
-  partition['CPUS_I'] = Number(sum([int(job['CPUS_I']) for job in N if job['CPUS_I'].isnum()]))
+  partition['CPUS_T'] = Number(sum([int(line['CPUS_T']) for line in N if line['CPUS_T'].isnum()]))
+  partition['CPUS_I'] = Number(sum([int(line['CPUS_I']) for line in N if line['CPUS_I'].isnum()]))
+
+  # initialize colors
+  partition['color'] = {key:None for key in partition}
 
 # rename
-jobs = partitions
+lines = partitions
 
 # ---------------------------------------------- sort ----------------------------------------------
 
-if args['--sort']:
-  for key in args['--sort']:
-    jobs = sorted(jobs, key=lambda job: job[aliasInv[key]], reverse=args['--reverse'])
+# apply sort
+# - custom
+if args['sort']:
+  for key in args['sort']:
+    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+# - default
 else:
-  jobs = sorted(jobs, key=lambda job: job[aliasInv['PARTITION']], reverse=args['--reverse'])
-
-# ------------------- support function: convert column settings to print format --------------------
-
-def field2fmt(key,width,align,color=None,header=False,**kwargs):
-
-  if header: fmt = '{%s:%s%d.%ds}'%(key,'<',width,width)
-  else     : fmt = '{%s:%s%d.%ds}'%(key,align,width,width)
-
-  if color: fmt = '\x1b[%sm'%color+fmt+'\x1b[0m'
-
-  return fmt
+  lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=args['reverse'])
 
 # --------------------------------- create print format and print ----------------------------------
 
-# adjust fields and their width
-# -----------------------------
+# limit columns
+# -------------
 
-if not args['--output']:
+if args['output']:
+  # - avoid case conflicts
+  output = [name.upper() for name in args['output']]
+  # - select columns
+  fields = [field for field in fields if field['key'] in output]
 
-  # add color for selection
-  for field in fields:
-    if field['key'] in args:
-      if args[field['key']]:
-        field['color'] = '1;32;40'
+# auto-limit columns, auto-adjust their width
+# -------------------------------------------
+
+if not args['no_truncate']:
 
   # get the terminal size
-  if args['--no-truncate']: cols   = 99999999
-  else                    : cols,_ = shutil.get_terminal_size()
+  cols,_ = shutil.get_terminal_size()
 
   # get the cumulative minimum size of the columns (+ spacing between the columns)
-  if True:                       fields[0]['total'] = fields[0  ]['width']
-  for i in range(1,len(fields)): fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + 1
+  # - first entry
+  fields[0]['total'] = fields[0]['width']
+  # - all other entries
+  for i in range(1,len(fields)):
+    fields[i]['total'] = fields[i-1]['total'] + fields[i]['width'] + len(args['sep'])
 
   # truncate at terminal size
   fields = [field for field in fields if field['total'] <= cols]
 
   # get actual width
-  for job in jobs:
+  for line in lines:
     for field in fields:
-      field['real'] = max(field['real'],len(job[field['key']]))
+      field['real'] = max(field['real'], len(line[field['key']]))
 
   # get the available size to expand
   room = cols - fields[-1]['total']
 
   # expand minimum width, as long there is room
   # - distinguish priorities for expanding
-  low  = ['NAME']
+  low  = [field['key'] for field in fields if not field.get('priority',False)]
   high = [field['key'] for field in fields if field['key'] not in low]
   # - expand
   for prio in [high,low]:
@@ -406,41 +448,34 @@ if not args['--output']:
       field['width'] += dw
       room           -= dw
 
-# fixed output
-# ------------
+# compute column width to fit all data
+# ------------------------------------
 
-if args['--output']:
-
-  # avoid case conflicts
-  output = [name.upper() for name in args['--output']]
-
-  # select fields
-  fields = [field for field in fields if field['key'] in output]
+if args['no_truncate']:
 
   # get actual width
-  for job in jobs:
+  for line in lines:
     for field in fields:
-      field['real'] = max(field['real'],len(job[field['key']]))
+      field['real'] = max(field['real'],len(line[field['key']]))
 
   # set width
   for field in fields:
     field['width'] = field['real']
 
-# print result to screen
-# ----------------------
-
-# convert to print format
-head = args['--sep'].join([field2fmt(**field,header=True ) for field in fields])
-fmt  = args['--sep'].join([field2fmt(**field,header=False) for field in fields])
-
 # print to screen
 # ---------------
 
 # header
-if not args['--no-header']:
-  print(head.format(**{field['key']:alias[field['key' ]] for field in fields}))
-  print(head.format(**{field['key']:'='*  field['width'] for field in fields}))
+if not args['no_header']:
+  # - print format
+  fmt = args['sep'].join([field2fmt(**f,color=header_colors[f['key']],header=True) for f in fields])
+  # - header and separator line
+  print(fmt.format(**{f['key']:alias[f['key' ]] for f in fields}))
+  print(fmt.format(**{f['key']:'='*  f['width'] for f in fields}))
 
-# jobs
-for job in jobs:
-  print(fmt.format(**job))
+# lines
+for line in lines:
+  # - print format
+  fmt = args['sep'].join([field2fmt(**f,color=line['color'][f['key']]) for f in fields])
+  # - print line
+  print(fmt.format(**line))
