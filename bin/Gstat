@@ -287,6 +287,7 @@ if args['colors'].lower() == 'dark':
   theme = {
     'selection' : '1;32;40',
     'free'      : '1;32',
+    'queued'    : '0;37',
     'error'     : '9;31',
     'warning'   : '1;31',
     'low'       : '1;36',
@@ -295,6 +296,7 @@ else:
   theme = {
     'selection' : '',
     'free'      : '',
+    'queued'    : '',
     'error'     : '',
     'warning'   : '',
     'low'       : '',
@@ -406,6 +408,11 @@ for line in lines:
 
   # initialize colors
   line['color'] = {key:None for key in line}
+
+  # highlight queued jobs
+  if line['ST'] == 'PD':
+    for key in line['color']:
+      line['color'][key] = theme['queued']
 
 # ------------------------------ limit based on command-line options -------------------------------
 
