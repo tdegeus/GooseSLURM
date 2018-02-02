@@ -11,7 +11,6 @@ set(PROJECT_BINARIES
   bin/Gscript
   bin/Gstat
   bin/Ginfo
-  bin/Ginfo_summary
   bin/Gsub
 )
 
