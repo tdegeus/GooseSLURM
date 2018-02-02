@@ -451,6 +451,17 @@ def print_columns(columns,header,lines,no_truncate=False,**kwargs):
   for line in lines:
     print(args['sep'].join(line[column['key']].format() for column in columns))
 
+# ========================================= PRINT AS LIST ==========================================
+
+def print_list(lines,field):
+
+  field = field.upper()
+
+  for line in lines:
+    print(line[field],end=args['sep'])
+
+  print('')
+
 # ==================================== RAISE COMMAND LINE ERROR ====================================
 
 def Error(msg,exit_code=1):
@@ -689,6 +700,12 @@ else:
 # optional: print all fields and quit
 if args['long']:
   print_long(lines)
+  sys.exit(0)
+
+# optional: print as list and quit
+if args['list']:
+  if not args['output']: Error('Select column using "--output"')
+  print_list(lines,*args['output'])
   sys.exit(0)
 
 # print columns
