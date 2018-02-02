@@ -377,9 +377,14 @@ def print_columns(columns,header,lines,no_truncate=False,**kwargs):
     column['real'] = 0
 
   # get actual width
+  # - header
+  for column in columns:
+    column['real'] = max(column['real'], len(header[column['key']]))
+  # - data
   for line in lines:
     for column in columns:
       column['real'] = max(column['real'], len(line[column['key']]))
+
 
   # auto-limit columns, auto-adjust their width
   # -------------------------------------------
