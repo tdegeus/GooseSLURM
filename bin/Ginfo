@@ -517,6 +517,8 @@ columns_summary = [
   {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
   {'key':'CPUS_T'    ,'width':5, 'align':'>', 'priority':True },
   {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'CPU_RELJOB','width':5, 'align':'>', 'priority':True },
+  {'key':'MEM_RELJOB','width':5, 'align':'>', 'priority':True },
 ]
 
 # color scheme
@@ -697,17 +699,44 @@ print_columns(columns,header,lines,**args)
 
 if args['no_summary']: sys.exit(0)
 
+# get names of the different partitions
 partitions = sorted(set([str(line['PARTITION']) for line in lines]))
+
+# start a new list of "node information", summed on the relevant nodes
 partitions = [{'PARTITION':String(key)} for key in partitions]
 
+# loop over partitions
 for partition in partitions:
 
+  # - isolate nodes for this partition
   N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
 
+  # - get the CPU count
   partition['CPUS_T'] = Integer(sum([int(line['CPUS_T']) for line in N]))
   partition['CPUS_I'] = Integer(sum([int(line['CPUS_I']) for line in N]))
 
-  if int(partition['CPUS_I']) > 0: partition['CPUS_I'].color = theme['free']
+  # - initialize scores
+  partition['CPU_RELJOB'] = Float('')
+  partition['MEM_RELJOB'] = Float('')
+
+  # - average load
+  if len([1 for line in N if line['CPU_RELJOB'].isnumeric()]) > 0:
+    partition['CPU_RELJOB'] = Float(
+      sum([float(line['CPU_RELJOB']) for line in N if line['CPU_RELJOB'].isnumeric()]) /
+      sum([1.                        for line in N if line['CPU_RELJOB'].isnumeric()])
+    )
+
+  # - average memory consumption
+  if len([1 for line in N if line['MEM_RELJOB'].isnumeric()]) > 0:
+    partition['MEM_RELJOB'] = Float(
+      sum([float(line['MEM_RELJOB']) for line in N if line['MEM_RELJOB'].isnumeric()]) /
+      sum([1.                        for line in N if line['MEM_RELJOB'].isnumeric()])
+    )
+
+  # - highlight 'scores'
+  if   int  (partition['CPUS_I']    ) > 0   : partition['CPUS_I'    ].color = theme['free'   ]
+  if   float(partition['CPU_RELJOB']) > 1.05: partition['CPU_RELJOB'].color = theme['warning']
+  elif float(partition['CPU_RELJOB']) < 0.95: partition['CPU_RELJOB'].color = theme['low'    ]
 
 # rename
 lines = partitions
