@@ -63,7 +63,7 @@ Arguments (also class-variables which may be modified at any time):
 
 Options (also class-variables which may be modified at any time):
 
-- width     : the width for formatted print
+- width     : the width for formatted print [default: None]
 - color     : the color for formatted print (e.g. "1;32" for bold green) [default: None]
 - align     : "<" for left align, ">" for right align [default: "<"]
 - precision : floating point precision (only for Float, Duration, Memory) [default: None]
@@ -133,7 +133,7 @@ The classes have the following features:
 
     return False
 
-  # --- return an unformatted string (for Float, Duration, Memory the precision/unit is applied) ---
+  # ------- return unformatted string (Float, Duration, Memory: precision/unit are applied) --------
 
   def __str__(self):
 
@@ -344,7 +344,7 @@ class Memory(Integer):
 
     return self.asunit(float(self.data), 'B')
 
-# ======================================== PRINT ALL FIELDS ========================================
+# ============================== PRINT ALL FIELDS: ONE LINE PER FIELD ==============================
 
 def print_long(lines):
 
@@ -369,7 +369,7 @@ def print_long(lines):
       print(fmt.format(key=key,data=str(line[key])))
     print(head.format(key='-'*100,data=''))
 
-# ======================================== FORMATTED PRINT =========================================
+# ======================================== PRINT IN COLUMNS ========================================
 
 def print_columns(columns,header,lines,no_truncate=False,**kwargs):
 
@@ -381,6 +381,10 @@ def print_columns(columns,header,lines,no_truncate=False,**kwargs):
     column['real'] = 0
 
   # get actual width
+  # - header
+  for column in columns:
+    column['real'] = max(column['real'], len(header[column['key']]))
+  # - data
   for line in lines:
     for column in columns:
       column['real'] = max(column['real'], len(line[column['key']]))
