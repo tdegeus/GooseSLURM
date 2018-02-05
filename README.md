@@ -61,16 +61,20 @@ To get these scripts to work one can:
         export PATH=$HOME/opt/bin:$PATH
         ```
 
-> Note that one has to have Python 3 (loaded), and the "[docopt](http://docopt.org)" library has to be available to Python. For example:
+> Note that one has to have Python3 (loaded), and the "[docopt](http://docopt.org)" library has to be available to Python. For example:
 > 
 > *   Load using
 >  
 >      ```bash
 >      module load python/3.6.1
 >      ```
+>
+>      Or something equivalent. Note that none of the feature should be very version dependent.
 >      
 > *    [Install "docopt"](https://pypi.python.org/pypi/docopt/) using
 > 
 >      ```bash
 >      pip3 install --user docopt
 >      ```
+>
+>      The `--user` option is only needed if you want to install the library to your own home-folder. On 'normal' systems this is typically not what you want to do, but it assumed here that you are doing this on a cluster where everything is shared.
