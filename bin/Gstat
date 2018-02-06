@@ -535,7 +535,7 @@ columns = [
 ]
 
 # header
-header = {column['key']: String(alias[column['key']],align='<') for column in columns}
+header = {column['key']: String(alias[column['key']],align=column['align']) for column in columns}
 
 # color scheme
 if args['colors'].lower() == 'dark':

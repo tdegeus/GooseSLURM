@@ -501,28 +501,28 @@ for key in [key for key in args]:
 # - "align"   : alignment of the columns (except the header)
 # - "priority": priority of column expansing, columns marked "True" are expanded first
 columns = [
-  {'key':'HOSTNAMES' ,'width':5, 'align':'<', 'priority':True },
-  {'key':'CPUS_T'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'HOSTNAMES' ,'width':4, 'align':'<', 'priority':True },
+  {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
   {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
-  {'key':'CPU_RELJOB','width':5, 'align':'>', 'priority':True },
-  {'key':'MEMORY'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
+  {'key':'MEMORY'    ,'width':3, 'align':'>', 'priority':True },
   {'key':'FREE_MEM'  ,'width':5, 'align':'>', 'priority':True },
-  {'key':'MEM_RELJOB','width':5, 'align':'>', 'priority':True },
+  {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
   {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
-  {'key':'TIMELIMIT' ,'width':5, 'align':'>', 'priority':False},
+  {'key':'TIMELIMIT' ,'width':4, 'align':'>', 'priority':False},
   {'key':'STATE'     ,'width':5, 'align':'<', 'priority':False},
 ]
 
 # header
-header = {column['key']: String(alias[column['key']],align='<') for column in columns}
+header = {column['key']: String(alias[column['key']],align=column['align']) for column in columns}
 
 # print settings for the summary (subset, header the same)
 columns_summary = [
   {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
-  {'key':'CPUS_T'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
   {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
-  {'key':'CPU_RELJOB','width':5, 'align':'>', 'priority':True },
-  {'key':'MEM_RELJOB','width':5, 'align':'>', 'priority':True },
+  {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
+  {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
 ]
 
 # color scheme
