@@ -66,7 +66,7 @@ To get these scripts to work one can:
 > *   Load using
 >  
 >      ```bash
->      module load python/3.6.1
+>      module load gcc/7.1.0 python/3.6.1
 >      ```
 >
 >      Or something equivalent. Note that none of the feature should be very version dependent.
