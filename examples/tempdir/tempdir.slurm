@@ -1,23 +1,21 @@
 #!/bin/bash
 #SBATCH --job-name tempdir
 #SBATCH --out tempdir.slurm.out
-#SBATCH --error tempdir.slurm.error
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
-#SBATCH --mem 4096
-#SBATCH --time 12:30:00
+#SBATCH --partition debug
 
 # 1. Generate unique directory name [DO NOT CHANGE]
 # =================================================
 
-# store my username
-username=`whoami`
+# get hostname
+myhost=`hostname`
 
 # get name of the temporary directory working directory, physically on the compute-node
 workdir="$TMPDIR"
 
-# store submit directory
+# get submit directory
 # (every file/folder below this directory is copied to the compute-node)
 submitdir="${SLURM_SUBMIT_DIR}"
 
@@ -26,8 +24,10 @@ submitdir="${SLURM_SUBMIT_DIR}"
 
 cat <<EOF > tempdir.slurm.json
 {
-  "workdir"             : "${workdir}",
   "submitdir"           : "${submitdir}",
+  "workdir"             : "${workdir}",
+  "workdir_host"        : "${myhost}",
+  "hostname"            : "${myhost}",
   "SLURM_SUBMIT_DIR"    : "${SLURM_SUBMIT_DIR}",
   "SLURM_JOB_ID"        : "${SLURM_JOB_ID}",
   "SLURM_JOB_NODELIST"  : "${SLURM_JOB_NODELIST}",
@@ -77,9 +77,6 @@ trap 'clean_up' EXIT
 
 # 5. Execute [MODIFY COMPLETELY TO YOUR NEED]
 # ===========================================
-
-# set the number of CPUs to be used by an OpenMP application
-export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 # simplest example in the world, sleep a bit to allow a bit of monitoring
 echo "hello world" > "test.log"

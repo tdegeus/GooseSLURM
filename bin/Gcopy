@@ -3,94 +3,124 @@
   Copy data from temporary working directory.
 
 Usage:
-  Gcopy [options] JOBS...
+  Gcopy [options] <job.json>...
 
 Arguments:
-  JOBS          Path to the JSON log(s) (see 'Gscript').
+  Path to the JSON log(s) (see 'Gscript' and GooseSLURM examples).
 
 Options:
-     --remove   Remove temporary working directory after copying.
-     --verbose  Verbose all commands and their output.
-  -h --help     Show help.
-     --version  Show version.
+      --remove    Remove temporary working directory after copying.
+      --dry-run   Print commands to screen, without executing.
+      --verbose   Verbose all commands and their output.
+      --debug     Print all operations.
+  -h, --help      Show help.
+      --version   Show version.
 
-Copyright:
-  T.W.J. de Geus
-  tom@geus.me
-  www.geus.me
+(c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
 
-# --------------------------------------------------------------------------------------------------
+# ========================================= LOAD LIBRARIES =========================================
 
-import docopt, os, sys, subprocess, csv, pwd, shutil, time, json
+import os, sys, re, subprocess, shutil, docopt, json
 
-# function to raise error
-def Error(txt):
-  print(txt)
-  sys.exit(1)
+# ==================================== RAISE COMMAND LINE ERROR ====================================
+
+def Error(msg,exit_code=1):
+  print(msg)
+  sys.exit(exit_code)
+
+# ========================================== RUN COMMAND ===========================================
+
+def run(cmd,verbose=False,dry_run=False,**kwargs):
+
+  if dry_run:
+    print(cmd)
+    return None
+
+  out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+
+  if verbose:
+    print(cmd)
+    print(out,end='')
+
+  return out
+
+# ========================================== MAIN PROGRAM ==========================================
+
+# ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.2')
+args = docopt.docopt(__doc__,version='0.0.3')
+
+# change keys to simplify implementation:
+# - remove leading "-" and "--" from options
+args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+# - change "-" to "_" to facilitate direct use in print format
+args = {key.replace('-','_'): args[key] for key in args}
+
+# overwrite
+if args['debug']: args['verbose'] = True
+
+# ---------------------------------------------- copy ----------------------------------------------
 
 # loop over jobs
-for job in args['JOBS']:
+for job in args['<job.json>']:
 
-  # - read job info
+  # read job info
+  # -------------
+
+  # read JSON-file
   if os.path.isfile(job):
     data = json.load(open(job,'r'))
   else:
     Error('Cannot read "%s"'%job)
 
-  # - verify that destination exists
+  # verify that destination exists
   if not os.path.isdir(data['submitdir']):
-    txt = '["{key:s}" ({SLURM_JOB_ID:s})] "submitdir" not found'.format(key=job,**data)
-    Error(txt)
+    Error('["{key:s}" ({SLURM_JOB_ID:s})] "submitdir" not found'.format(key=job,**data))
 
-  # - find workdir locally
-  if os.path.isdir(data['workdir']): local = True
-  else                             : local = False
+  # check to read the workdir locally
+  if data['workdir_host'] == 'localhost': local = True
+  else                                  : local = False
 
-  # - check remote directory
+  # check remote directory
   if not local:
-
-    if int(data['SLURM_JOB_NUM_NODES']) > 1:
-      txt = '["{key:s}" ({SLURM_JOB_ID:s})] Automatic copy only possible for 1 compute node'
+    # - command
+    cmd = "if ssh {workdir_host:s} '[ -d {workdir:s} ]'; then echo True; else echo False; fi"
+    cmd = cmd.format(**data)
+    # - run command
+    out = run(cmd,verbose=args['debug'])
+    # - check
+    if out == 'False':
+      txt = '["{key:s}" ({SLURM_JOB_ID:s})] "workdir" not found found on "{workdir_host:s}"'
       txt = txt.format(key=job,**data)
       Error(txt)
 
-    cmd = "if ssh {SLURM_JOB_NODELIST:s} '[ -d {workdir:s} ]'; then echo True; else echo False; fi"
-    cmd = cmd.format(**data)
-    out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+  # copy
+  # ----
 
-    if args['--verbose']:
-      print(cmd)
-      print(out,end='')
-
-    if out == 'False':
-      txt = '["{key:s}" ({SLURM_JOB_ID:s})] "workdir" not found found'.format(key=job,**data)
-      Error(txt)
-
-  # - copy
+  # command
   if local: cmd = "cp -r {workdir:s}/* {submitdir:s}/".format(**data)
-  else    : cmd = "scp -r '{SLURM_JOB_NODELIST:s}:{workdir:s}/*' {submitdir:s}/".format(**data)
+  else    : cmd = "scp -r '{workdir_host:s}:{workdir:s}/*' {submitdir:s}/".format(**data)
 
-  out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+  # run command
+  run(cmd,**args)
 
-  if args['--verbose']:
-    print(cmd)
-    print(out,end='')
+  # remove (optional)
+  # -----------------
 
-  # - remove if needed
-  if args['--remove']:
+  if args['remove']:
 
+    # remove from localhost
     if local:
-      shutil.rmtree(data['workdir'])
-      print('rm -r {workdir:s}'.format(**data))
+      # - remove
+      if not args['dry_run']: shutil.rmtree(data['workdir'])
+      # - verbose output
+      if args['verbose'] or args['dry_run']: print('rm -r {workdir:s}'.format(**data))
 
+    # remove from remote host
     else:
-      cmd = "ssh {SLURM_JOB_NODELIST:s} 'rm -r {workdir:s}'".format(**data)
-      out = subprocess.check_output(cmd,shell=True).decode('utf-8')
-
-      if args['--verbose']:
-        print(cmd)
-        print(out,end='')
+      # - command
+      cmd = "ssh {workdir_host:s} 'rm -r {workdir:s}'".format(**data)
+      # - run command
+      run(cmd,**args)

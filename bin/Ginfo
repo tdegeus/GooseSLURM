@@ -33,15 +33,12 @@ Options:
   -h, --help              Show help.
       --version           Show version.
 
-Copyright:
-  T.W.J. de Geus
-  tom@geus.me
-  www.geus.me
+(c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
 
 # ========================================= LOAD LIBRARIES =========================================
 
-import subprocess, shutil, docopt, pwd, os, sys, time, re
+import os, sys, re, subprocess, shutil, docopt, pwd, time
 
 # ==================== CLASS TO REPRESENT A STRING, AND PROVIDE A PRINT FORMAT =====================
 
