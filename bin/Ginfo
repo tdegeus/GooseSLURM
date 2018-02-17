@@ -476,6 +476,7 @@ alias = {
   'HOSTNAMES'  : 'Host',
   'CPUS_T'     : 'CPUs',
   'CPUS_I'     : 'Cfree',
+  'CPUS_D'     : 'Cdown',
   'CPU_RELJOB' : 'CPU%',
   'PARTITION'  : 'Partition',
   'MEMORY'     : 'Mem',
@@ -518,9 +519,13 @@ columns_summary = [
   {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
   {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
   {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'CPUS_D'    ,'width':5, 'align':'>', 'priority':True },
   {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
   {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
 ]
+
+# header
+header_summary = {c['key']: String(alias[c['key']],align=c['align']) for c in columns_summary}
 
 # color scheme
 if args['colors'].lower() == 'dark':
@@ -651,8 +656,13 @@ for line in lines:
   line['CPU_RELJOB'] = cpu_score(**line)
   line['MEM_RELJOB'] = mem_score(**line)
 
+  # default: CPUs down
+  line['CPUS_D'] = Integer('0')
+
   # node down: mark all fields
-  if re.match(r'down,*',str(line['STATE'])):
+  if re.match(r'down,*',str(line['STATE'])) or re.match(r'maint.*',str(line['STATE'])):
+    line['CPUS_I'] = Integer('0')
+    line['CPUS_D'] = Integer(str(line['CPUS_T']))
     for key in line:
       line[key].color = theme['error']
 
@@ -713,8 +723,9 @@ for partition in partitions:
   N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
 
   # - get the CPU count
-  partition['CPUS_T'] = Integer(sum([int(line['CPUS_T']) for line in N]))
-  partition['CPUS_I'] = Integer(sum([int(line['CPUS_I']) for line in N]))
+  partition['CPUS_T'] = Integer(sum([int(line['CPUS_T']) - int(line['CPUS_D']) for line in N]))
+  partition['CPUS_D'] = Integer(sum([int(line['CPUS_D'])                       for line in N]))
+  partition['CPUS_I'] = Integer(sum([int(line['CPUS_I'])                       for line in N]))
 
   # - initialize scores
   partition['CPU_RELJOB'] = Float('')
@@ -758,4 +769,4 @@ else:
 
 # --------------------------------- create print format and print ----------------------------------
 
-print_columns(columns_summary,header,lines,**args)
+print_columns(columns_summary,header_summary,lines,**args)
