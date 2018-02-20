@@ -6,7 +6,7 @@
   using the "Gsub" command.
 
 Usage:
-  Gscript [options] [--sbatch=<TEXT>...] <INPUT>...
+  Gscript [options] [--sbatch=<TEXT>...] [--rm=<NAME>...] <INPUT>...
 
 Arguments:
   Input files, or simulations folders:
@@ -18,6 +18,7 @@ Options:
       --type=<TEXT>         The type of script: tempdir, scratch, or local.   [default: tempdir]
       --cmd=<TEXT>          The command(s) to execute.
       --exec=<FILE>         Read the command(s) to execute from a file.
+      --rm=<NAME>           File to remove before copying back to the submitdir.
       --extension=<TEXT>    Extension of the job-script.                      [default: .slurm]
       --filename=<TEXT>     Filename of the job-script (not for inputfile).   [default: job]
   -J, --job-name=<TEXT>     Job-name.                                         (default: path)
@@ -95,6 +96,8 @@ cd ${{workdir}}
 
 # define clean-up function
 function clean_up {{
+  # - remove local files before copying
+  {remove:s}
   # - change directory to the location of the sbatch-command (on the head-node)
   cd "${{submitdir}}"
   # - copy everything from the temporary directory on the compute-node
@@ -179,6 +182,8 @@ cd ${{workdir}}
 
 # define clean-up function
 function clean_up {{
+  # - remove local files before copying
+  {remove:s}
   # - change directory to the location of the sbatch-command (on the head-node)
   cd "${{submitdir}}"
   # - copy everything from the temporary directory on the compute-node
@@ -235,6 +240,8 @@ EOF
 # ===========================================
 
 {command:s}
+
+{remove:s}
 '''
 
 # ========================================= LOAD LIBRARIES =========================================
@@ -292,6 +299,10 @@ if args['time']:
     T = '%d:%02d:%02d' % (h,m,s)
     # - alias
     args['time'] = T
+
+# combine "--rm" to command
+if args['rm']: args['rm'] = 'rm -r ' + ' '.join(args['rm'])
+else         : args['rm'] = ''
 
 # ----------------------------------------- convert input ------------------------------------------
 
@@ -361,6 +372,7 @@ for jobname, filename, path, command, option in zip(jobnames, filenames, paths, 
     slurm   = option,
     name    = filename,
     command = command,
+    remove  = args['rm'],
   ))
 
   print('Written "%s"' % os.path.join(path,filename))
