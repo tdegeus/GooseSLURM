@@ -640,9 +640,13 @@ for line in lines:
   for key, byte in zip(['MIN_MEMORY'], [1.]):
     # - get data
     txt = str(line[key])
+    # - null value
+    if txt == '0':
+      line[key] = Memory('')
+      continue
     # - read value and units
     if not re.match('.*[0-9].*',txt):
-      txt = Memory(txt)
+      line[key] = Memory(txt)
       continue
     if re.match('[0-9\.]*[A-Za-z]',txt):
       val  = float(txt[:-1])
