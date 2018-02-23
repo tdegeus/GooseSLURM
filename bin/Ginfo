@@ -23,8 +23,8 @@ Options:
   -s, --sort=<NAME>       Sort by field (selected by the header name).
   -r, --reverse           Reverse sort.
       --output=<NAME>     Select output columns (selected by the header name).
+  -S, --summary           Print only summary.
       --no-header         Suppress header.
-      --no-summary        Suppress summary.
       --no-truncate       Print full columns, do not truncate based on screen width.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
       --sep=<NAME>        Set column separator. [default:  ] (space)
@@ -456,6 +456,23 @@ def print_columns(columns,header,lines,no_truncate=False,**kwargs):
   for line in lines:
     print(args['sep'].join(line[column['key']].format() for column in columns))
 
+# ================================= PRINT A SINGLE FIELD AS A LIST =================================
+
+def print_list(lines,field,sep=' ',**kwargs):
+
+  field = field.upper()
+
+  for line in lines:
+    print(line[field],end=sep)
+
+  print('')
+
+# ==================================== RAISE COMMAND LINE ERROR ====================================
+
+def Error(msg,exit_code=1):
+  print(msg)
+  sys.exit(exit_code)
+
 # ========================================== MAIN PROGRAM ==========================================
 
 # ---------------------------------- parse command line arguments ----------------------------------
@@ -477,6 +494,7 @@ alias = {
   'CPUS_T'     : 'CPUs',
   'CPUS_I'     : 'Cfree',
   'CPUS_D'     : 'Cdown',
+  'CPUS_O'     : 'Con',
   'CPU_RELJOB' : 'CPU%',
   'PARTITION'  : 'Partition',
   'MEMORY'     : 'Mem',
@@ -518,8 +536,9 @@ header = {column['key']: String(alias[column['key']],align=column['align']) for 
 columns_summary = [
   {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
   {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
-  {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'CPUS_O'    ,'width':5, 'align':'>', 'priority':True },
   {'key':'CPUS_D'    ,'width':5, 'align':'>', 'priority':True },
+  {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
   {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
   {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
 ]
@@ -635,7 +654,7 @@ for line in lines:
     txt = str(line[key])
     # - read value and units
     if not re.match('.*[0-9].*',txt):
-      txt = Memory(txt)
+      line[key] = Memory(txt)
       continue
     if re.match('[0-9\.]*[A-Za-z]',txt):
       val  = float(txt[:-1])
@@ -656,13 +675,15 @@ for line in lines:
   line['CPU_RELJOB'] = cpu_score(**line)
   line['MEM_RELJOB'] = mem_score(**line)
 
-  # default: CPUs down
+  # default: CPUs down/online
   line['CPUS_D'] = Integer('0')
+  line['CPUS_O'] = Integer(str(line['CPUS_T']))
 
   # node down: mark all fields
   if re.match(r'down,*',str(line['STATE'])) or re.match(r'maint.*',str(line['STATE'])):
     line['CPUS_I'] = Integer('0')
     line['CPUS_D'] = Integer(str(line['CPUS_T']))
+    line['CPUS_O'] = Integer('0')
     for key in line:
       line[key].color = theme['error']
 
@@ -698,17 +719,20 @@ else:
 
 # --------------------------------------------- print ----------------------------------------------
 
-# optional: print all fields and quit
-if args['long']:
-  print_long(lines)
+if not args['summary']:
+
+  # optional: print all fields and quit
+  if args['long']:
+    print_long(lines)
+    sys.exit(0)
+
+  # print columns
+  print_columns(columns,header,lines,**args)
+
+  # quit
   sys.exit(0)
 
-# print columns
-print_columns(columns,header,lines,**args)
-
 # ------------------------------------- summarize information --------------------------------------
-
-if args['no_summary']: sys.exit(0)
 
 # get names of the different partitions
 partitions = sorted(set([str(line['PARTITION']) for line in lines]))
@@ -723,9 +747,10 @@ for partition in partitions:
   N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
 
   # - get the CPU count
-  partition['CPUS_T'] = Integer(sum([int(line['CPUS_T']) - int(line['CPUS_D']) for line in N]))
-  partition['CPUS_D'] = Integer(sum([int(line['CPUS_D'])                       for line in N]))
-  partition['CPUS_I'] = Integer(sum([int(line['CPUS_I'])                       for line in N]))
+  partition['CPUS_T'] = Integer(sum([int(line['CPUS_T']) for line in N]))
+  partition['CPUS_O'] = Integer(sum([int(line['CPUS_O']) for line in N]))
+  partition['CPUS_D'] = Integer(sum([int(line['CPUS_D']) for line in N]))
+  partition['CPUS_I'] = Integer(sum([int(line['CPUS_I']) for line in N]))
 
   # - initialize scores
   partition['CPU_RELJOB'] = Float('')
@@ -756,7 +781,8 @@ lines = partitions
 # ---------------------------------------------- sort ----------------------------------------------
 
 # check if sort is possible
-args['sort'] = [key for key in args['sort'] if key in [column['key'] for column in columns]]
+keys         = [alias[column['key']] for column in columns_summary]
+args['sort'] = [key for key in args['sort'] if key in keys]
 
 # apply sort
 # - custom

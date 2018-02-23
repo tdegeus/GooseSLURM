@@ -18,8 +18,8 @@ Options:
   -r, --reverse           Reverse sort.
       --output=<NAME>     Select output columns (selected by the header name).
       --full-name         Show full user names.
+  -S, --summary           Print only summary.
       --no-header         Suppress header.
-      --no-summary        Suppress summary.
       --no-truncate       Print full columns, do not truncate based on screen width.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
       --list              Print columns as list.
@@ -489,17 +489,19 @@ if args['U']: args['user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 
 # conversion map: default field-names -> custom field-names
 alias = {
-  'JOBID'           :'JobID'  ,
-  'USER'            :'User'   ,
-  'ACCOUNT'         :'Account',
-  'NAME'            :'Name'   ,
-  'START_TIME'      :'Tstart' ,
-  'TIME_LEFT'       :'Tleft'  ,
-  'NODES'           :'#node'  ,
-  'CPUS'            :'#CPU'   ,
-  'MIN_MEMORY'      :'MEM'    ,
-  'ST'              :'ST'     ,
-  'NODELIST(REASON)':'Host'   ,
+  'JOBID'           :'JobID'   ,
+  'USER'            :'User'    ,
+  'ACCOUNT'         :'Account' ,
+  'NAME'            :'Name'    ,
+  'START_TIME'      :'Tstart'  ,
+  'TIME_LEFT'       :'Tleft'   ,
+  'NODES'           :'#node'   ,
+  'CPUS'            :'#CPU'    ,
+  'CPUS_R'          :'#CPU(R)' ,
+  'CPUS_PD'         :'#CPU(PD)',
+  'MIN_MEMORY'      :'MEM'     ,
+  'ST'              :'ST'      ,
+  'NODELIST(REASON)':'Host'    ,
 }
 
 # conversion map: custom field-names -> default field-names
@@ -533,6 +535,17 @@ columns = [
 
 # header
 header = {column['key']: String(alias[column['key']],align=column['align']) for column in columns}
+
+# print settings for the summary (subset, header the same)
+columns_summary = [
+  {'key':'USER'            , 'width':7 , 'align':'<', 'priority': True },
+  {'key':'CPUS'            , 'width':4 , 'align':'>', 'priority': True },
+  {'key':'CPUS_R'          , 'width':6 , 'align':'>', 'priority': True },
+  {'key':'CPUS_PD'         , 'width':6 , 'align':'>', 'priority': True },
+]
+
+# header
+header_summary = {c['key']: String(alias[c['key']],align=c['align']) for c in columns_summary}
 
 # color scheme
 if args['colors'].lower() == 'dark':
@@ -663,6 +676,14 @@ for line in lines:
     # - store
     line[key] = Memory(val*unit)
 
+  # specialize number of CPUS
+  if str(line['ST']) == 'R':
+    line['CPUS_R' ] = Integer(int(line['CPUS']))
+    line['CPUS_PD'] = Integer(0)
+  else:
+    line['CPUS_R' ] = Integer(0)
+    line['CPUS_PD'] = Integer(int(line['CPUS']))
+
   # highlight queued jobs
   if str(line['ST']) == 'PD':
     for key in line:
@@ -694,16 +715,67 @@ else:
 
 # --------------------------------------------- print ----------------------------------------------
 
-# optional: print all fields and quit
-if args['long']:
-  print_long(lines)
+if not args['summary']:
+
+  # optional: print all fields and quit
+  if args['long']:
+    print_long(lines)
+    sys.exit(0)
+
+  # optional: print as list and quit
+  if args['list']:
+    if not args['output']: Error('Select column using "--output"')
+    print_list(lines,*args['output'],**args)
+    sys.exit(0)
+
+  # print columns
+  print_columns(columns,header,lines,**args)
+
+  # quit
   sys.exit(0)
 
-# optional: print as list and quit
-if args['list']:
-  if not args['output']: Error('Select column using "--output"')
-  print_list(lines,*args['output'],**args)
-  sys.exit(0)
+# ------------------------------------- summarize information --------------------------------------
 
-# print columns
-print_columns(columns,header,lines,**args)
+# get names of the different users
+users = sorted(set([str(line['USER']) for line in lines]))
+
+# start a new list of "node information", summed on the relevant nodes
+users = [{'USER':String(key)} for key in users]
+
+# loop over users
+for user in users:
+
+  # - isolate nodes for this user
+  N = [line for line in lines if str(line['USER']) == str(user['USER'])]
+
+  # - get the CPU count
+  user['CPUS'   ] = Integer(sum([int(line['CPUS'   ]) for line in N]))
+  user['CPUS_R' ] = Integer(sum([int(line['CPUS_R' ]) for line in N]))
+  user['CPUS_PD'] = Integer(sum([int(line['CPUS_PD']) for line in N]))
+
+  # - remove zeros from output
+  for key in ['CPUS_R', 'CPUS_PD']:
+    if int(user[key]) == 0:
+      user[key] = Integer('-')
+
+# rename
+lines = users
+
+# ---------------------------------------------- sort ----------------------------------------------
+
+# check if sort is possible
+keys         = [alias[column['key']] for column in columns_summary]
+args['sort'] = [key for key in args['sort'] if key in keys]
+
+# apply sort
+# - custom
+if args['sort']:
+  for key in args['sort']:
+    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+# - default
+else:
+  lines = sorted(lines, key=lambda line: line['USER'], reverse=args['reverse'])
+
+# --------------------------------- create print format and print ----------------------------------
+
+print_columns(columns_summary,header_summary,lines,**args)
