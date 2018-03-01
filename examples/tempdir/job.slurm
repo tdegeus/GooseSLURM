@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name tempdir
-#SBATCH --out tempdir.slurm.out
+#SBATCH --job-name job
+#SBATCH --out job.slurm.out
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
@@ -22,7 +22,7 @@ submitdir="${SLURM_SUBMIT_DIR}"
 # 2. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
 # ========================================================
 
-cat <<EOF > tempdir.slurm.json
+cat <<EOF > job.slurm.json
 {
   "submitdir"           : "${submitdir}",
   "workdir"             : "${workdir}",
