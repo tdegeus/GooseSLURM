@@ -368,6 +368,8 @@ for jobname, filename, path, command, option in zip(jobnames, filenames, paths, 
   elif args['type'] == 'scratch': text = scratch
   elif args['type'] == 'local'  : text = local
 
+  if not os.path.isdir(path): os.makedirs(path)
+
   open(os.path.join(path,filename),'w').write(text.format(
     slurm   = option,
     name    = filename,
