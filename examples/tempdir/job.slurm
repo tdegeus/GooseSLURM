@@ -16,10 +16,10 @@ myhost=`hostname`
 workdir="$TMPDIR"
 
 # get submit directory
-# (every file/folder below this directory is copied to the compute-node)
+# (every file/folder below this directory is copied to the compute node)
 submitdir="${SLURM_SUBMIT_DIR}"
 
-# 2. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# 2. Write job info to a log file [MAY BE CHANGED/OMITTED]
 # ========================================================
 
 cat <<EOF > job.slurm.json
@@ -40,28 +40,28 @@ EOF
 # 3. Transfer to node [DO NOT CHANGE]
 # ===================================
 
-# create/empty the temporary directory on the compute-node
+# create/empty the temporary directory on the compute node
 if [ ! -d "${workdir}" ]; then
   mkdir -p "${workdir}"
 else
   rm -rf "${workdir}"/*
 fi
 
-# change current directory to the location of the sbatch-command
-# ("submitdir" is somewhere in the home directory on the head-node)
+# change current directory to the location of the sbatch command
+# ("submitdir" is somewhere in the home directory on the head node)
 cd "${submitdir}"
 # copy all files/folders in "submitdir" to "workdir"
-# ("workdir" == temporary directory on the compute-node)
+# ("workdir" == temporary directory on the compute node)
 cp -prf * ${workdir}
 # change directory to the temporary directory on the compute-node
 cd ${workdir}
 
-# 4. Function to transfer back to the head-node [DO NOT CHANGE]
+# 4. Function to transfer back to the head node [DO NOT CHANGE]
 # =============================================================
 
 # define clean-up function
 function clean_up {
-  # - change directory to the location of the sbatch-command (on the head-node)
+  # - change directory to the location of the sbatch command (on the head node)
   cd "${submitdir}"
   # - copy everything from the temporary directory on the compute-node
   cp -prf "${workdir}"/* .
@@ -75,8 +75,8 @@ function clean_up {
 # call "clean_up" function when this script exits, it is run even if SLURM cancels the job
 trap 'clean_up' EXIT
 
-# 5. Execute [MODIFY COMPLETELY TO YOUR NEED]
-# ===========================================
+# 5. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# ============================================
 
 # simplest example in the world, sleep a bit to allow a bit of monitoring
 echo "hello world" > "test.log"

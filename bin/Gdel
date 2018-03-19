@@ -59,7 +59,7 @@ def getrunningjobs():
 # ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.3')
+args = docopt.docopt(__doc__,version='0.0.4')
 
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options

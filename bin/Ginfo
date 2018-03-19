@@ -370,6 +370,24 @@ def print_long(lines):
 
 def print_columns(columns,header,lines,no_truncate=False,**kwargs):
 
+  # check available data
+  # --------------------
+
+  # function to check if a "key" present in all lines
+  def inlines(lines, key):
+    # - check all lines
+    for line in lines:
+      if key not in line:
+        return False
+    # - all lines passed: return True
+    return True
+
+  # select columns based on data availability
+  columns = [column for column in columns if inlines(lines, column['key'])]
+
+  # select header based on columns
+  header = {column['key']: header[column['key']] for column in columns}
+
   # compute column-width, based on data
   # -----------------------------------
 
@@ -478,7 +496,7 @@ def Error(msg,exit_code=1):
 # ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.3')
+args = docopt.docopt(__doc__,version='0.0.4')
 
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options
@@ -650,6 +668,8 @@ for line in lines:
 
   # convert memory (e.g. "4G") -> bytes
   for key, byte in zip(['MEMORY','FREE_MEM'], [1.e6,1.e6]):
+    # - check key
+    if key not in line: continue
     # - get data
     txt = str(line[key])
     # - read value and units
@@ -672,8 +692,12 @@ for line in lines:
     line[key] = Memory(val*unit)
 
   # compute scores
-  line['CPU_RELJOB'] = cpu_score(**line)
-  line['MEM_RELJOB'] = mem_score(**line)
+  # - relative CPU usage
+  try   : line['CPU_RELJOB'] = cpu_score(**line)
+  except: pass
+  # - relative memory usage
+  try   : line['MEM_RELJOB'] = mem_score(**line)
+  except: pass
 
   # default: CPUs down/online
   line['CPUS_D'] = Integer('0')

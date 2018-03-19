@@ -366,6 +366,24 @@ def print_long(lines):
 
 def print_columns(columns,header,lines,no_truncate=False,**kwargs):
 
+  # check available data
+  # --------------------
+
+  # function to check if a "key" present in all lines
+  def inlines(lines, key):
+    # - check all lines
+    for line in lines:
+      if key not in line:
+        return False
+    # - all lines passed: return True
+    return True
+
+  # select columns based on data availability
+  columns = [column for column in columns if inlines(lines, column['key'])]
+
+  # select header based on columns
+  header = {column['key']: header[column['key']] for column in columns}
+
   # compute column-width, based on data
   # -----------------------------------
 
@@ -474,7 +492,7 @@ def Error(msg,exit_code=1):
 # ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.3')
+args = docopt.docopt(__doc__,version='0.0.4')
 
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options

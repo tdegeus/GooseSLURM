@@ -1,45 +1,62 @@
 #!/usr/bin/env python3
 '''Gscript
+  Automatically generate job-scripts. The convention is used that each simulation is stored in a
+  separate directory, whose name should be supplied as a command-line argument. A SLURM job-script
+  will be generated in each directory (see options below for its name). The generated job-scripts
+  must be submitted using "sbatch NAME" from the directory in which they are written. This can be
+  done automatically using the "Gsub" command, which takes just the paths to job scripts as
+  command-line arguments.
 
-  Automatically generate job-scripts with logical job-names set. The generated scripts must be
-  submitted using "sbatch NAME" from the folder in which they are written. This can be automized
-  using the "Gsub" command.
+  There are three ways to define options for the ultimate job script, in order of priority:
+
+  1. Using the command-line options. These options are applied to all paths.
+
+  2. Using a JSON file that contains several options that should be applied to all paths. This file
+     has to be specified using the "--json=<NAME>" command-line option.
+
+  3. Using a JSON file that contains several options specific to one path. In this case path of the
+     JSON file should be specified instead of the directory name. The directory name will be
+     extracted from it.
 
 Usage:
-  Gscript [options] [--sbatch=<TEXT>...] [--rm=<NAME>...] <INPUT>...
+  Gscript [options] [--sbatch=<TEXT>...] [--rm=<NAME>...] <PATH>...
 
 Arguments:
-  Input files, or simulations folders:
-
-  * Input files: <INPUT> is written to the command using ("cmd % <INPUT>").
-  * Simulation folders: command is used as is.
+  Simulation folders, or optionally JSON files with simulation settings. The JSON files can contain
+  any of the options. Options that are specified as command line arguments get priority over those
+  in the JSON file.
 
 Options:
-      --type=<TEXT>         The type of script: tempdir, scratch, or local.   [default: tempdir]
+      --json=<NAME>         Read generic settings from JSON file.
+      --extension=<TEXT>    Extension of the job script. (default: .slurm)
+      --filename=<TEXT>     Filename of the job script. (default: job)
+      --type=<TEXT>         The type of script: tempdir, scratch, or local. (default: tempdir)
       --cmd=<TEXT>          The command(s) to execute.
-      --exec=<FILE>         Read the command(s) to execute from a file.
-      --rm=<NAME>           File to remove before copying back to the submitdir.
-      --extension=<TEXT>    Extension of the job-script.                      [default: .slurm]
-      --filename=<TEXT>     Filename of the job-script (not for inputfile).   [default: job]
-  -J, --job-name=<TEXT>     Job-name.                                         (default: path)
-  -c, --cpus-per-task=<N>   Number of CPUs-per-task.                          [default: 1]
-  -t, --time=<TEXT>         Maximum walltime     (use "false" to ignore).     [default: 1d]
-  -m, --mem=<N>             Maximum memory in MB (use "false" to ignore).     [default: 1028]
+      --rm=<NAME>           File to remove (before copying back to the submitdir).
+  -J, --job-name=<TEXT>     Job name. (default*: path)
+  -n, --nodes=<N>           Number of nodes. (default*: 1)
+  -n, --ntasks=<N>          Number of tasks. (default*: 1)
+  -c, --cpus-per-task=<N>   Number of CPUs-per-task. (default*: 1)
+  -t, --time=<TEXT>         Maximum walltime. (default*: 1d)
+  -m, --mem=<N>             Maximum memory in MB. (default*: 1024)
   -A, --account=<TEXT>      Account name.
   -p, --partition=<TEXT>    Partition name.
       --sbatch<TEXT>        Miscellaneous SBATCH options.
+      --verbose             Verbose written scripts.
   -h, --help                Show help.
       --version             Show version.
+
+* use "false" to omit
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
 
 # ======================================== SCRIPT TEMPLATES ========================================
 
-# ------------------------ temporary working directory on the compute-node -------------------------
+# ------------------------ temporary working directory on the compute node -------------------------
 
 tempdir = '''#!/bin/bash
-{slurm:s}
+{sbatch:s}
 
 # 1. Generate unique directory name [DO NOT CHANGE]
 # =================================================
@@ -51,13 +68,13 @@ myhost=`hostname`
 workdir="$TMPDIR"
 
 # get submit directory
-# (every file/folder below this directory is copied to the compute-node)
+# (every file/folder below this directory is copied to the compute node)
 submitdir="${{SLURM_SUBMIT_DIR}}"
 
-# 2. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# 2. Write job info to a log file [MAY BE CHANGED/OMITTED]
 # ========================================================
 
-cat <<EOF > {name:s}.json
+cat <<EOF > {filename:s}.json
 {{
   "submitdir"           : "${{submitdir}}",
   "workdir"             : "${{workdir}}",
@@ -75,30 +92,30 @@ EOF
 # 3. Transfer to node [DO NOT CHANGE]
 # ===================================
 
-# create/empty the temporary directory on the compute-node
+# create/empty the temporary directory on the compute node
 if [ ! -d "${{workdir}}" ]; then
   mkdir -p "${{workdir}}"
 else
   rm -rf "${{workdir}}"/*
 fi
 
-# change current directory to the location of the sbatch-command
-# ("submitdir" is somewhere in the home directory on the head-node)
+# change current directory to the location of the sbatch command
+# ("submitdir" is somewhere in the home directory on the head node)
 cd "${{submitdir}}"
 # copy all files/folders in "submitdir" to "workdir"
-# ("workdir" == temporary directory on the compute-node)
+# ("workdir" == temporary directory on the compute node)
 cp -prf * ${{workdir}}
 # change directory to the temporary directory on the compute-node
 cd ${{workdir}}
 
-# 4. Function to transfer back to the head-node [DO NOT CHANGE]
+# 4. Function to transfer back to the head node [DO NOT CHANGE]
 # =============================================================
 
 # define clean-up function
 function clean_up {{
   # - remove local files before copying
   {remove:s}
-  # - change directory to the location of the sbatch-command (on the head-node)
+  # - change directory to the location of the sbatch command (on the head node)
   cd "${{submitdir}}"
   # - copy everything from the temporary directory on the compute-node
   cp -prf "${{workdir}}"/* .
@@ -112,8 +129,8 @@ function clean_up {{
 # call "clean_up" function when this script exits, it is run even if SLURM cancels the job
 trap 'clean_up' EXIT
 
-# 5. Execute [MODIFY COMPLETELY TO YOUR NEED]
-# ===========================================
+# 5. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# ============================================
 
 {command:s}
 '''
@@ -121,7 +138,7 @@ trap 'clean_up' EXIT
 # ---------------------------- temporary working directory on /scratch -----------------------------
 
 scratch = '''#!/bin/bash
-{slurm:s}
+{sbatch:s}
 
 # 1. Generate unique directory name [DO NOT CHANGE]
 # =================================================
@@ -133,17 +150,17 @@ username=`whoami`
 myhost=`hostname`
 
 # get name of the temporary directory working directory in the scratch folder
-# use job-id to create a unique folder
+# use job id to create a unique folder
 workdir="/scratch/$username/${{SLURM_JOB_ID}}"
 
 # get submit directory
-# (every file/folder below this directory is copied to the compute-node)
+# (every file/folder below this directory is copied to the compute node)
 submitdir="${{SLURM_SUBMIT_DIR}}"
 
-# 2. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# 2. Write job info to a log file [MAY BE CHANGED/OMITTED]
 # ========================================================
 
-cat <<EOF > {name:s}.json
+cat <<EOF > {filename:s}.json
 {{
   "submitdir"           : "${{submitdir}}",
   "workdir"             : "${{workdir}}",
@@ -161,30 +178,30 @@ EOF
 # 3. Transfer to node [DO NOT CHANGE]
 # ===================================
 
-# create/empty the temporary directory on the compute-node
+# create/empty the temporary directory on the compute node
 if [ ! -d "${{workdir}}" ]; then
   mkdir -p "${{workdir}}"
 else
   rm -rf "${{workdir}}"/*
 fi
 
-# change current directory to the location of the sbatch-command
-# ("submitdir" is somewhere in the home directory on the head-node)
+# change current directory to the location of the sbatch command
+# ("submitdir" is somewhere in the home directory on the head node)
 cd "${{submitdir}}"
 # copy all files/folders in "submitdir" to "workdir"
-# ("workdir" == temporary directory on the compute-node)
+# ("workdir" == temporary directory on the compute node)
 cp -prf * ${{workdir}}
 # change directory to the temporary directory on the compute-node
 cd ${{workdir}}
 
-# 4. Function to transfer back to the head-node [DO NOT CHANGE]
+# 4. Function to transfer back to the head node [DO NOT CHANGE]
 # =============================================================
 
 # define clean-up function
 function clean_up {{
   # - remove local files before copying
   {remove:s}
-  # - change directory to the location of the sbatch-command (on the head-node)
+  # - change directory to the location of the sbatch command (on the head node)
   cd "${{submitdir}}"
   # - copy everything from the temporary directory on the compute-node
   cp -prf "${{workdir}}"/* .
@@ -198,8 +215,8 @@ function clean_up {{
 # call "clean_up" function when this script exits, it is run even if SLURM cancels the job
 trap 'clean_up' EXIT
 
-# 5. Execute [MODIFY COMPLETELY TO YOUR NEED]
-# ===========================================
+# 5. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# ============================================
 
 {command:s}
 '''
@@ -207,9 +224,9 @@ trap 'clean_up' EXIT
 # -------------------------------------- read/write from home --------------------------------------
 
 local = '''#!/bin/bash
-{slurm:s}
+{sbatch:s}
 
-# 1. Write job-info to a log-file [MAY BE CHANDED/OMITTED]
+# 1. Write job info to a log file [MAY BE CHANGED/OMITTED]
 # ========================================================
 
 # get hostname
@@ -221,7 +238,7 @@ workdir=`pwd`
 # get submit directory
 submitdir="${{SLURM_SUBMIT_DIR}}"
 
-cat <<EOF > {name:s}.json
+cat <<EOF > {filename:s}.json
 {{
   "submitdir"           : "${{submitdir}}",
   "workdir"             : "${{workdir}}",
@@ -236,8 +253,8 @@ cat <<EOF > {name:s}.json
 }}
 EOF
 
-# 2. Execute [MODIFY COMPLETELY TO YOUR NEED]
-# ===========================================
+# 2. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# ============================================
 
 {command:s}
 
@@ -246,135 +263,147 @@ EOF
 
 # ========================================= LOAD LIBRARIES =========================================
 
-import os, sys, re, docopt
-
-# ==================================== RAISE COMMAND LINE ERROR ====================================
-
-def Error(msg,exit_code=1):
-  print(msg)
-  sys.exit(exit_code)
+import os, sys, re, docopt, json
 
 # ========================================== MAIN PROGRAM ==========================================
 
 # ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.3')
+args = docopt.docopt(__doc__,version='0.0.4')
 
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options
 args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
-# - change "-" to "_" to facilitate direct use in print format
-args = {key.replace('-','_'): args[key] for key in args}
 
 # ---------------------------------------- modify arguments ----------------------------------------
 
-# evaluate new-line characters
-if   args['cmd'] and args['exec']: Error('--cmd and --exec options are exclusive')
-elif args['cmd']                 : args['cmd'] = args['cmd'].replace('\\n','\n')
-elif args['exec']                : args['cmd'] = open(args['exec'],'r').read()
-else                             : args['cmd'] = ''
+# remove empty options
+for key in [key for key in args]:
+  if args[key] is None:
+    del args[key]
+  elif type(args[key])==list:
+    if len(args[key])==0:
+      del args[key]
 
-# check to ignore options
-for key in ['time','mem']:
-  if args[key].lower() in ['none', 'false']:
-    args[key] = False
+# read options from JSON file
+if args['json']:
+  # - read file
+  info = json.load(open(args['json'],'r'))
+  # - overwrite options
+  for key, text in info.items():
+    if key not in args:
+      args[key] = text
 
-# convert human readable time format -> SLURM format
-if args['time']:
-  if not re.match('[0-9]*\:[0-9]*\:[0-9]*',args['time']):
-    # - alias
-    T = args['time']
-    # - convert input to seconds
-    if   T[-1] == 'd': T = float(T[:-1]) * float(60*60*24)
-    elif T[-1] == 'h': T = float(T[:-1]) * float(60*60)
-    elif T[-1] == 'm': T = float(T[:-1]) * float(60)
-    elif T[-1] == 's': T = float(T[:-1]) * float(1)
-    else             : T = float(T)
-    # - convert seconds back to hours:minutes:seconds
-    T = int(T)
-    s = int( T % 60 );  T = ( T - s ) / 60
-    m = int( T % 60 );  T = ( T - m ) / 60
-    h = int( T )
-    T = '%d:%02d:%02d' % (h,m,s)
-    # - alias
-    args['time'] = T
-
-# combine "--rm" to command
-if args['rm']: args['rm'] = 'rm -r ' + ' '.join(args['rm'])
-else         : args['rm'] = ''
-
-# ----------------------------------------- convert input ------------------------------------------
-
-# allocate
-jobnames  = []
-filenames = []
-paths     = []
-commands  = []
-options   = []
+# ------------------------------------------ write files -------------------------------------------
 
 # loop over arguments
-for inp in args.pop('<INPUT>'):
+for dirname in args.pop('<PATH>'):
 
-  # input is file -> add filename to the command
-  if os.path.isfile(inp):
+  # initialize options
+  info = {}
 
-    jobname  = inp[2:] if inp[:2] == './' else inp
-    filename = os.path.splitext(os.path.split(inp)[1])[0] + args['extension']
-    path     = os.path.split(inp)[0]
+  # read options
+  if os.path.isfile(dirname):
+    # - read file
+    info = json.load(open(dirname,'r'))
+    # - extract directory name
+    dirname, fname = os.path.split(dirname)
 
-    try   : command = args['cmd'] % os.path.split(inp)[1]
-    except: command = args['cmd'] + os.path.split(inp)[1]
+  # overwrite options
+  for key, text in args.items():
+    info[key] = text
 
-  # input is directory -> use command as is
-  else:
+  # set default options
+  info.setdefault('extension'     , '.slurm'  )
+  info.setdefault('filename'      , 'job'     )
+  info.setdefault('type'          , 'tempdir' )
+  info.setdefault('job-name'      , dirname   )
+  info.setdefault('nodes'         , '1'       )
+  info.setdefault('ntasks'        , '1'       )
+  info.setdefault('cpus-per-task' , '1'       )
+  info.setdefault('time'          , '1d'      )
+  info.setdefault('mem'           , '1024'    )
 
-    jobname  = inp[2:] if inp[:2] == './' else inp
-    filename = args['filename'] + args['extension']
-    path     = inp
-    command  = args['cmd']
+  # check to ignore options
+  for key in ['time','mem','cpus-per-task','job-name','nodes','ntasks']:
+    if info[key].lower() in ['none', 'false']:
+      del info[key]
 
-  # set options
-  option  = [ ]
-  option += [ '#SBATCH --job-name %s' % jobname ]
-  option += [ '#SBATCH --out %s.out' % filename ]
-  option += [ '#SBATCH --nodes 1' ]
-  option += [ '#SBATCH --ntasks 1' ]
-  option += [ '#SBATCH --cpus-per-task %s' % args['cpus_per_task'] ]
+  # convert time
+  if 'time' in info:
+    if not re.match('[0-9]*\:[0-9]*\:[0-9]*',info['time']):
+      # - alias
+      T = info['time']
+      # - convert input to seconds
+      if   T[-1] == 'd': T = float(T[:-1]) * float(60*60*24)
+      elif T[-1] == 'h': T = float(T[:-1]) * float(60*60)
+      elif T[-1] == 'm': T = float(T[:-1]) * float(60)
+      elif T[-1] == 's': T = float(T[:-1]) * float(1)
+      else             : T = float(T)
+      # - convert seconds back to hours:minutes:seconds
+      T = int(T)
+      s = int( T % 60 );  T = ( T - s ) / 60
+      m = int( T % 60 );  T = ( T - m ) / 60
+      h = int( T )
+      T = '%d:%02d:%02d' % (h,m,s)
+      # - alias
+      info['time'] = T
 
-  if args['mem'      ]: option += [ '#SBATCH --mem %s' % args['mem'] ]
-  if args['time'     ]: option += [ '#SBATCH --time %s' % args['time']]
-  if args['partition']: option += [ '#SBATCH --partition %s' % args['partition']]
-  if args['account'  ]: option += [ '#SBATCH --account %s' % args['account'] ]
+  # set sbatch options
+  # - initialize
+  sbatch = []
+  # - add supported sbatch options
+  if 'job-name'      in info: sbatch += ['#SBATCH --job-name {}'     .format(info['job-name'     ])]
+  if 'filename'      in info: sbatch += ['#SBATCH --out {}.out'      .format(info['filename'     ])]
+  if 'nodes'         in info: sbatch += ['#SBATCH --nodes {}'        .format(info['nodes'        ])]
+  if 'ntasks'        in info: sbatch += ['#SBATCH --ntasks {}'       .format(info['ntasks'       ])]
+  if 'cpus-per-task' in info: sbatch += ['#SBATCH --cpus-per-task {}'.format(info['cpus-per-task'])]
+  if 'mem'           in info: sbatch += ['#SBATCH --mem {}'          .format(info['mem'          ])]
+  if 'time'          in info: sbatch += ['#SBATCH --time {}'         .format(info['time'         ])]
+  if 'partition'     in info: sbatch += ['#SBATCH --partition {}'    .format(info['partition'    ])]
+  if 'account'       in info: sbatch += ['#SBATCH --account {}'      .format(info['account'      ])]
+  # - add arbitrary other sbatch options
+  if 'sbatch' in info:
+    for opt in info['sbatch']:
+      sbatch += ['#SBATCH {}'.format(opt)]
+  # - convert to string
+  sbatch = '\n'.join(sbatch)
 
-  if args['sbatch']:
-    for opt in args['sbatch']:
-      option += ['#SBATCH %s' % opt]
+  # convert command
+  # - initialize
+  command = ''
+  # - read
+  if 'cmd' in info:
+    if type(info['cmd']) == list: command = '\n'.join(info['cmd'])
+    else                        : command =           info['cmd']
 
-  option  = '\n'.join(option)
+  # convert remove files
+  # - initialize
+  remove = ''
+  # - read
+  if 'rm' in info:
+    if type(info['rm']) == list: remove = 'rm -r '+' '.join(info['rm'])
+    else                       : remove = 'rm -r '+         info['rm']
 
-  # store to list
-  jobnames  += [ jobname  ]
-  filenames += [ filename ]
-  paths     += [ path     ]
-  commands  += [ command  ]
-  options   += [ option   ]
+  # convert filename
+  filename = info['filename'] + info['extension']
 
-# ----------------------------------------- write scripts ------------------------------------------
+  # get job script
+  if   info['type'] == 'tempdir': text = tempdir
+  elif info['type'] == 'scratch': text = scratch
+  elif info['type'] == 'local'  : text = local
 
-for jobname, filename, path, command, option in zip(jobnames, filenames, paths, commands, options):
+  # create directory if it does not exist
+  if not os.path.isdir(dirname): os.makedirs(dirname)
 
-  if   args['type'] == 'tempdir': text = tempdir
-  elif args['type'] == 'scratch': text = scratch
-  elif args['type'] == 'local'  : text = local
-
-  if not os.path.isdir(path): os.makedirs(path)
-
-  open(os.path.join(path,filename),'w').write(text.format(
-    slurm   = option,
-    name    = filename,
-    command = command,
-    remove  = args['rm'],
+  # write file
+  open(os.path.join(dirname,filename),'w').write(text.format(
+    sbatch   = sbatch,
+    filename = filename,
+    command  = command,
+    remove   = remove,
   ))
 
-  print('Written "%s"' % os.path.join(path,filename))
+  # print progress
+  if info['verbose']: print('Written "{}"'.format(os.path.join(dirname,filename)))
