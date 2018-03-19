@@ -615,37 +615,6 @@ for line in data:
   # -- store to list of lines
   lines += [info]
 
-# -------------------------------- get more information for user-id --------------------------------
-
-# get the user information of all currently running users
-key   = 'USER_ID'
-uname = set([str(line[key]) for line in lines if str(int(str(line[key])))==str(line[key])])
-cmd   = 'getent passwd ' + ' '.join(['"{name:s}"'.format(name=name) for name in uname])
-uinfo = subprocess.check_output(cmd+';exit 0',shell=True,stderr=subprocess.STDOUT)
-uinfo = uinfo.decode('utf-8').strip().split('\n')
-
-# create dictionary to look-up information (from user-id, or user-name)
-# - allocate
-uname = {}
-# - extract info
-for name in uinfo:
-  try:
-    n,_,i,g,f,_,_ = name.split(':')
-    uname[i] = dict(id=i,username=n,fullname=f)
-    uname[n] = dict(id=i,username=n,fullname=f)
-  except:
-    pass
-
-# convert lines
-for line in lines:
-  # - get user-id
-  user = str(line['USER_ID'])
-  # - for "--long"
-  line['USER_FULLNAME'] = String(uname.get(user,{}).get('fullname','-'))
-  line['USER_ID']       = String(uname.get(user,{}).get('id'      ,'-'))
-  # - basic info
-  if args['full_name']: line['USER'] = String(uname.get(user,{}).get('fullname','-'))
-
 # ---------------- convert type of relevant fields, provide a color interpretation -----------------
 
 # loop over all lines
