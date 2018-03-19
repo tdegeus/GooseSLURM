@@ -595,6 +595,12 @@ data      = list(filter(None,data.split('\n')))
 # get the field-names
 head = head.split('|')
 
+# convert name (bug in slurm)
+# Bug #4948, https://bugs.schedmd.com
+idx = [i for i,key in enumerate(head) if key.strip()=='USER']
+if len(idx) > 1:
+  head[idx[1]] = 'USER_ID'
+
 # convert to list of dictionaries
 # - initialize
 lines = []
@@ -609,10 +615,11 @@ for line in data:
   # -- store to list of lines
   lines += [info]
 
-# ------------------------- convert name (deals with an error of "squeue") -------------------------
+# -------------------------------- get more information for user-id --------------------------------
 
 # get the user information of all currently running users
-uname = set([str(line['USER']) for line in lines])
+key   = 'USER_ID'
+uname = set([str(line[key]) for line in lines if str(int(str(line[key])))==str(line[key])])
 cmd   = 'getent passwd ' + ' '.join(['"{name:s}"'.format(name=name) for name in uname])
 uinfo = subprocess.check_output(cmd+';exit 0',shell=True,stderr=subprocess.STDOUT)
 uinfo = uinfo.decode('utf-8').strip().split('\n')
@@ -622,20 +629,22 @@ uinfo = uinfo.decode('utf-8').strip().split('\n')
 uname = {}
 # - extract info
 for name in uinfo:
-  n,_,i,g,f,_,_ = name.split(':')
-  uname[i] = dict(id=i,username=n,fullname=f)
-  uname[n] = dict(id=i,username=n,fullname=f)
+  try:
+    n,_,i,g,f,_,_ = name.split(':')
+    uname[i] = dict(id=i,username=n,fullname=f)
+    uname[n] = dict(id=i,username=n,fullname=f)
+  except:
+    pass
 
 # convert lines
 for line in lines:
   # - get user-id
-  user = str(line['USER'])
+  user = str(line['USER_ID'])
   # - for "--long"
   line['USER_FULLNAME'] = String(uname.get(user,{}).get('fullname','-'))
   line['USER_ID']       = String(uname.get(user,{}).get('id'      ,'-'))
   # - basic info
   if args['full_name']: line['USER'] = String(uname.get(user,{}).get('fullname','-'))
-  else                : line['USER'] = String(uname.get(user,{}).get('username','-'))
 
 # ---------------- convert type of relevant fields, provide a color interpretation -----------------
 
@@ -655,6 +664,8 @@ for line in lines:
 
   # "days-hours:mins:secs" (e.g. "1-4:18:13") -> seconds
   for key in ['TIME_LIMIT','TIME_LEFT','TIME']:
+    # - check key
+    if key not in line: continue
     # - initialize alias + data [days,hours,minutes,seconds]
     txt = str(line[key])
     dt  = [0,0,0,0]

@@ -36,7 +36,7 @@ if("${SBATCH}" MATCHES "SBATCH-NOTFOUND" AND NOT ALL)
 else ()
   set(PROJECT_BINARIES ${PROJECT_BINARIES} "bin/Gsub")
   set(PROJECT_BINARIES ${PROJECT_BINARIES} "bin/Gdel")
-  set(PROJECT_BINARIES ${PROJECT_BINARIES} "bin/Gopy")
+  set(PROJECT_BINARIES ${PROJECT_BINARIES} "bin/Gcopy")
 endif()
 
 # install binaries
