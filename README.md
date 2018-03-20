@@ -14,25 +14,25 @@ This repository provides some command-line tools and some job-script for the SLU
 > 
 > These tools and job-script reflect my personal approach and have not been reviewed by any system administrator or anyone from SLURM. They come with absolutely no warranty.
 > 
->   (c - [MIT](https://github.com/tdegeus/GooseSLURM/blob/master/LICENSE)) T.W.J. de Geus (Tom) | tom@geus.me | www.geus.me | [github.com/tdegeus/GooseSLURM](https://github.com/tdegeus/GooseSLURM)
+>   (c - [MIT](blob/master/LICENSE)) T.W.J. de Geus (Tom) | tom@geus.me | www.geus.me | [github.com/tdegeus/GooseSLURM](https://github.com/tdegeus/GooseSLURM)
 
 # Command-line tools
 
-* [Gstat](https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gstat): wrapper around `squeue`.
-* [Ginfo](https://github.com/tdegeus/GooseSLURM/blob/master/bin/Ginfo): wrapper around `sinfo`.
-* [Gdel](https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gdel): delete some or all of the user's jobs.
-* [Gscript](https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gscript): automatically write a job-script. The customizable part that involves running the job is provided as an option.
-* [Gsub](https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gsub): submit a job from the folder of the job-script (essential for jobs that use a temporary directory).
+* [Gstat](blob/master/bin/Gstat): wrapper around `squeue`.
+* [Ginfo](blob/master/bin/Ginfo): wrapper around `sinfo`.
+* [Gdel](blob/master/bin/Gdel): delete some or all of the user's jobs.
+* [Gscript](blob/master/bin/Gscript): automatically write a job-script. The customizable part that involves running the job is provided as an option.
+* [Gsub](blob/master/bin/Gsub): submit a job from the folder of the job-script (essential for jobs that use a temporary directory).
 
 # Batch scripts
 
-* [tempdir](https://github.com/tdegeus/GooseSLURM/blob/master/examples/tempdir): exploit a temporary directory on the compute node to avoid costly read/write actions of the network.
+* [tempdir](blob/master/examples/tempdir): exploit a temporary directory on the compute node to avoid costly read/write actions of the network.
 
     1.   Copy files to a temporary directory on the compute node
     2.   Run the job (while reading and writing locally on the compute node)
     3.   Copy all files back to the directory from which the job is submitted.
 
-* [parallel](https://github.com/tdegeus/GooseSLURM/blob/master/examples/parallel/job.slurm): use GNU pap
+* [parallel](blob/master/examples/parallel/job.slurm): use GNU pap
 
 # Installation
 
