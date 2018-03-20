@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --partition debug
 
-# 1. Generate unique directory name [DO NOT CHANGE]
-# =================================================
+# 1. Define directory names [DO NOT CHANGE]
+# =========================================
 
 # get hostname
 myhost=`hostname`

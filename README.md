@@ -26,7 +26,13 @@ This repository provides some command-line tools and some job-script for the SLU
 
 # Batch scripts
 
-* [tempdir.slurm](https://github.com/tdegeus/GooseSLURM/blob/master/examples/tempdir/tempdir.slurm): copy files to `/tmp/${JOB_ID}` on the compute node, run the job, and copy all files back to the directory from which the job is submitted.
+* [tempdir](https://github.com/tdegeus/GooseSLURM/blob/master/examples/tempdir): exploit a temporary directory on the compute node to avoid costly read/write actions of the network.
+
+    1.   Copy files to a temporary directory on the compute node
+    2.   Run the job (while reading and writing locally on the compute node)
+    3.   Copy all files back to the directory from which the job is submitted.
+
+* [parallel](https://github.com/tdegeus/GooseSLURM/blob/master/examples/parallel/job.slurm): use GNU pap
 
 # Installation
 
