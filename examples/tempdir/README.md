@@ -16,4 +16,4 @@ Here only items 1. and 3. use the network. During the computation all actions ar
 
 ## Code explained
 
-The job script [`job.slurm`](/job.slurm)
+The job script [`job.slurm`](job.slurm)
