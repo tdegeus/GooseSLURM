@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name job
+#SBATCH --job-name tempdir
 #SBATCH --out job.slurm.out
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
@@ -9,19 +9,20 @@
 # 1. Define directory names [DO NOT CHANGE]
 # =========================================
 
-# get hostname
-myhost=`hostname`
-
 # get name of the temporary directory working directory, physically on the compute-node
-workdir="$TMPDIR"
+workdir="${TMPDIR}"
 
 # get submit directory
 # (every file/folder below this directory is copied to the compute node)
 submitdir="${SLURM_SUBMIT_DIR}"
 
-# 2. Write job info to a log file [MAY BE CHANGED/OMITTED]
-# ========================================================
+# 2. Write job info to a log file (stored in the "submitdir") [MAY BE CHANGED/OMITTED]
+# ====================================================================================
 
+# get hostname
+myhost=`hostname`
+
+# write log file
 cat <<EOF > job.slurm.json
 {
   "submitdir"           : "${submitdir}",
@@ -61,6 +62,8 @@ cd ${workdir}
 
 # define clean-up function
 function clean_up {
+  # - delete temporary files
+  # rm -r ...
   # - change directory to the location of the sbatch command (on the head node)
   cd "${submitdir}"
   # - copy everything from the temporary directory on the compute-node
