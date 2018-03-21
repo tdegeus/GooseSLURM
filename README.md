@@ -32,7 +32,7 @@ This repository provides some command-line tools and some job-script for the SLU
     2.   Run the job (while reading and writing locally on the compute node)
     3.   Copy all files back to the directory from which the job is submitted.
 
-* [parallel](examples/parallel): use GNU pap
+* [parallel](examples/parallel): use GNU parallel to run several executables in parallel within a single job (that claims more that one CPU).
 
 # Installation
 
