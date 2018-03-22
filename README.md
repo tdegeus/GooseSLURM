@@ -1,5 +1,7 @@
 # GooseSLURM
 
+[![](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
+
 This repository provides some command-line tools and some job-script for the SLURM queuing system.
 
 <!-- MarkdownTOC -->
