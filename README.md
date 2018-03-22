@@ -26,13 +26,15 @@ This repository provides some command-line tools and some job-script for the SLU
 
 # Batch scripts
 
-* [tempdir](examples/tempdir): exploit a temporary directory on the compute node to avoid costly read/write actions of the network.
+* [tempdir](examples/tempdir): Exploit a temporary directory on the compute node to avoid costly read/write actions of the network.
 
     1.   Copy files to a temporary directory on the compute node
     2.   Run the job (while reading and writing locally on the compute node)
     3.   Copy all files back to the directory from which the job is submitted.
 
-* [parallel](examples/parallel): use GNU parallel to run several executables in parallel within a single job (that claims more that one CPU).
+* [json_log](examples/json_log): Register some environment variables when the job starts. This particular examples shows a way to allow automatic copying from the [tempdir](examples/tempdir) back to the head node using [Gcopy](bin/Gcopy) while the job is running.
+
+* [parallel](examples/parallel): Use GNU parallel to run several executables in parallel within a single job (that claims more that one CPU).
 
 # Installation
 

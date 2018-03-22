@@ -78,22 +78,18 @@ The job script [`job.slurm`](job.slurm) has to following parts:
     -   `workdir`: the temporary directory on the compute node, here taken from the `${TMPDIR}` provided by SLURM. Reading from and writing to the `workdir` is local on the compute node, and does not involve the cluster's internal network.
     -   `submitdir`: the directory from which the `sbatch` command is run. It is assumed that this is the simulation directory (`/home/user/.../simulation` above). All files/directory in this folder are copied back and forth. **Be sure to select the correct directory here.**
 
-*   *lines 19-39*
-    
-    Generate a log file [job.slurm.json](`job.slurm.json`) with the essential job information. This is completely optional, and may be omitted or changed.
-
-*   *lines 41-58*
+*   *lines 19-36*
 
     1.  Optionally create or clear the temporary directory on the compute node (`workdir`).
     2.  Copy all files/directory in `submitdir` to the temporary directory on the compute node (over the cluster's internal network).
 
-*   *lines 60-77*
+*   *lines 38-57*
 
     Define a function that will be run when the job ends (exits normally, or is voluntarily or involuntarily terminated by the queuing system). This function will copy everything (including all the generated results) back to the `submitdir`, which again involves the cluster's internal network. Note that this may overwrite files in `submitdir`.
 
     If temporary files are created that you do not need anymore (for example build files, executables, debug output, ...) it is wise to delete it by uncommenting and modifying line 66. This way these files are created before copying them over the network.
 
-*   *lines 81-...*
+*   *lines 59-...*
 
     Here you can do what you want. Remember that all read and write operations in the current directory (i.e. all files like `./somepath`) are local on the compute node (which is as efficient as reading and writing gets). Avoid here to do anything involving the home folder, as that is a network mount. 
 

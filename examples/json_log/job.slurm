@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --partition debug
 
-# Define directory names [DO NOT CHANGE]
-# ======================================
+# 1. Define directory names [DO NOT CHANGE]
+# =========================================
 
 # get name of the temporary directory working directory, physically on the compute-node
 workdir="${TMPDIR}"
@@ -16,7 +16,29 @@ workdir="${TMPDIR}"
 # (every file/folder below this directory is copied to the compute node)
 submitdir="${SLURM_SUBMIT_DIR}"
 
-# 1. Transfer to node [DO NOT CHANGE]
+# 2. Write job info to a log file (stored in the "submitdir") [MAY BE CHANGED/OMITTED]
+# ====================================================================================
+
+# get hostname
+myhost=`hostname`
+
+# write log file
+cat <<EOF > job.slurm.json
+{
+  "submitdir"           : "${submitdir}",
+  "workdir"             : "${workdir}",
+  "workdir_host"        : "${myhost}",
+  "hostname"            : "${myhost}",
+  "SLURM_SUBMIT_DIR"    : "${SLURM_SUBMIT_DIR}",
+  "SLURM_JOB_ID"        : "${SLURM_JOB_ID}",
+  "SLURM_JOB_NODELIST"  : "${SLURM_JOB_NODELIST}",
+  "SLURM_SUBMIT_HOST"   : "${SLURM_SUBMIT_HOST}",
+  "SLURM_JOB_NUM_NODES" : "${SLURM_JOB_NUM_NODES}",
+  "SLURM_CPUS_PER_TASK" : "${SLURM_CPUS_PER_TASK}"
+}
+EOF
+
+# 3. Transfer to node [DO NOT CHANGE]
 # ===================================
 
 # create/empty the temporary directory on the compute node
@@ -35,7 +57,7 @@ cp -prf * ${workdir}
 # change directory to the temporary directory on the compute-node
 cd ${workdir}
 
-# 3. Function to transfer back to the head node [DO NOT CHANGE]
+# 4. Function to transfer back to the head node [DO NOT CHANGE]
 # =============================================================
 
 # define clean-up function
@@ -56,7 +78,7 @@ function clean_up {
 # call "clean_up" function when this script exits, it is run even if SLURM cancels the job
 trap 'clean_up' EXIT
 
-# 2. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# 5. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
 # ============================================
 
 # simplest example in the world, sleep a bit to allow a bit of monitoring
