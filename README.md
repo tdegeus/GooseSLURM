@@ -1,6 +1,6 @@
 # GooseSLURM
 
-[![](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
+[![](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE) [![](https://img.shields.io/badge/warranty-no-red.svg)](LICENSE) [![](https://img.shields.io/badge/download-.zip-lightgray.svg)](https://github.com/tdegeus/GooseMPL/zipball/master) [![](https://img.shields.io/badge/download-.tar.gz-lightgray.svg)](https://github.com/tdegeus/GooseMPL/tarball/master) [![](https://img.shields.io/badge/contact-tom@geus.me-blue.svg)](mailto:tom@geus.me) [![](https://img.shields.io/badge/contact-www.geus.me-blue.svg)](http://www.geus.me) [![](https://img.shields.io/badge/GitHub-tdegeus/GooseSLURM-blue.svg)](https://github.com/tdegeus/GooseSLURM)
 
 This repository provides some command-line tools and some job-script for the SLURM queuing system.
 
@@ -11,12 +11,6 @@ This repository provides some command-line tools and some job-script for the SLU
 - [Installation](#installation)
 
 <!-- /MarkdownTOC -->
-
-> **Disclaimer**
-> 
-> These tools and job-script reflect my personal approach and have not been reviewed by any system administrator or anyone from SLURM. They come with absolutely no warranty.
-> 
->   (c - [MIT](LICENSE)) T.W.J. de Geus (Tom) | tom@geus.me | www.geus.me | [github.com/tdegeus/GooseSLURM](https://github.com/tdegeus/GooseSLURM)
 
 # Command-line tools
 
