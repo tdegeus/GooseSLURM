@@ -1,6 +1,12 @@
 # GooseSLURM
 
-[![](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE) [![](https://img.shields.io/badge/warranty-no-red.svg)](LICENSE) [![](https://img.shields.io/badge/download-.zip-lightgray.svg)](https://github.com/tdegeus/GooseMPL/zipball/master) [![](https://img.shields.io/badge/download-.tar.gz-lightgray.svg)](https://github.com/tdegeus/GooseMPL/tarball/master) [![](https://img.shields.io/badge/contact-tom@geus.me-blue.svg)](mailto:tom@geus.me) [![](https://img.shields.io/badge/contact-www.geus.me-blue.svg)](http://www.geus.me) [![](https://img.shields.io/badge/GitHub-tdegeus/GooseSLURM-blue.svg)](https://github.com/tdegeus/GooseSLURM)
+[![](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE) 
+[![](https://img.shields.io/badge/warranty-no-red.svg)](LICENSE) 
+[![](https://img.shields.io/badge/download-.zip-lightgray.svg)](https://github.com/tdegeus/GooseSLURM/zipball/master) 
+[![](https://img.shields.io/badge/download-.tar.gz-lightgray.svg)](https://github.com/tdegeus/GooseSLURM/tarball/master) 
+[![](https://img.shields.io/badge/contact-tom@geus.me-blue.svg)](mailto:tom@geus.me) 
+[![](https://img.shields.io/badge/contact-www.geus.me-blue.svg)](http://www.geus.me) 
+[![](https://img.shields.io/badge/GitHub-tdegeus/GooseSLURM-blue.svg)](https://github.com/tdegeus/GooseSLURM)
 
 This repository provides some command-line tools and some job-script for the SLURM queuing system.
 
