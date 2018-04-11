@@ -106,7 +106,7 @@ To check that the processes actually are run in parallel one can:
 
 To 'install' GNU parallel into your home folder, for example under `~/opt`. 
 
-1.  [Download the latest version of GNU Parallel](http://ftp.gnu.org/gnu/parallel/).
+1.  [Download the latest version of GNU Parallel](http://ftp.gnu.org/gnu/parallel/). *You'll find `parallel-latest.tar.bz2` on the bottom of the page.*
 
 2.  Make the directory `~/opt` if it does not yet exist
 
