@@ -38,6 +38,25 @@ This repository provides some command-line tools and some job-script for the SLU
 
 * [parallel](examples/parallel): Use GNU parallel to run several executables in parallel within a single job (that claims more that one CPU).
 
+# Download
+
+To download the script you could use git. 
+
+1.  Login to the cluster:
+
+    ```bash
+    $ ssh username@url.to.cluster
+    ```
+    
+2.  Clone this repository:
+
+    ```bash
+    $ cd /some/path
+    $ git clone https://github.com/tdegeus/GooseSLURM.git
+    ```
+    
+   GooseSLURM will then be downloaded to `/some/path/GooseSLURM`.
+
 # Installation
 
 To get these scripts to work one can:
