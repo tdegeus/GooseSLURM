@@ -55,17 +55,19 @@ args = docopt.docopt(__doc__,version='0.0.4')
 args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
 # - change "-" to "_" to facilitate direct use in print format
 args = {key.replace('-','_'): args[key] for key in args}
+# - remove "<...>"
+args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 
 # ---------------------------------------- check arguments -----------------------------------------
 
-for file in args['<FILES>']:
+for file in args['FILES']:
 
   if not os.path.isfile(file):
     Error('"%s" does not exist' % file)
 
 # --------------------------------------------- submit ---------------------------------------------
 
-for file in args['<FILES>']:
+for file in args['FILES']:
 
   path, name = os.path.split(file)
 

@@ -66,9 +66,8 @@ args = docopt.docopt(__doc__,version='0.0.4')
 args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
 # - change "-" to "_" to facilitate direct use in print format
 args = {key.replace('-','_'): args[key] for key in args}
-
-# rename fields
-args['jobs'] = args.pop('<JobId>')
+# - remove "<...>"
+args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 
 # ------------------------------------- get/check running jobs -------------------------------------
 
@@ -78,8 +77,8 @@ user = pwd.getpwuid(os.getuid())[0]
 # get the currently running jobs (restricted to the current user)
 running = getrunningjobs()
 # default : select all jobs
-if args['jobs']: jobs = args['jobs']
-else           : jobs = [job for job in running]
+if args['JobId']: jobs = args['JobId']
+else            : jobs = [job for job in running]
 
 # check if the supplied jobs are running
 for job in jobs:

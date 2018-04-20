@@ -275,6 +275,8 @@ args = docopt.docopt(__doc__,version='0.0.4')
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options
 args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+# - remove "<...>"
+args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 
 # ---------------------------------------- modify arguments ----------------------------------------
 
@@ -298,7 +300,7 @@ if args['json']:
 # ------------------------------------------ write files -------------------------------------------
 
 # loop over arguments
-for dirname in args.pop('<PATH>'):
+for dirname in args.pop('PATH'):
 
   # initialize options
   info = {}

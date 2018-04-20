@@ -57,6 +57,8 @@ args = docopt.docopt(__doc__,version='0.0.4')
 args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
 # - change "-" to "_" to facilitate direct use in print format
 args = {key.replace('-','_'): args[key] for key in args}
+# - remove "<...>"
+args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 
 # overwrite
 if args['debug']: args['verbose'] = True
@@ -64,7 +66,7 @@ if args['debug']: args['verbose'] = True
 # ---------------------------------------------- copy ----------------------------------------------
 
 # loop over jobs
-for job in args['<job.json>']:
+for job in args['job.json']:
 
   # read job info
   # -------------
