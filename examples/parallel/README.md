@@ -132,4 +132,4 @@ To 'install' GNU parallel into your home folder, for example under `~/opt`.
     $ export PATH=$HOME/opt/bin:$PATH
     ```
 
-    To make this permanent, add this line to your `~/.bashrc` (or some equivalent configuration file).
+    To make this permanent, add this line to your `~/.bashrc` (or some equivalent configuration file), see for example [this page](https://www.cyberciti.biz/faq/set-environment-variable-linux/).
