@@ -329,8 +329,9 @@ for dirname in args.pop('PATH'):
 
   # check to ignore options
   for key in ['time','mem','cpus-per-task','job-name','nodes','ntasks']:
-    if info[key].lower() in ['none', 'false']:
-      del info[key]
+    if type(info[key]) == str:
+      if info[key].lower() in ['none', 'false']:
+        del info[key]
 
   # convert time
   if 'time' in info:
