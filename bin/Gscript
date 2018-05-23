@@ -280,14 +280,6 @@ args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 
 # ---------------------------------------- modify arguments ----------------------------------------
 
-# remove empty options
-for key in [key for key in args]:
-  if args[key] is None:
-    del args[key]
-  elif type(args[key])==list:
-    if len(args[key])==0:
-      del args[key]
-
 # read options from JSON file
 if args['json']:
   # - read file
@@ -296,6 +288,14 @@ if args['json']:
   for key, text in info.items():
     if key not in args:
       args[key] = text
+
+# remove empty options
+for key in [key for key in args]:
+  if args[key] is None:
+    del args[key]
+  elif type(args[key])==list:
+    if len(args[key])==0:
+      del args[key]
 
 # ------------------------------------------ write files -------------------------------------------
 
