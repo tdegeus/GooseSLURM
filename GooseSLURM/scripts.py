@@ -123,3 +123,82 @@ trap 'clean_up' EXIT
   )
 
 # ==================================================================================================
+
+def plain(filename='job.slurm', command=[], **sbatch):
+  r'''
+Return SBATCH-file (as text) that uses a temporary working directory on the compute node.
+
+:options:
+
+  **filename** (``<str>`` | [``'job.slurm'``])
+    The filename base to store the out and JSON files.
+
+  **command** (``<str>`` | ``<list>``)
+    Command(s) to execute. If the input is a list each entry is included as an individual line.
+  '''
+
+  # convert to string (if needed)
+  if type(command) != str:
+    command = '\n'.join(command)
+
+  # convert sbatch options
+  # - change format
+  for key, item in sbatch.items():
+    if key in ['time']:
+      sbatch[key] = gt.astime(item)
+  # - add defaults
+  sbatch.setdefault('out', filename+'.out')
+
+  # - convert to string
+  sbatch = '\n'.join(['#SBATCH --{0:s} {1:s}'.format(key,str(arg)) for key,arg in sbatch.items()])
+
+  return '''#!/bin/bash
+{sbatch:s}
+
+# 1. Write job info to a log file [MAY BE CHANGED/OMITTED]
+# ========================================================
+
+# get hostname
+myhost=`hostname`
+
+# get the working directory as the current directory
+workdir=`pwd`
+
+# get submit directory
+submitdir="${{SLURM_SUBMIT_DIR}}"
+
+cat <<EOF > {filename:s}.json
+{{
+  "submitdir"           : "${{submitdir}}",
+  "workdir"             : "${{workdir}}",
+  "workdir_host"        : "localhost",
+  "hostname"            : "${{myhost}}",
+  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
+  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
+  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
+  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
+  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
+  "SLURM_CPUS_PER_TASK" : "${{SLURM_CPUS_PER_TASK}}"
+}}
+EOF
+
+# 2. Change directory [MAY BE CHANGED/OMITTED]
+# ============================================
+
+# change current directory to the location of the sbatch command
+# ("submitdir" is somewhere in the home directory on the head node)
+cd "${{submitdir}}"
+
+# 3. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# ============================================
+
+{command:s}
+
+  '''.format(
+    sbatch   = sbatch,
+    filename = filename,
+    command  = command,
+  )
+
+# ==================================================================================================
+
