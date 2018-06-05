@@ -14,6 +14,7 @@ Options:
   -j, --jobid=<NAME>      Limit output to job-id(s)   (may be a regex).
       --host=<NAME>       Limit output to host(s)     (may be a regex).
       --status=<NAME>     Limit output to status      (may be a regex).
+      --partition=<NAME>  Limit output to partition   (may be a regex).
   -s, --sort=<NAME>       Sort by field (selected by the header name).
   -r, --reverse           Reverse sort.
       --output=<NAME>     Select output columns (selected by the header name).
@@ -507,19 +508,20 @@ if args['U']: args['user'] += [ pwd.getpwuid( os.getuid() )[ 0 ] ]
 
 # conversion map: default field-names -> custom field-names
 alias = {
-  'JOBID'           :'JobID'   ,
-  'USER'            :'User'    ,
-  'ACCOUNT'         :'Account' ,
-  'NAME'            :'Name'    ,
-  'START_TIME'      :'Tstart'  ,
-  'TIME_LEFT'       :'Tleft'   ,
-  'NODES'           :'#node'   ,
-  'CPUS'            :'#CPU'    ,
-  'CPUS_R'          :'#CPU(R)' ,
-  'CPUS_PD'         :'#CPU(PD)',
-  'MIN_MEMORY'      :'MEM'     ,
-  'ST'              :'ST'      ,
-  'NODELIST(REASON)':'Host'    ,
+  'JOBID'           :'JobID'    ,
+  'USER'            :'User'     ,
+  'ACCOUNT'         :'Account'  ,
+  'NAME'            :'Name'     ,
+  'START_TIME'      :'Tstart'   ,
+  'TIME_LEFT'       :'Tleft'    ,
+  'NODES'           :'#node'    ,
+  'CPUS'            :'#CPU'     ,
+  'CPUS_R'          :'#CPU(R)'  ,
+  'CPUS_PD'         :'#CPU(PD)' ,
+  'MIN_MEMORY'      :'MEM'      ,
+  'ST'              :'ST'       ,
+  'NODELIST(REASON)':'Host'     ,
+  'PARTITION'       :'Partition',
 }
 
 # conversion map: custom field-names -> default field-names
@@ -548,6 +550,7 @@ columns = [
   {'key':'CPUS'            , 'width':4 , 'align':'>', 'priority': True },
   {'key':'MIN_MEMORY'      , 'width':3 , 'align':'>', 'priority': True },
   {'key':'ST'              , 'width':2 , 'align':'<', 'priority': True },
+  {'key':'PARTITION'       , 'width':9 , 'align':'<', 'priority': False},
   {'key':'NODELIST(REASON)', 'width':5 , 'align':'<', 'priority': False},
 ]
 
@@ -691,7 +694,7 @@ for line in lines:
 # ------------------------------ limit based on command-line options -------------------------------
 
 # loop over possible fields
-for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)']:
+for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)','PARTITION']:
   # select data
   if args[key]:
     # - limit data
