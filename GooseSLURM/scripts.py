@@ -1,5 +1,6 @@
 
-from . import time as gt
+from . import time   as gt
+from . import memory as gm
 
 # ==================================================================================================
 
@@ -29,8 +30,8 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   # convert sbatch options
   # - change format
   for key, item in sbatch.items():
-    if key in ['time']:
-      sbatch[key] = gt.astime(item)
+    if key in ['time']: sbatch[key] = gt.asSlurm(item)
+    if key in ['mem' ]: sbatch[key] = gm.asSlurm(item)
   # - add defaults
   sbatch.setdefault('out', filename+'.out')
 
@@ -144,8 +145,8 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   # convert sbatch options
   # - change format
   for key, item in sbatch.items():
-    if key in ['time']:
-      sbatch[key] = gt.astime(item)
+    if key in ['time']: sbatch[key] = gt.asSlurm(item)
+    if key in ['mem' ]: sbatch[key] = gm.asSlurm(item)
   # - add defaults
   sbatch.setdefault('out', filename+'.out')
 
