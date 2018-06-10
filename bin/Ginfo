@@ -704,7 +704,7 @@ for line in lines:
   line['CPUS_O'] = Integer(str(line['CPUS_T']))
 
   # node down: mark all fields
-  if re.match(r'down,*',str(line['STATE'])) or re.match(r'maint.*',str(line['STATE'])):
+  if re.match(r'down,*',str(line['STATE'])) or re.match(r'maint.*',str(line['STATE']))  or re.match(r'drain.*',str(line['STATE'])):
     line['CPUS_I'] = Integer('0')
     line['CPUS_D'] = Integer(str(line['CPUS_T']))
     line['CPUS_O'] = Integer('0')
