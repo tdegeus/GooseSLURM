@@ -1,6 +1,6 @@
 
-from . import time   as gt
-from . import memory as gm
+from . import duration
+from . import memory
 
 # ==================================================================================================
 
@@ -21,7 +21,8 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   '''
 
   # convert to string
-  remove = 'rm -r ' + ' '.join(remove)
+  if len(remove) > 0: remove = 'rm -r ' + ' '.join(remove)
+  else              : remove = '# rm -r ...'
 
   # convert to string (if needed)
   if type(command) != str:
@@ -30,10 +31,13 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   # convert sbatch options
   # - change format
   for key, item in sbatch.items():
-    if key in ['time']: sbatch[key] = gt.asSlurm(item)
-    if key in ['mem' ]: sbatch[key] = gm.asSlurm(item)
+    if key in ['time']: sbatch[key] = duration.asSlurm(item)
+    if key in ['mem' ]: sbatch[key] = memory  .asSlurm(item)
   # - add defaults
   sbatch.setdefault('out', filename+'.out')
+
+  # extract name of the output file
+  outfile = sbatch['out']
 
   # - convert to string
   sbatch = '\n'.join(['#SBATCH --{0:s} {1:s}'.format(key,str(arg)) for key,arg in sbatch.items()])
@@ -41,22 +45,23 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   return '''#!/bin/bash
 {sbatch:s}
 
-# 1. Generate unique directory name [DO NOT CHANGE]
-# =================================================
-
-# get hostname
-myhost=`hostname`
+# I. Define directory names [DO NOT CHANGE]
+# =========================================
 
 # get name of the temporary directory working directory, physically on the compute-node
-workdir="$TMPDIR"
+workdir="${{TMPDIR}}"
 
 # get submit directory
 # (every file/folder below this directory is copied to the compute node)
 submitdir="${{SLURM_SUBMIT_DIR}}"
 
-# 2. Write job info to a log file [MAY BE CHANGED/OMITTED]
-# ========================================================
+# II. Write job info to a log file [MAY BE CHANGED/OMITTED]
+# =========================================================
 
+# get hostname
+myhost=`hostname`
+
+# write JSON-file
 cat <<EOF > {filename:s}.json
 {{
   "submitdir"           : "${{submitdir}}",
@@ -72,7 +77,7 @@ cat <<EOF > {filename:s}.json
 }}
 EOF
 
-# 3. Transfer to node [DO NOT CHANGE]
+# 1. Transfer to node [DO NOT CHANGE]
 # ===================================
 
 # create/empty the temporary directory on the compute node
@@ -91,12 +96,14 @@ cp -prf * ${{workdir}}
 # change directory to the temporary directory on the compute-node
 cd ${{workdir}}
 
-# 4. Function to transfer back to the head node [DO NOT CHANGE]
+# 3. Function to transfer back to the head node [DO NOT CHANGE]
 # =============================================================
 
 # define clean-up function
 function clean_up {{
-  # - remove local files before copying
+  # - remove log-file on the compute-node, to avoid the one created by SLURM is overwritten
+  rm {outfile:s}
+  # - delete temporary files from the compute-node, before copying
   {remove:s}
   # - change directory to the location of the sbatch command (on the head node)
   cd "${{submitdir}}"
@@ -112,7 +119,7 @@ function clean_up {{
 # call "clean_up" function when this script exits, it is run even if SLURM cancels the job
 trap 'clean_up' EXIT
 
-# 5. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
+# 2. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
 # ============================================
 
 {command:s}
@@ -120,6 +127,7 @@ trap 'clean_up' EXIT
     sbatch   = sbatch,
     filename = filename,
     command  = command,
+    outfile  = outfile,
     remove   = remove,
   )
 
@@ -145,8 +153,8 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   # convert sbatch options
   # - change format
   for key, item in sbatch.items():
-    if key in ['time']: sbatch[key] = gt.asSlurm(item)
-    if key in ['mem' ]: sbatch[key] = gm.asSlurm(item)
+    if key in ['time']: sbatch[key] = duration.asSlurm(item)
+    if key in ['mem' ]: sbatch[key] = memory  .asSlurm(item)
   # - add defaults
   sbatch.setdefault('out', filename+'.out')
 

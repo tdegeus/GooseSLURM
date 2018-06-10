@@ -1,5 +1,6 @@
 
 from . import scripts
-from . import time
+from . import duration
 from . import memory
 from . import files
+from . import data
