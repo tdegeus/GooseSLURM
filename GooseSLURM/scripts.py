@@ -133,7 +133,7 @@ trap 'clean_up' EXIT
 
 # ==================================================================================================
 
-def plain(filename='job.slurm', command=[], **sbatch):
+def plain(filename='job.slurm', command=[], cd_submitdir=True, **sbatch):
   r'''
 Return SBATCH-file (as text) that uses a temporary working directory on the compute node.
 
@@ -150,6 +150,13 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   if type(command) != str:
     command = '\n'.join(command)
 
+  # add command
+  if cd_submitdir:
+
+    command = '\n' + command
+    command = 'cd "${{SLURM_SUBMIT_DIR}}"\n' + command
+    command = '# change current directory to the location of the sbatch command\n' + command
+
   # convert sbatch options
   # - change format
   for key, item in sbatch.items():
@@ -163,43 +170,6 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
 
   return '''#!/bin/bash
 {sbatch:s}
-
-# 1. Write job info to a log file [MAY BE CHANGED/OMITTED]
-# ========================================================
-
-# get hostname
-myhost=`hostname`
-
-# get the working directory as the current directory
-workdir=`pwd`
-
-# get submit directory
-submitdir="${{SLURM_SUBMIT_DIR}}"
-
-cat <<EOF > {filename:s}.json
-{{
-  "submitdir"           : "${{submitdir}}",
-  "workdir"             : "${{workdir}}",
-  "workdir_host"        : "localhost",
-  "hostname"            : "${{myhost}}",
-  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
-  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
-  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
-  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
-  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_PER_TASK" : "${{SLURM_CPUS_PER_TASK}}"
-}}
-EOF
-
-# 2. Change directory [MAY BE CHANGED/OMITTED]
-# ============================================
-
-# change current directory to the location of the sbatch command
-# ("submitdir" is somewhere in the home directory on the head node)
-cd "${{submitdir}}"
-
-# 3. Execute [MODIFY COMPLETELY TO YOUR NEEDS]
-# ============================================
 
 {command:s}
 
