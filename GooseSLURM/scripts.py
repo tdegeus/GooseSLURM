@@ -154,7 +154,7 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
   if cd_submitdir:
 
     command = '\n' + command
-    command = 'cd "${{SLURM_SUBMIT_DIR}}"\n' + command
+    command = 'cd "${SLURM_SUBMIT_DIR}"\n' + command
     command = '# change current directory to the location of the sbatch command\n' + command
 
   # convert sbatch options
