@@ -3,7 +3,7 @@ import re
 
 # ==================================================================================================
 
-def asSeconds(data):
+def __asSeconds(data):
   r'''
 Convert string to seconds, from:
 
@@ -59,7 +59,7 @@ Convert string to seconds, from:
 
 # ==================================================================================================
 
-def asUnit(data,unit,precision):
+def __asUnit(data,unit,precision):
   r'''
 Convert to string that has a unit, either with a certain precision, or with a default precision.
   '''
@@ -77,7 +77,7 @@ def asHuman(data,precision=None):
 Return humanly-readable string.
   '''
 
-  data = asSeconds(data)
+  data = __asSeconds(data)
 
   if data is None: return ''
 
@@ -86,20 +86,18 @@ Return humanly-readable string.
 
   for i,unit in zip(base,name):
     if abs(data) >= i:
-      return asUnit(float(data)/float(i), unit, precision)
+      return __asUnit(float(data)/float(i), unit, precision)
 
-  return asUnit(float(data), 's', precision)
+  return __asUnit(float(data), 's', precision)
 
 # ==================================================================================================
 
 def asSlurm(data):
   r'''
 Convert to a SLURM time string (e.g. "1-00:00:00").
-
-The input is converted to seconds by ``GooseSLURM.tine.asSeconds()``.
   '''
 
-  data = asSeconds(data)
+  data = __asSeconds(data)
 
   if not data: return ''
 

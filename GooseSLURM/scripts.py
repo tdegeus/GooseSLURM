@@ -18,6 +18,19 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
 
   **command** (``<str>`` | ``<list>``)
     Command(s) to execute. If the input is a list each entry is included as an individual line.
+
+:SBATCH options:
+
+  **mem** (``<int>`` | ``<str>``)
+    Memory claim (may be human readable, see 'GooseSLUM.memory.asSlurm').
+
+  **time**  (``<str>``)
+    Wall-time claim (may be human readable, see 'GooseSLUM.time.asSlurm').
+
+  **out** ([``filename+'.out'``] | ``<str``>)
+    Name of the output file.
+
+  ...
   '''
 
   # convert to string
@@ -144,6 +157,22 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
 
   **command** (``<str>`` | ``<list>``)
     Command(s) to execute. If the input is a list each entry is included as an individual line.
+
+  **cd_submitdir** ([``True``] | ``False``)
+    Include 'cd "${SLURM_SUBMIT_DIR}"' at the beginning of the script.
+
+:SBATCH options:
+
+  **mem** (``<int>`` | ``<str>``)
+    Memory claim (may be human readable, see 'GooseSLUM.memory.asSlurm').
+
+  **time**  (``<str>``)
+    Wall-time claim (may be human readable, see 'GooseSLUM.time.asSlurm').
+
+  **out** ([``filename+'.out'``] | ``<str``>)
+    Name of the output file.
+
+  ...
   '''
 
   # convert to string (if needed)

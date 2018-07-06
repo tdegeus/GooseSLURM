@@ -1,4 +1,7 @@
 
+from . import duration
+from . import memory
+
 # ==================== CLASS TO REPRESENT A STRING, AND PROVIDE A PRINT FORMAT =====================
 
 class String:
@@ -239,30 +242,13 @@ class Time(Integer):
 
     super().__init__(*args,**kwargs)
 
-  # ------------- convert number + unit -> string, formatted to the correct precision --------------
-
-  def asunit(self,n,unit):
-
-    if self.precision:
-      return '{{0:.{precision:d}f}}{{1:s}}'.format(**self.__dict__).format(n,unit)
-    else:
-      if abs(round(n)) < 10.: return '{0:.1f}{1:s}'.format(      n ,unit)
-      else                  : return '{0:.0f}{1:s}'.format(round(n),unit)
-
   # ---------------- return string, formatted to fixed precision with relevant unit ----------------
 
   def __str__(self):
 
     if not self.isnumeric(): return self.data
 
-    base = [60*60*24, 60*60, 60, 1]
-    name = ['d', 'h', 'm', 's']
-
-    for i,unit in zip(base,name):
-      if abs(self.data) >= i:
-        return self.asunit(float(self.data)/float(i), unit)
-
-    return self.asunit(float(self.data), 's')
+    return duration.asHuman(self.data)
 
 # =============================== CLASS TO REPRESENT MEMORY IN BYTES ===============================
 
@@ -276,26 +262,10 @@ class Memory(Integer):
 
     super().__init__(*args,**kwargs)
 
-  # ------------- convert number + unit -> string, formatted to the correct precision --------------
-
-  def asunit(self,n,unit):
-
-    if self.precision:
-      return '{{0:.{precision:d}f}}{{1:s}}'.format(**self.__dict__).format(n,unit)
-    else:
-      return '{0:.0f}{1:s}'.format(round(n),unit)
-
   # ---------------- return string, formatted to fixed precision with relevant unit ----------------
 
   def __str__(self):
 
     if not self.isnumeric(): return self.data
 
-    base = [1e12, 1e9, 1e6, 1e3, 1]
-    name = ['T', 'G', 'M', 'K', 'B']
-
-    for i,unit in zip(base,name):
-      if abs(self.data) >= i:
-        return self.asunit(float(self.data)/float(i), unit)
-
-    return self.asunit(float(self.data), 'B')
+    return memory.asHuman(self.data)

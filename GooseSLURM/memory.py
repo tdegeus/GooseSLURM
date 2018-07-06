@@ -3,7 +3,7 @@ import re
 
 # ==================================================================================================
 
-def asBytes(data):
+def __asBytes(data):
   r'''
 Convert string to bytes, from:
 
@@ -32,7 +32,7 @@ Convert string to bytes, from:
 
 # ==================================================================================================
 
-def asUnit(data,unit,precision):
+def __asUnit(data,unit,precision):
   r'''
 Convert to string that has a unit, either with a certain precision, or with a default precision.
   '''
@@ -50,7 +50,7 @@ def asHuman(data,precision=None):
 Return humanly-readable string.
   '''
 
-  data = asBytes(data)
+  data = __asBytes(data)
 
   if data is None: return ''
 
@@ -59,20 +59,18 @@ Return humanly-readable string.
 
   for i,unit in zip(base,name):
     if abs(data) >= i:
-      return asUnit(float(data)/float(i), unit, precision)
+      return __asUnit(float(data)/float(i), unit, precision)
 
-  return asUnit(float(data), 'B', precision)
+  return __asUnit(float(data), 'B', precision)
 
 # ==================================================================================================
 
 def asSlurm(data):
   r'''
 Convert to a SLURM string (e.g. "1G").
-
-The input is converted to seconds by ``GooseSLURM.tine.asBytes()``.
   '''
 
-  data = asBytes(data)
+  data = __asBytes(data)
 
   if data is None: return ''
 
