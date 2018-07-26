@@ -10,7 +10,7 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
 
 :options:
 
-  **filename** (``<str>`` | [``'job.slurm'``])
+  **filename** ([``'job.slurm'``] | ``<str>``)
     The filename base to store the out and JSON files.
 
   **remove** (``<list>``)

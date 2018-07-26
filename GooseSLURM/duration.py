@@ -3,7 +3,7 @@ import re
 
 # ==================================================================================================
 
-def __asSeconds(data):
+def asSeconds(data, default=None):
   r'''
 Convert string to seconds, from:
 
@@ -55,11 +55,11 @@ Convert string to seconds, from:
 
   except:
 
-    return None
+    return default
 
 # ==================================================================================================
 
-def __asUnit(data,unit,precision):
+def asUnit(data,unit,precision):
   r'''
 Convert to string that has a unit, either with a certain precision, or with a default precision.
   '''
@@ -77,7 +77,7 @@ def asHuman(data,precision=None):
 Return humanly-readable string.
   '''
 
-  data = __asSeconds(data)
+  data = asSeconds(data)
 
   if data is None: return ''
 
@@ -86,9 +86,9 @@ Return humanly-readable string.
 
   for i,unit in zip(base,name):
     if abs(data) >= i:
-      return __asUnit(float(data)/float(i), unit, precision)
+      return asUnit(float(data)/float(i), unit, precision)
 
-  return __asUnit(float(data), 's', precision)
+  return asUnit(float(data), 's', precision)
 
 # ==================================================================================================
 
@@ -97,7 +97,7 @@ def asSlurm(data):
 Convert to a SLURM time string (e.g. "1-00:00:00").
   '''
 
-  data = __asSeconds(data)
+  data = asSeconds(data)
 
   if not data: return ''
 
