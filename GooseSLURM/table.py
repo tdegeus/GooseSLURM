@@ -23,7 +23,7 @@ Print table as follows
 
   **lines** (``[ {'JOBID': '1234', ...}, ...]``)
     List of lines, with each line stored as a dictionary. Note that all data has to be stored as one
-    of the GooseSLURM.rich classes or as string.
+    as string, or as one the GooseSLURM.rich classes (no rich printing is used though).
   '''
 
   # width of the field-names
@@ -58,22 +58,22 @@ there is insufficient room.
 
   **lines** (``[ {'JOBID': '1234', ...}, ...]``)
     List of lines, with each line stored as a dictionary. Note that all data has to be stored as one
-    of the GooseSLURM.rich classes.
+    of the GooseSLURM.rich classes (to customize the color, precision, ...) or as string.
 
   **columns** (``[ {'key': 'JOBID', 'width': 7, 'align': '>', 'priority': True}, ...]``)
     List with print settings of each column:
     - 'key'     : the key-name used to store each line (see ``lines`` below)
     - 'width'   : minimum print width (expanded as much as possible to fit the data)
-    - 'align'   : alignment of the columns
-    - 'priority': priority of column expansion, columns marked "True" are expanded first
+    - 'align'   : alignment of the column
+    - 'priority': priority of column expansion, columns marked ``True`` are expanded first
 
   **header** (``{'JOBID': 'JobID', ...}``)
-    Header for each column.
+    Header name for each column.
 
 :options:
 
   **no_truncate** ([``False``] | ``True``)
-    Disable truncation of columns.
+    Disable truncation of columns. In this case each column is expanded to fit the data.
 
   **sep** ([``', '``] | ``<str>``)
     Separator between columns.
@@ -99,6 +99,18 @@ there is insufficient room.
 
   # select header based on columns
   header = {column['key']: header[column['key']] for column in columns}
+
+  # convert to GooseSLURM.rich
+  # --------------------------
+
+  for line in lines:
+    for key in line:
+      if not isinstance(line[key], rich.String):
+        line[key] = rich.String(line[key])
+
+  for key in header:
+    if not isinstance(header[key], rich.String):
+      header[key] = rich.String(header[key])
 
   # compute column-width, based on data
   # -----------------------------------
@@ -192,16 +204,16 @@ there is insufficient room.
 
 def print_list(lines,key,sep=' '):
   r'''
-Print a single field as a list.
+Print a single column as a list.
 
 :arguments:
 
   **lines** (``[ {'JOBID': '1234', ...}, ...]``)
     List of lines, with each line stored as a dictionary. Note that all data has to be stored as one
-    of the GooseSLURM.rich classes.
+    as string, or as one the GooseSLURM.rich classes (no rich printing is used though).
 
   **key** (``'JOBID'``)
-    Field to select.
+    Column to print.
 
 :options:
 
