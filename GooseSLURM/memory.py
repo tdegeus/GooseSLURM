@@ -5,7 +5,7 @@ import re
 
 def asBytes(data, default=None):
   r'''
-Convert string to bytes, from:
+Convert string to bytes (``int``), from:
 
 *   A humanly readable string (e.g. "1G").
 *   ``int`` or ``float``: interpreted as bytes.
@@ -34,7 +34,7 @@ Convert string to bytes, from:
 
 def asUnit(data,unit,precision):
   r'''
-Convert to string that has a unit, either with a certain precision, or with a default precision.
+Convert to string with a certain unit and precision.
   '''
 
   if precision:
@@ -47,7 +47,8 @@ Convert to string that has a unit, either with a certain precision, or with a de
 
 def asHuman(data,precision=None):
   r'''
-Return humanly-readable string.
+Convert to string that has the biggest possible unit (for example hours, or days). Use either the
+default precision, or use a default one.
   '''
 
   data = asBytes(data)

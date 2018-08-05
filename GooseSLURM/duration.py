@@ -5,7 +5,7 @@ import re
 
 def asSeconds(data, default=None):
   r'''
-Convert string to seconds, from:
+Convert string to seconds (``int``), from:
 
 *   A humanly readable time (e.g. "1d").
 *   A SLURM time string (e.g. "1-00:00:00").
@@ -61,7 +61,7 @@ Convert string to seconds, from:
 
 def asUnit(data,unit,precision):
   r'''
-Convert to string that has a unit, either with a certain precision, or with a default precision.
+Convert to string with a certain unit and precision.
   '''
 
   if precision:
@@ -74,7 +74,8 @@ Convert to string that has a unit, either with a certain precision, or with a de
 
 def asHuman(data,precision=None):
   r'''
-Return humanly-readable string.
+Convert to string that has the biggest possible unit (for example hours, or days). Use either the
+default precision, or use a default one.
   '''
 
   data = asSeconds(data)

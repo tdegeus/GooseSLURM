@@ -201,7 +201,6 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
 {sbatch:s}
 
 {command:s}
-
   '''.format(
     sbatch   = sbatch,
     filename = filename,
