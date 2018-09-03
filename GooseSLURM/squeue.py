@@ -3,7 +3,7 @@ from . import rich
 
 # ==================================================================================================
 
-def colors(theme='dark'):
+def colors(theme=None):
   r'''
 Return named colors:
 
@@ -77,7 +77,7 @@ Proceed with ``GooseSLURM.squeue.interpret`` for pretty printing.
 
 # ==================================================================================================
 
-def interpret(lines, now=None):
+def interpret(lines, now=None, theme=colors()):
   r'''
 Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are converted to the
 ``GooseSLURM.rich`` classes adding useful colors in the process.
@@ -126,6 +126,17 @@ Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are co
       if not isinstance(line[key], rich.String):
         line[key] = rich.String(line[key])
 
+    # highlight queued jobs
+    if str(line['ST']) == 'PD':
+      for key in line:
+        line[key].color = theme['queued']
+
   return lines
+
+# ==================================================================================================
+
+def read_interpret(data=None, now=None, theme=colors()):
+
+  return interpret(read(data), now, theme)
 
 # ==================================================================================================
