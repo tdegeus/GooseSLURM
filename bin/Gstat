@@ -77,10 +77,10 @@ alias = {
 # conversion map: custom field-names -> default field-names
 aliasInv = {alias[key].upper():key for key in alias}
 
-# add names to use as arguments
-aliasInv['STATUS'] = 'ST'
-
 # rename command line options -> default field-names
+# - add key-names
+aliasInv['STATUS'] = 'ST'
+# - apply conversion
 for key in [key for key in args]:
   if key.upper() in aliasInv:
     args[aliasInv[key.upper()]] = args.pop(key)
@@ -108,7 +108,7 @@ columns = [
 header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
   for column in columns}
 
-# print settings for the summary (subset, header the same)
+# print settings for the summary
 columns_summary = [
   {'key':'USER'            , 'width':7 , 'align':'<', 'priority': True },
   {'key':'CPUS'            , 'width':4 , 'align':'>', 'priority': True },
@@ -120,7 +120,7 @@ columns_summary = [
 header_summary = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
   for column in columns_summary}
 
-# color theme
+# select color theme
 theme = gs.squeue.colors(args['colors'].lower())
 
 # ---------------------------------- load the output of "squeue" -----------------------------------
@@ -146,22 +146,23 @@ for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)','PARTITION']
     # limit data
     lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
 
-    # set color selection
+    # color-highlight selected columns
+    # - apply to all remaining lines
     for line in lines: line[key].color = theme['selection']
-
-    # set header color
+    # - apply to the header
     header[key].color = theme['selection']
 
 # ---------------------------------------------- sort ----------------------------------------------
 
-# apply sort
-# - custom
+# default: sort by start-time
+lines = sorted(lines, key=lambda line: line['START_TIME'], reverse=not args['reverse'])
+
+# optional: sort by key(s)
 if args['sort']:
+
   for key in args['sort']:
+
     lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-# - default
-else:
-  lines = sorted(lines, key=lambda line: line['START_TIME'], reverse=not args['reverse'])
 
 # --------------------------------------------- print ----------------------------------------------
 
@@ -206,35 +207,38 @@ for user in users:
   # - isolate jobs for this user
   N = [line for line in lines if str(line['USER']) == str(user['USER'])]
 
-  # - count CPU usages
+  # - count used CPU (per category)
   user['CPUS'   ] = gs.rich.Integer(sum([int(line['CPUS'   ]) for line in N]))
   user['CPUS_R' ] = gs.rich.Integer(sum([int(line['CPUS_R' ]) for line in N]))
   user['CPUS_PD'] = gs.rich.Integer(sum([int(line['CPUS_PD']) for line in N]))
 
-  # - remove zeros from output
+  # - remove zeros from output for more intuitive output
   for key in ['CPUS_R', 'CPUS_PD']:
     if int(user[key]) == 0:
       user[key] = gs.rich.Integer('-')
 
-# rename
+# rename field
 lines = users
 
 # ---------------------------------------------- sort ----------------------------------------------
 
-# check if sort is possible
-keys         = [alias[column['key']] for column in columns_summary]
-args['sort'] = [key for key in args['sort'] if key in keys]
+# default: sort by user
+lines = sorted(lines, key=lambda line: line['USER'], reverse=args['reverse'])
 
-# apply sort
-# - custom
+# optional: sort by key(s)
 if args['sort']:
+
+  # get available keys in the setting with fewer columns
+  keys = [alias[column['key']] for column in columns_summary]
+
+  # filter sort keys that are not available in this mode
+  args['sort'] = [key for key in args['sort'] if key in keys]
+
+  # apply sort
   for key in args['sort']:
     lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-# - default
-else:
-  lines = sorted(lines, key=lambda line: line['USER'], reverse=args['reverse'])
 
-# --------------------------------- create print format and print ----------------------------------
+# --------------------------------------------- print ----------------------------------------------
 
 gs.table.print_columns(lines, columns_summary, header_summary,
   args['no_truncate'], args['sep'], args['width'])
