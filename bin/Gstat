@@ -36,14 +36,14 @@ Options:
 
 # --------------------------------------------------------------------------------------------------
 
-import os, sys, re, subprocess, shutil, docopt, pwd, time
+import os, sys, re, subprocess, docopt, pwd
 
 import GooseSLURM as gs
 
 # ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.4')
+args = docopt.docopt(__doc__,version='0.0.5')
 
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options
