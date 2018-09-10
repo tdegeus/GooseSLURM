@@ -49,17 +49,14 @@ Convert string to seconds (``int``), from:
     elif data[-1] == 'm': return int( float(data[:-1]) * float(60)       )
     elif data[-1] == 's': return int( float(data[:-1]) * float(1)        )
 
-  try:
+  try   : return int(data)
+  except: pass
 
-    return int(data)
-
-  except:
-
-    return default
+  return default
 
 # ==================================================================================================
 
-def asUnit(data,unit,precision):
+def asUnit(data, unit, precision):
   r'''
 Convert to string with a certain unit and precision.
   '''
@@ -72,7 +69,7 @@ Convert to string with a certain unit and precision.
 
 # ==================================================================================================
 
-def asHuman(data,precision=None):
+def asHuman(data, precision=None):
   r'''
 Convert to string that has the biggest possible unit (for example hours, or days). Use either the
 default precision, or use a default one.
@@ -100,7 +97,7 @@ Convert to a SLURM time string (e.g. "1-00:00:00").
 
   data = asSeconds(data)
 
-  if not data: return ''
+  if data is None: return ''
 
   s = int( data % 60 );  data = ( data - s ) / 60
   m = int( data % 60 );  data = ( data - m ) / 60

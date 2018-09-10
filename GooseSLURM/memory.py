@@ -27,17 +27,14 @@ Convert string to bytes (``int``), from:
     if data[-1] == 'M': return int( float(data[:-1]) * 1.e6  )
     if data[-1] == 'K': return int( float(data[:-1]) * 1.e3  )
 
-  try:
+  try   : return int( float(data) * default_unit )
+  except: pass
 
-    return int( float(data) * default_unit )
-
-  except:
-
-    return default
+  return default
 
 # ==================================================================================================
 
-def asUnit(data,unit,precision):
+def asUnit(data, unit, precision):
   r'''
 Convert to string with a certain unit and precision.
   '''
@@ -50,7 +47,7 @@ Convert to string with a certain unit and precision.
 
 # ==================================================================================================
 
-def asHuman(data,precision=None):
+def asHuman(data, precision=None):
   r'''
 Convert to string that has the biggest possible unit (for example hours, or days). Use either the
 default precision, or use a default one.

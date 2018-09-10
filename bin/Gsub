@@ -17,17 +17,11 @@ Options:
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
 
-# ========================================= LOAD LIBRARIES =========================================
+# --------------------------------------------------------------------------------------------------
 
 import os, sys, re, subprocess, docopt
 
-# ==================================== RAISE COMMAND LINE ERROR ====================================
-
-def Error(msg,exit_code=1):
-  print(msg)
-  sys.exit(exit_code)
-
-# ========================================== RUN COMMAND ===========================================
+# ----------------------------------- function to fun a command ------------------------------------
 
 def run(cmd,verbose=False,dry_run=False,**kwargs):
 
@@ -42,8 +36,6 @@ def run(cmd,verbose=False,dry_run=False,**kwargs):
     print(out,end='')
 
   return out
-
-# ========================================== MAIN PROGRAM ==========================================
 
 # ---------------------------------- parse command line arguments ----------------------------------
 
@@ -63,7 +55,10 @@ args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 for file in args['FILES']:
 
   if not os.path.isfile(file):
-    Error('"%s" does not exist' % file)
+
+    print('"%s" does not exist' % file)
+
+    sys.exit(1)
 
 # --------------------------------------------- submit ---------------------------------------------
 
