@@ -3,12 +3,17 @@ import re
 
 # ==================================================================================================
 
-def asBytes(data, default=None):
+def asBytes(data, default=None, default_unit=1):
   r'''
 Convert string to bytes (``int``), from:
 
 *   A humanly readable string (e.g. "1G").
 *   ``int`` or ``float``: interpreted as bytes.
+
+:options:
+
+  **default_unit** (``int``)
+    The unit to assume if no unit if specified (specify the number of bytes).
   '''
 
   if type(data) == int: return data
@@ -24,7 +29,7 @@ Convert string to bytes (``int``), from:
 
   try:
 
-    return int(data)
+    return int( float(data) * default_unit )
 
   except:
 

@@ -94,7 +94,7 @@ Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are co
   # loop over all lines
   for line in lines:
 
-    # string (-> integer) -> rich.Integer
+    # convert to integer
     for key in ['CPUS','NODES']:
       line[key] = rich.Integer(line[key])
 

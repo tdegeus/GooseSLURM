@@ -413,6 +413,9 @@ Rich memory (seconds: integer).
   **dummy** ([``0``] | ``<int>`` | ``<float>``)
     Dummy numerical value, used in case of non-numerical ``data``.
 
+  **default_unit** (``int``)
+    The unit to assume if no unit if specified (specify the number of bytes).
+
 :methods:
 
   **A.format()**
@@ -435,7 +438,10 @@ Rich memory (seconds: integer).
 
   def __init__(self,data,**kwargs):
 
-    data = memory.asBytes(data, default=data)
+    if 'default_unit' in kwargs:
+      data = memory.asBytes(data, default=data, default_unit=kwargs.pop('default_unit'))
+    else:
+      data = memory.asBytes(data, default=data)
 
     self.precision = kwargs.pop('precision', None)
 

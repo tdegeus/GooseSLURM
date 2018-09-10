@@ -14,7 +14,7 @@
 
 Usage:
   Ginfo [options]
-  Ginfo [options] [--cfree=N...] [--host=N...] [--sort=N...]
+  Ginfo [options] [--cfree=N...] [--partition=N...] [--host=N...] [--sort=N...]
 
 Options:
   -f, --cfree=<NAME>      Limit output to free CPU(s)  (may be a regex).
@@ -26,6 +26,7 @@ Options:
   -S, --summary           Print only summary.
       --no-header         Suppress header.
       --no-truncate       Print full columns, do not truncate based on screen width.
+      --width=<N>         Print with.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
       --sep=<NAME>        Set column separator. [default:  ] (space)
       --long              Print full information (each column is printed as a line).
@@ -36,467 +37,16 @@ Options:
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
 
-# ========================================= LOAD LIBRARIES =========================================
+# --------------------------------------------------------------------------------------------------
 
-import os, sys, re, subprocess, shutil, docopt, pwd, time
+import os, sys, re, subprocess, docopt, pwd
 
-# ==================== CLASS TO REPRESENT A STRING, AND PROVIDE A PRINT FORMAT =====================
-
-class String:
-  r'''
-To enable printing in columns, optionally with colors, of different variable types, each variable
-below is constructed to be a "String" or one of its derived classes:
-
-- String   : represents a string.
-- Integer  : represents an integer.
-- Float    : represents a float.
-- Duration : represents a duration in seconds.
-- Memory   : represents memory in bytes.
-
-Arguments (also class-variables which may be modified at any time):
-
-- data      : the data itself, for numeric classes (Integer, Float, Duration, Memory) non-numeric
-              strings are retained
-
-Options (also class-variables which may be modified at any time):
-
-- width     : the width for formatted print [default: None]
-- color     : the color for formatted print (e.g. "1;32" for bold green) [default: None]
-- align     : "<" for left align, ">" for right align [default: "<"]
-- precision : floating point precision (only for Float, Duration, Memory) [default: None]
-              (None -> automatic precision: Float == 2, Duration == 0/1, Memory == 0)
-
-The classes have the following features:
-
-- format
-
-    Formatted print, applying the set print format.
-
-    This class defines and applies the print format for a string, all numeric classes are converted
-    to a string before applying this format, i.e. the precision/unit is applied in the "__str__"
-    methods of the respective classes.
-
-- isnumeric
-
-    Return whether the underlying data is numeric or not.
-
-- len(...)
-
-    The length of the unformatted string.
-
-    For the classes Float, Duration, Memory the precision/unit is in the "__str__" methods of the
-    respective classes. The length is the length of the result thereof.
-
-- str(...)
-
-    Convert to a string.
-
-    For the classes Float, Duration, Memory this string is formatted to the set precision/unit.
-
-- int(...), float(...)
-
-    Convert to an integer / a float.
-
-    For non-numeric data the function return 0.
-  '''
-
-  # ------------------------------------------- __init__ -------------------------------------------
-
-  def __init__(self,data,width=None,align='<',color=None):
-
-    self.data  = data
-    self.width = width
-    self.color = color
-    self.align = align
-
-  # -------------------- return formatted string, align/width/color are applied --------------------
-
-  def format(self):
-
-    if self.width and self.color:
-      fmt = '\x1b[{color:s}m{{0:{align:s}{width:d}.{width:d}s}}\x1b[0m'.format(**self.__dict__)
-    elif self.width:
-      fmt = '{{0:{align:s}{width:d}.{width:d}s}}'.format(**self.__dict__)
-    elif self.color:
-      fmt = '\x1b[{color:s}m{{0:{align:s}s}}\x1b[0m'.format(**self.__dict__)
-    else:
-      fmt = '{{0:{align:s}s}}'.format(**self.__dict__)
-
-    return fmt.format(str(self))
-
-  # ------------------------------- return True if "data" is numeric -------------------------------
-
-  def isnumeric(self):
-
-    return False
-
-  # ------- return unformatted string (Float, Duration, Memory: precision/unit are applied) --------
-
-  def __str__(self):
-
-    return str(self.data)
-
-  # ---------------------------------- convert to a dummy integer ----------------------------------
-
-  def __int__(self):
-
-    return 0
-
-  # ----------------------------------- convert to a dummy float -----------------------------------
-
-  def __float__(self):
-
-    return 0.0
-
-  # ------------------------------ length of the result of "__str__" -------------------------------
-
-  def __len__(self):
-
-    return len(str(self))
-
-  # -------------------------------- return the result of "__str__" --------------------------------
-
-  def __repr__(self):
-
-    return str(self)
-
-  # -------------------------------- compare two values as strings ---------------------------------
-
-  def __lt__(self,other):
-
-    return str(self) < str(other)
-
-# ================================= CLASS TO REPRESENT AN INTEGER ==================================
-
-class Integer(String):
-
-  # ------------------------------------------- __init__ -------------------------------------------
-
-  def __init__(self,data,**kwargs):
-
-    try   : data = int(data)
-    except: pass
-
-    super().__init__(data,**kwargs)
-
-  # ------------------------------- return True if "data" is numeric -------------------------------
-
-  def isnumeric(self):
-
-    if   type(self.data) == int  : return True
-    elif type(self.data) == float: return True
-    else                         : return False
-
-  # ---------------------- return numeric value as integer, or return a dummy ----------------------
-
-  def __int__(self):
-
-    if   type(self.data) == int  : return self.data
-    elif type(self.data) == float: return int(self.data)
-    else                         : return 0
-
-  # ----------------------- return numeric value as float, or return a dummy -----------------------
-
-  def __float__(self):
-
-    if   type(self.data) == int  : return float(self.data)
-    elif type(self.data) == float: return self.data
-    else                         : return 0.0
-
-  # -------------- compare two numeric values, use fixed rules if one is not numeric ---------------
-
-  def __lt__(self,other):
-
-    if   self .isnumeric() and other.isnumeric(): return int(self) < int(other)
-    elif self .isnumeric()                      : return  0
-    elif other.isnumeric()                      : return -1
-    else                                        : return self.data < other.data
-
-# =================================== CLASS TO REPRESENT A FLOAT ===================================
-
-class Float(String):
-
-  # ------------------------------------------- __init__ -------------------------------------------
-
-  def __init__(self,data,**kwargs):
-
-    try   : data = float(data)
-    except: pass
-
-    self.precision = kwargs.pop('precision',2)
-
-    super().__init__(data,**kwargs)
-
-  # ------------------------------- return True if "data" is numeric -------------------------------
-
-  def isnumeric(self):
-
-    if   type(self.data) == float: return True
-    elif type(self.data) == int  : return True
-    else                         : return False
-
-  # ------------------------- return string, formatted to fixed precision --------------------------
-
-  def __str__(self):
-
-    if not self.isnumeric(): return self.data
-
-    return '{{0:.{precision:d}f}}'.format(**self.__dict__).format(self.data)
-
-  # ---------------------- return numeric value as integer, or return a dummy ----------------------
-
-  def __int__(self):
-
-    if   type(self.data) == float: return int(self.data)
-    elif type(self.data) == int  : return self.data
-    else                         : return 0
-
-  # ----------------------- return numeric value as float, or return a dummy -----------------------
-
-  def __float__(self):
-
-    if   type(self.data) == float: return self.data
-    elif type(self.data) == int  : return float(self.data)
-    else                         : return 0.0
-
-  # -------------- compare two numeric values, use fixed rules if one is not numeric ---------------
-
-  def __lt__(self,other):
-
-    if   self .isnumeric() and other.isnumeric(): return float(self) < float(other)
-    elif self .isnumeric()                      : return  0
-    elif other.isnumeric()                      : return -1
-    else                                        : return self.data < other.data
-
-# ============================ CLASS TO REPRESENT A DURATION IN SECONDS ============================
-
-class Duration(Integer):
-
-  # ------------------------------------------- __init__ -------------------------------------------
-
-  def __init__(self,*args,**kwargs):
-
-    self.precision = kwargs.pop('precision',None)
-
-    super().__init__(*args,**kwargs)
-
-  # ------------- convert number + unit -> string, formatted to the correct precision --------------
-
-  def asunit(self,n,unit):
-
-    if self.precision:
-      return '{{0:.{precision:d}f}}{{1:s}}'.format(**self.__dict__).format(n,unit)
-    else:
-      if abs(round(n)) < 10.: return '{0:.1f}{1:s}'.format(      n ,unit)
-      else                  : return '{0:.0f}{1:s}'.format(round(n),unit)
-
-  # ---------------- return string, formatted to fixed precision with relevant unit ----------------
-
-  def __str__(self):
-
-    if not self.isnumeric(): return self.data
-
-    base = [60*60*24, 60*60, 60, 1]
-    name = ['d', 'h', 'm', 's']
-
-    for i,unit in zip(base,name):
-      if abs(self.data) >= i:
-        return self.asunit(float(self.data)/float(i), unit)
-
-    return self.asunit(float(self.data), 's')
-
-# =============================== CLASS TO REPRESENT MEMORY IN BYTES ===============================
-
-class Memory(Integer):
-
-  # ------------------------------------------- __init__ -------------------------------------------
-
-  def __init__(self,*args,**kwargs):
-
-    self.precision = kwargs.pop('precision',None)
-
-    super().__init__(*args,**kwargs)
-
-  # ------------- convert number + unit -> string, formatted to the correct precision --------------
-
-  def asunit(self,n,unit):
-
-    if self.precision:
-      return '{{0:.{precision:d}f}}{{1:s}}'.format(**self.__dict__).format(n,unit)
-    else:
-      return '{0:.0f}{1:s}'.format(round(n),unit)
-
-  # ---------------- return string, formatted to fixed precision with relevant unit ----------------
-
-  def __str__(self):
-
-    if not self.isnumeric(): return self.data
-
-    base = [1e12, 1e9, 1e6, 1e3, 1]
-    name = ['T', 'G', 'M', 'K', 'B']
-
-    for i,unit in zip(base,name):
-      if abs(self.data) >= i:
-        return self.asunit(float(self.data)/float(i), unit)
-
-    return self.asunit(float(self.data), 'B')
-
-# ============================== PRINT ALL FIELDS: ONE LINE PER FIELD ==============================
-
-def print_long(lines):
-
-  # width of the field-names
-  # - initialize
-  width = 0
-  # - compute
-  for line in lines:
-    for key in sorted(line):
-      width = max(width,len(key))
-
-  # print format
-  head = '{{key:<{width:d}.{width:d}s}}'            .format(width=width+1)
-  fmt  = '{{key:<{width:d}.{width:d}s}}: {{data:s}}'.format(width=width+1)
-
-  # print header
-  print(head.format(key='-'*100,data=''))
-
-  # print data
-  for line in lines:
-    for key in sorted(line):
-      print(fmt.format(key=key,data=str(line[key])))
-    print(head.format(key='-'*100,data=''))
-
-# ======================================== PRINT IN COLUMNS ========================================
-
-def print_columns(columns,header,lines,no_truncate=False,**kwargs):
-
-  # check available data
-  # --------------------
-
-  # function to check if a "key" present in all lines
-  def inlines(lines, key):
-    # - check all lines
-    for line in lines:
-      if key not in line:
-        return False
-    # - all lines passed: return True
-    return True
-
-  # select columns based on data availability
-  columns = [column for column in columns if inlines(lines, column['key'])]
-
-  # select header based on columns
-  header = {column['key']: header[column['key']] for column in columns}
-
-  # compute column-width, based on data
-  # -----------------------------------
-
-  # initialize
-  for column in columns:
-    column['real'] = 0
-
-  # get actual width
-  # - header
-  for column in columns:
-    column['real'] = max(column['real'], len(header[column['key']]))
-  # - data
-  for line in lines:
-    for column in columns:
-      column['real'] = max(column['real'], len(line[column['key']]))
-
-  # auto-limit columns, auto-adjust their width
-  # -------------------------------------------
-
-  if no_truncate:
-
-    # set all columns to the real width
-    for line in lines:
-      for column in columns:
-        column['width'] = column['real']
-
-  else:
-
-    # get the terminal size
-    cols,_ = shutil.get_terminal_size()
-
-    # get the cumulative minimum size of the columns (+ spacing between the columns)
-    # - first entry
-    columns[0]['total'] = columns[0]['width']
-    # - all other entries
-    for i in range(1,len(columns)):
-      columns[i]['total'] = columns[i-1]['total'] + columns[i]['width'] + len(args['sep'])
-
-    # truncate at terminal size
-    columns = [column for column in columns if column['total'] <= cols]
-
-    # get the available size to expand
-    room = cols - columns[-1]['total']
-
-    # expand minimum width, as long there is room
-    # - distinguish priorities for expanding
-    low  = [column['key'] for column in columns if not column.get('priority',False)]
-    high = [column['key'] for column in columns if column['key'] not in low]
-    # - expand
-    for prio in [high,low]:
-      for column in columns:
-        if column['key'] not in prio: continue
-        if room <= 0: break
-        dw = min(column['real']-column['width'],room)
-        if dw <= 0: continue
-        column['width'] += dw
-        room           -= dw
-
-  # apply width
-  # - to data
-  for line in lines:
-    for column in columns:
-      line[column['key']].width = column['width']
-      line[column['key']].align = column['align']
-  # - to header
-  for column in columns:
-    header[column['key']].width = column['width']
-
-  # print to screen
-  # ---------------
-
-  # separator
-  # - copy from header
-  hline = {key:String(**value.__dict__) for key,value in header.items()}
-  # - convert from header (print format retained)
-  for key in hline:
-    hline[key].data = '=' * hline[key].width
-
-  # header
-  print(args['sep'].join(hline [column['key']].format() for column in columns))
-  print(args['sep'].join(header[column['key']].format() for column in columns))
-  print(args['sep'].join(hline [column['key']].format() for column in columns))
-  # data
-  for line in lines:
-    print(args['sep'].join(line[column['key']].format() for column in columns))
-
-# ================================= PRINT A SINGLE FIELD AS A LIST =================================
-
-def print_list(lines,field,sep=' ',**kwargs):
-
-  field = field.upper()
-
-  for line in lines:
-    print(line[field],end=sep)
-
-  print('')
-
-# ==================================== RAISE COMMAND LINE ERROR ====================================
-
-def Error(msg,exit_code=1):
-  print(msg)
-  sys.exit(exit_code)
-
-# ========================================== MAIN PROGRAM ==========================================
+import GooseSLURM as gs
 
 # ---------------------------------- parse command line arguments ----------------------------------
 
 # parse command-line options
-args = docopt.docopt(__doc__,version='0.0.4')
+args = docopt.docopt(__doc__,version='0.0.5')
 
 # change keys to simplify implementation:
 # - remove leading "-" and "--" from options
@@ -548,9 +98,10 @@ columns = [
 ]
 
 # header
-header = {column['key']: String(alias[column['key']],align=column['align']) for column in columns}
+header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  for column in columns}
 
-# print settings for the summary (subset, header the same)
+# print settings for the summary
 columns_summary = [
   {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
   {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
@@ -562,184 +113,52 @@ columns_summary = [
 ]
 
 # header
-header_summary = {c['key']: String(alias[c['key']],align=c['align']) for c in columns_summary}
+header_summary = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  for column in columns_summary}
 
-# color scheme
-if args['colors'].lower() == 'dark':
-  theme = {
-    'selection' : '1;32;40',
-    'free'      : '1;32',
-    'error'     : '9;31',
-    'warning'   : '1;31',
-    'low'       : '1;36',
-  }
-else:
-  theme = {
-    'selection' : '',
-    'free'      : '',
-    'error'     : '',
-    'warning'   : '',
-    'low'       : '',
-  }
+# select color theme
+theme = gs.sinfo.colors(args['colors'].lower())
 
 # ----------------------------------- load the output of "sinfo" -----------------------------------
 
-# get live compute-node-info, or mimic live behavior by reading file
 if not args['debug']:
-  cmd  = 'sinfo -o "%all"'
-  data = subprocess.check_output(cmd,shell=True).decode('utf-8')
+
+  lines = gs.sinfo.read_interpret(theme=theme)
+
 else:
-  data = open(args['debug'],'r').read()
-  now  = os.path.getctime(args['debug'])
 
-# extract the header and the info
-head,data = data.split('\n',1)
-data      = list(filter(None,data.split('\n')))
-
-# get the field-names
-head = head.split('|')
-
-# convert to list of dictionaries
-# - initialize
-lines = []
-# - loop over lines
-for line in data:
-  # -- initialize empty dictionary
-  info = {}
-  # -- fill dictionary
-  for key,val in zip(head,line.split('|')):
-    if len(key.strip()) > 0:
-      info[key.strip()] = String(val.strip())
-  # -- store to list of lines
-  lines += [info]
-
-# ------------------------- support function: compute average load per job -------------------------
-
-def cpu_score(CPU_LOAD,CPUS_A,**kwargs):
-
-  if not CPU_LOAD.isnumeric(): return Float('')
-  if int(CPUS_A) <= 0        : return Float('')
-
-  return Float(float(CPU_LOAD)/float(CPUS_A), precision=2)
-
-# --------- support function: compute average memory per job, compared to the total memory ---------
-
-def mem_score(MEMORY,FREE_MEM,CPUS_A,CPUS_T,**kwargs):
-
-  if not FREE_MEM.isnumeric(): return Float('')
-  if not CPUS_T  .isnumeric(): return Float('')
-  if int(MEMORY) <= 0        : return Float('')
-  if int(CPUS_A) <= 0        : return Float('')
-
-  MEM_USED = float(MEMORY) - float(FREE_MEM)
-
-  return Float(float(MEM_USED)/float(MEMORY) * float(CPUS_T)/float(CPUS_A), precision=2)
-
-# ---------------- convert type of relevant fields, provide a color interpretation -----------------
-
-# loop over all lines
-for line in lines:
-
-  # CPUs, split: allocated/idle/other/total
-  line['CPUS_A'],line['CPUS_I'],line['CPUS_O'],line['CPUS_T']=str(line['CPUS(A/I/O/T)']).split('/')
-
-  # string (-> integer) -> Integer
-  for key in ['CPUS_A', 'CPUS_I', 'CPUS_O', 'CPUS_T']:
-    line[key] = Integer(str(line[key]))
-
-  # string (-> float) -> Float
-  for key in ['CPU_LOAD']:
-    line[key] = Float(str(line[key]))
-
-  # "days-hours:mins:secs" (e.g. "1-4:18:13") -> seconds
-  for key in ['TIMELIMIT']:
-    # - initialize alias + data [days,hours,minutes,seconds]
-    txt = str(line[key])
-    dt  = [0,0,0,0]
-    # - split days
-    if len(txt.split('-')) > 1: dt[0],txt = txt.split('-')
-    # - split hours:minutes:seconds (all optional)
-    txt = txt.split(':')
-    # - fill from seconds -> minutes (if present) -> hours (if present)
-    for i in range(len(txt)): dt[-1*(i+1)] = txt[-1*(i+1)]
-    # - store in seconds
-    try   : line[key] = Duration(int(dt[0])*24*60*60+int(dt[1])*60*60+int(dt[2])*60+int(dt[3]))
-    except: line[key] = Duration(str(line[key]))
-
-  # convert memory (e.g. "4G") -> bytes
-  for key, byte in zip(['MEMORY','FREE_MEM'], [1.e6,1.e6]):
-    # - check key
-    if key not in line: continue
-    # - get data
-    txt = str(line[key])
-    # - read value and units
-    if not re.match('.*[0-9].*',txt):
-      line[key] = Memory(txt)
-      continue
-    if re.match('[0-9\.]*[A-Za-z]',txt):
-      val  = float(txt[:-1])
-      unit =       txt[ -1]
-    else:
-      val  = float(txt)
-      unit = ''
-    # - convert to bytes
-    if   unit == 'K': unit = byte * 1.e3
-    elif unit == 'M': unit = byte * 1.e6
-    elif unit == 'G': unit = byte * 1.e9
-    elif unit == 'T': unit = byte * 1.e12
-    else            : unit = byte * 1.
-    # - store
-    line[key] = Memory(val*unit)
-
-  # compute scores
-  # - relative CPU usage
-  try   : line['CPU_RELJOB'] = cpu_score(**line)
-  except: pass
-  # - relative memory usage
-  try   : line['MEM_RELJOB'] = mem_score(**line)
-  except: pass
-
-  # default: CPUs down/online
-  line['CPUS_D'] = Integer('0')
-  line['CPUS_O'] = Integer(str(line['CPUS_T']))
-
-  # node down: mark all fields
-  if re.match(r'down,*',str(line['STATE'])) or re.match(r'maint.*',str(line['STATE']))  or re.match(r'drain.*',str(line['STATE'])):
-    line['CPUS_I'] = Integer('0')
-    line['CPUS_D'] = Integer(str(line['CPUS_T']))
-    line['CPUS_O'] = Integer('0')
-    for key in line:
-      line[key].color = theme['error']
-
-  # highlight 'scores'
-  if   int  (line['CPUS_I']    ) > 0   : line['CPUS_I'    ].color = theme['free'   ]
-  if   float(line['CPU_RELJOB']) > 1.05: line['CPU_RELJOB'].color = theme['warning']
-  elif float(line['CPU_RELJOB']) < 0.95: line['CPU_RELJOB'].color = theme['low'    ]
+  lines = gs.sinfo.read_interpret(
+    data  = open(args['debug'],'r').read(),
+    theme = theme,
+  )
 
 # ------------------------------ limit based on command-line options -------------------------------
 
-# loop over possible fields
 for key in ['HOSTNAMES','PARTITION','CPUS_I']:
-  # select data
+
   if args[key]:
-    # - limit data
+
+    # limit data
     lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
-    # - set color selection
+
+    # color-highlight selected columns
+    # - apply to all remaining lines
     for line in lines: line[key].color = theme['selection']
-    # - set header color
+    # - apply to the header
     header[key].color = theme['selection']
 
 # ---------------------------------------------- sort ----------------------------------------------
 
-# apply sort
-# - custom
+# default sort
+lines = sorted(lines, key=lambda line: line['HOSTNAMES'], reverse=not args['reverse'])
+lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=not args['reverse'])
+
+# optional: sort by key(s)
 if args['sort']:
+
   for key in args['sort']:
+
     lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-# - default
-else:
-  lines = sorted(lines, key=lambda line: line['HOSTNAMES'], reverse=args['reverse'])
-  lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=args['reverse'])
 
 # --------------------------------------------- print ----------------------------------------------
 
@@ -747,14 +166,17 @@ if not args['summary']:
 
   # optional: print all fields and quit
   if args['long']:
-    print_long(lines)
+
+    gs.table.print_long(lines)
+
     sys.exit(0)
 
-  # print columns
-  print_columns(columns,header,lines,**args)
+  # default: print columns
+  else:
 
-  # quit
-  sys.exit(0)
+    gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+
+    sys.exit(0)
 
 # ------------------------------------- summarize information --------------------------------------
 
@@ -762,7 +184,7 @@ if not args['summary']:
 partitions = sorted(set([str(line['PARTITION']) for line in lines]))
 
 # start a new list of "node information", summed on the relevant nodes
-partitions = [{'PARTITION':String(key)} for key in partitions]
+partitions = [{'PARTITION':gs.rich.String(key)} for key in partitions]
 
 # loop over partitions
 for partition in partitions:
@@ -771,25 +193,25 @@ for partition in partitions:
   N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
 
   # - get the CPU count
-  partition['CPUS_T'] = Integer(sum([int(line['CPUS_T']) for line in N]))
-  partition['CPUS_O'] = Integer(sum([int(line['CPUS_O']) for line in N]))
-  partition['CPUS_D'] = Integer(sum([int(line['CPUS_D']) for line in N]))
-  partition['CPUS_I'] = Integer(sum([int(line['CPUS_I']) for line in N]))
+  partition['CPUS_T'] = gs.rich.Integer(sum([int(line['CPUS_T']) for line in N]))
+  partition['CPUS_O'] = gs.rich.Integer(sum([int(line['CPUS_O']) for line in N]))
+  partition['CPUS_D'] = gs.rich.Integer(sum([int(line['CPUS_D']) for line in N]))
+  partition['CPUS_I'] = gs.rich.Integer(sum([int(line['CPUS_I']) for line in N]))
 
   # - initialize scores
-  partition['CPU_RELJOB'] = Float('')
-  partition['MEM_RELJOB'] = Float('')
+  partition['CPU_RELJOB'] = gs.rich.Float('')
+  partition['MEM_RELJOB'] = gs.rich.Float('')
 
   # - average load
   if len([1 for line in N if line['CPU_RELJOB'].isnumeric()]) > 0:
-    partition['CPU_RELJOB'] = Float(
+    partition['CPU_RELJOB'] = gs.rich.Float(
       sum([float(line['CPU_RELJOB']) for line in N if line['CPU_RELJOB'].isnumeric()]) /
       sum([1.                        for line in N if line['CPU_RELJOB'].isnumeric()])
     )
 
   # - average memory consumption
   if len([1 for line in N if line['MEM_RELJOB'].isnumeric()]) > 0:
-    partition['MEM_RELJOB'] = Float(
+    partition['MEM_RELJOB'] = gs.rich.Float(
       sum([float(line['MEM_RELJOB']) for line in N if line['MEM_RELJOB'].isnumeric()]) /
       sum([1.                        for line in N if line['MEM_RELJOB'].isnumeric()])
     )
@@ -799,24 +221,28 @@ for partition in partitions:
   if   float(partition['CPU_RELJOB']) > 1.05: partition['CPU_RELJOB'].color = theme['warning']
   elif float(partition['CPU_RELJOB']) < 0.95: partition['CPU_RELJOB'].color = theme['low'    ]
 
-# rename
+# rename field
 lines = partitions
 
 # ---------------------------------------------- sort ----------------------------------------------
 
-# check if sort is possible
-keys         = [alias[column['key']] for column in columns_summary]
-args['sort'] = [key for key in args['sort'] if key in keys]
+# default sort
+lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=args['reverse'])
 
-# apply sort
-# - custom
+# optional: sort by key(s)
 if args['sort']:
+
+  # get available keys in the setting with fewer columns
+  keys = [alias[column['key']] for column in columns_summary]
+
+  # filter sort keys that are not available in this mode
+  args['sort'] = [key for key in args['sort'] if key in keys]
+
+  # apply sort
   for key in args['sort']:
     lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-# - default
-else:
-  lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=args['reverse'])
 
-# --------------------------------- create print format and print ----------------------------------
+# --------------------------------------------- print ----------------------------------------------
 
-print_columns(columns_summary,header_summary,lines,**args)
+gs.table.print_columns(lines, columns_summary, header_summary,
+  args['no_truncate'], args['sep'], args['width'])
