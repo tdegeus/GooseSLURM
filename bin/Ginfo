@@ -150,8 +150,8 @@ for key in ['HOSTNAMES','PARTITION','CPUS_I']:
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines = sorted(lines, key=lambda line: line['HOSTNAMES'], reverse=not args['reverse'])
-lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=not args['reverse'])
+lines = sorted(lines, key=lambda line: line['HOSTNAMES'])
+lines = sorted(lines, key=lambda line: line['PARTITION'])
 
 # optional: sort by key(s)
 if args['sort']:
