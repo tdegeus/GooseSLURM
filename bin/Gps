@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+'''Gps
+  List memory usage per process.
+
+Usage:
+  Gps [options]
+  Gps [options] [--user=N...] [--pid=N...] [--command=N...] [--sort=N...]
+
+Options:
+  -U                      Limit processes to the current user.
+  -u, --user=<NAME>       Limit processes to user(s)    (may be a regex).
+  -p, --pid=<NAME>        Limit processes to process-id (may be a regex).
+  -c, --command=<NAME>    Limit processes to command    (may be a regex).
+  -s, --sort=<NAME>       Sort by field (selected by the header name).
+  -r, --reverse           Reverse sort.
+      --output=<NAME>     Select output columns (selected by the header name).
+      --no-header         Suppress header.
+      --no-truncate       Print full columns, do not truncate based on screen width.
+      --width=<N>         Set print with.
+      --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
+      --list              Print selected column as list.
+      --sep=<NAME>        Set column separator. [default:  ] (space)
+      --long              Print full information (each column is printed as a line).
+      --debug=<FILE>      Debug. Output 'squeue -o "%all"' provided from file.
+  -h, --help              Show help.
+      --version           Show version.
+
+(c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
+'''
+
+# --------------------------------------------------------------------------------------------------
+
+import os, sys, re, subprocess, docopt, pwd
+
+import GooseSLURM as gs
+
+# ---------------------------------- parse command line arguments ----------------------------------
+
+# parse command-line options
+args = docopt.docopt(__doc__,version='0.0.5')
+
+# change keys to simplify implementation:
+# - remove leading "-" and "--" from options
+args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+# - change "-" to "_" to facilitate direct use in print format
+args = {key.replace('-','_'): args[key] for key in args}
+
+# --------------------------------- field-names and print settings ---------------------------------
+
+# handle 'alias' options
+if args['U']: args['user'] += [pwd.getpwuid(os.getuid())[0]]
+
+# conversion map: default field-names -> custom field-names
+alias = {
+  'USER'   :'USER'   ,
+  'PID'    :'PID'    ,
+  'RSS'    :'MEM'    ,
+  '%CPU'   :'%CPU'   ,
+  'COMMAND':'COMMAND',
+}
+
+# conversion map: custom field-names -> default field-names
+aliasInv = {alias[key].upper():key for key in alias}
+
+# rename command line options -> default field-names
+for key in [key for key in args]:
+  if key.upper() in aliasInv:
+    args[aliasInv[key.upper()]] = args.pop(key)
+
+# print settings of all columns
+# - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
+# - "align"   : alignment of the columns (except the header)
+# - "priority": priority of column expansing, columns marked "True" are expanded first
+columns = [
+  {'key':'PID'    ,'width':3 , 'align':'>', 'priority': True},
+  {'key':'USER'   ,'width':7 , 'align':'<', 'priority': True},
+  {'key':'RSS'    ,'width':4 , 'align':'>', 'priority': True},
+  {'key':'%CPU'   ,'width':4 , 'align':'>', 'priority': True},
+  {'key':'COMMAND','width':10, 'align':'<', 'priority': True},
+]
+
+# header
+header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  for column in columns}
+
+# select color theme
+theme = gs.ps.colors(args['colors'].lower())
+
+# ------------------------------------ load the output of "ps" -------------------------------------
+
+if not args['debug']:
+
+  lines = gs.ps.read_interpret(theme=theme)
+
+else:
+
+  lines = gs.ps.read_interpret(
+    data  = open(args['debug'],'r').read(),
+    theme = theme,
+  )
+
+# ------------------------------ limit based on command-line options -------------------------------
+
+for key in ['USER','PID','COMMAND']:
+
+  if args[key]:
+
+    # limit data
+    lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
+
+    # color-highlight selected columns
+    # - apply to all remaining lines
+    for line in lines: line[key].color = theme['selection']
+    # - apply to the header
+    header[key].color = theme['selection']
+
+# ---------------------------------------------- sort ----------------------------------------------
+
+# default sort
+lines = sorted(lines, key=lambda line: line['RSS'], reverse=False)
+
+# optional: sort by key(s)
+if args['sort']:
+
+  for key in args['sort']:
+
+    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+
+# --------------------------------------------- print ----------------------------------------------
+
+# optional: print all fields and quit
+if args['long']:
+
+  gs.table.print_long(lines)
+
+  sys.exit(0)
+
+# optional: print as list and quit
+elif args['list']:
+
+  # - a field has be be manually selected
+  if not args['output']:
+    print('Select column using "--output"')
+    sys.exit(1)
+
+  # - only one field can be selected
+  if len(args['output']) > 1:
+    print('Only one field can be selected')
+    sys.exit(1)
+
+  # - print and quit
+  gs.table.print_list(lines, args['output'][0].upper(), args['sep'])
+
+  sys.exit(0)
+
+# default: print columns
+else:
+
+  gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+
+  sys.exit(0)

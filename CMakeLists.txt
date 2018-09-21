@@ -14,6 +14,7 @@ set(PROJECT_BINARIES
   "bin/Gsub"
   "bin/Gdel"
   "bin/Gcopy"
+  "bin/Gps"
 )
 
 # install binaries

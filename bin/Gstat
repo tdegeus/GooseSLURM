@@ -22,9 +22,9 @@ Options:
   -S, --summary           Print only summary.
       --no-header         Suppress header.
       --no-truncate       Print full columns, do not truncate based on screen width.
-      --width=<N>         Print with.
+      --width=<N>         Set print with.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
-      --list              Print columns as list.
+      --list              Print selected column as list.
       --sep=<NAME>        Set column separator. [default:  ] (space)
       --long              Print full information (each column is printed as a line).
       --debug=<FILE>      Debug. Output 'squeue -o "%all"' provided from file.
@@ -155,7 +155,7 @@ for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)','PARTITION']
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines = sorted(lines, key=lambda line: line['START_TIME'], reverse=not args['reverse'])
+lines = sorted(lines, key=lambda line: line['START_TIME'], reverse=True)
 
 # optional: sort by key(s)
 if args['sort']:

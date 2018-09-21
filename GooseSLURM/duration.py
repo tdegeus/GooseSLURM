@@ -48,10 +48,10 @@ Convert string to seconds, from:
     # - return seconds
     return int(t[0])*24*60*60+int(t[1])*60*60+int(t[2])*60+int(t[3])
 
-  # convert time string (e.g. "24:00:00")
+  # convert time string in hours (e.g. "24:00:00")
   if re.match(r'^[0-9]*\:[0-9]*\:[0-9]*$', data):
 
-    # - initialize number of days, hours, minutes, seconds
+    # - initialize number of hours, minutes, seconds
     t  = [0,0,0]
     # - split hours:minutes:seconds (all optional)
     data = data.split(':')
@@ -59,6 +59,18 @@ Convert string to seconds, from:
     for i in range(len(data)): t[-1*i] = data[-1*i]
     # - return seconds
     return int(t[0])*60*60+int(t[1])*60+int(t[2])
+
+  # convert time string in minutes (e.g. "12:34")
+  if re.match(r'^[0-9]*\:[0-9]*$', data):
+
+    # - initialize number of minutes, seconds
+    t  = [0,0]
+    # - split hours:minutes:seconds (all optional)
+    data = data.split(':')
+    # - fill from seconds -> minutes (if present) -> hours (if present)
+    for i in range(len(data)): t[-1*i] = data[-1*i]
+    # - return seconds
+    return int(t[0])*60+int(t[1])
 
   # convert humanly readable time (e.g. "1d")
   if re.match(r'^[0-9]*\.?[0-9]*[a-zA-Z]$', data):

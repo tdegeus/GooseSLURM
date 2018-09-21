@@ -7,4 +7,5 @@ from . import table
 from . import rich
 from . import squeue
 from . import sinfo
+from . import ps
 

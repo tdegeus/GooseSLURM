@@ -43,7 +43,8 @@ Proceed with ``GooseSLURM.squeue.interpret`` for pretty printing.
   import subprocess
 
   # get live job-info
-  if data is None: data = subprocess.check_output('squeue -o "%all"',shell=True).decode('utf-8')
+  if data is None:
+    data = subprocess.check_output('squeue -o "%all"',shell=True).decode('utf-8')
 
   # extract the header and the info
   head,data = data.split('\n',1)
