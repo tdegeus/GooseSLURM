@@ -178,19 +178,18 @@ if not args['summary']:
   # optional: print as list and quit
   elif args['list']:
 
+    # - a field has be be manually selected
     if not args['output']:
       print('Select column using "--output"')
       sys.exit(1)
 
-    if type(args['output']) != str:
+    # - only one field can be selected
+    if len(args['output']) > 1:
+      print('Only one field can be selected')
+      sys.exit(1)
 
-      if len(args['output']) > 1:
-        print('Only one field can be selected')
-        sys.exit(1)
-
-      args['output'] = args['output'][0]
-
-    gs.table.print_list(lines, str(args['output']).upper(), args['sep'])
+    # - print and quit
+    gs.table.print_list(lines, args['output'][0].upper(), args['sep'])
 
     sys.exit(0)
 

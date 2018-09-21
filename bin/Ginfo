@@ -14,9 +14,11 @@
 
 Usage:
   Ginfo [options]
-  Ginfo [options] [--cfree=N...] [--partition=N...] [--host=N...] [--sort=N...]
+  Ginfo [options] [--cfree=N...] [--partition=N...] [--host=N...] [--sort=N...] [--user=N...] [--debug=N...]
 
 Options:
+  -U                      Limit output to the current user.
+  -u, --user=<NAME>       Limit output to user(s)      (may be a regex).
   -f, --cfree=<NAME>      Limit output to free CPU(s)  (may be a regex).
   -p, --partition=<NAME>  Limit output to partition(s) (may be a regex).
       --host=<NAME>       Limit output to host(s)      (may be a regex).
@@ -128,7 +130,7 @@ if not args['debug']:
 else:
 
   lines = gs.sinfo.read_interpret(
-    data  = open(args['debug'],'r').read(),
+    data  = open(args['debug'][0],'r').read(),
     theme = theme,
   )
 
@@ -146,6 +148,102 @@ for key in ['HOSTNAMES','PARTITION','CPUS_I']:
     for line in lines: line[key].color = theme['selection']
     # - apply to the header
     header[key].color = theme['selection']
+
+# ----------------------------------------- limit to users -----------------------------------------
+
+# handle 'alias' options
+if args['U']: args['user'] += [pwd.getpwuid(os.getuid())[0]]
+
+# apply filter
+if args['user']:
+
+  import itertools
+
+  # get list of jobs
+  # ----------------
+
+  # read
+  if not args['debug']:
+
+    jobs = gs.squeue.read_interpret()
+
+  else:
+
+    jobs = gs.squeue.read_interpret(
+      data  = open(args['debug'][1],'r').read(),
+      now   = os.path.getctime(args['debug'][1]),
+    )
+
+  # limit to running jobs
+  jobs = [j for j in jobs if str(j['ST'])=='R']
+
+  # limit to users' jobs
+  jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['USER'])) else 0 for n in args['user']])]
+
+  # get list of nodes for the users' jobs
+  # -------------------------------------
+
+  # allocate list of nodes
+  nodes = []
+
+  # loop over jobs
+  for job in jobs:
+
+    # simple name (e.g. 'f123') -> add to list
+    if len(job.split(',')) == 1:
+      nodes += [job]
+      continue
+
+    # print debug information
+    if args['debug']: print('Parsing:', job)
+
+    # allocate list of identified nodes
+    out = []
+
+    # split all array jobs, e.g.
+    # g117,g[123-456],f[023-025] -> ('g117,g', '[123-456]', ',f', '[023-025]')
+    match = list(filter(None, re.split(r'(\[[^\]]*\])', job)))
+
+    # loop over arrays
+    for name, numbers in zip(match[0::2], match[1::2]):
+
+      # strip plain jobs that are still prepending the array
+      name = name.split(',')
+      # - add plain jobs to list
+      out += name[:-1]
+      # - store name of the array
+      name = name[-1]
+
+      # isolate the numbers (remove brackets '[...]')
+      numbers = numbers[1:-1].split(',')
+
+      # loop over numbers
+      for number in numbers:
+        # - convert '123-456' to individual numbers
+        if len(number.split('-'))>1:
+          start, end = number.split('-')
+          out += [name+('%0'+str(len(start))+'d')%i for i in range(int(start), int(end)+1)]
+        # - copy readily individual numbers
+        else:
+          out += [name+number]
+
+    # filter empty items
+    out = list(filter(None,out))
+
+    # print debug information
+    if args['debug']: print(out)
+
+    # add to total users' list
+    nodes += out
+
+  # limit data
+  lines = [l for l in lines if str(l['HOSTNAMES']) in nodes]
+
+  # color-highlight selected columns
+  # - apply to all remaining lines
+  for line in lines: line['HOSTNAMES'].color = theme['selection']
+  # - apply to the header
+  header['HOSTNAMES'].color = theme['selection']
 
 # ---------------------------------------------- sort ----------------------------------------------
 
