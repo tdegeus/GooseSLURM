@@ -182,7 +182,15 @@ if not args['summary']:
       print('Select column using "--output"')
       sys.exit(1)
 
-    gs.table.print_list(lines, str(args['output']), args['sep'])
+    if type(args['output']) != str:
+
+      if len(args['output']) > 1:
+        print('Only one field can be selected')
+        sys.exit(1)
+
+      args['output'] = args['output'][0]
+
+    gs.table.print_list(lines, str(args['output']).upper(), args['sep'])
 
     sys.exit(0)
 
