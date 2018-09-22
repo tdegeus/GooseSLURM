@@ -319,7 +319,7 @@ Return if the "data" is numeric : always zero for this class.
 
 class Duration(Integer):
   r'''
-Rich duration (seconds: integer).
+Rich duration (seconds).
 
 .. note::
 
@@ -386,7 +386,7 @@ Rich duration (seconds: integer).
 
 class Memory(Integer):
   r'''
-Rich memory (seconds: integer).
+Rich memory (bytes).
 
 .. note::
 

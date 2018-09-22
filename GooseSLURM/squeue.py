@@ -5,10 +5,14 @@ from . import rich
 
 def colors(theme=None):
   r'''
-Return named colors:
+Return dictionary of colors.
 
-*   selection
-*   queued
+.. code-block:: python
+
+  {
+    'selection' : '...',
+    'queued'    : '...',
+  }
 
 :options:
 
@@ -33,16 +37,22 @@ Return named colors:
 
 def read(data=None):
   r'''
-Read and convert the output of ``squeue -o "%all"`` (or specify its output as a string, for
-debugging). The output is a list of dictionaries, with that contain he different output fields. All
-data are strings.
+Read ``squeue -o "%all"``.
 
-Proceed with ``GooseSLURM.squeue.interpret`` for pretty printing.
+:options:
+
+  **data** (``<str>``)
+    For debugging: specify the output of ``squeue -o "%all"`` as string.
+
+:returns:
+
+  **lines** ``<list<dict>>``
+    A list of dictionaries, that contain the different fields. All data are strings.
   '''
 
   import subprocess
 
-  # get live job-info
+  # get live info
   if data is None:
     data = subprocess.check_output('squeue -o "%all"',shell=True).decode('utf-8')
 
@@ -80,8 +90,24 @@ Proceed with ``GooseSLURM.squeue.interpret`` for pretty printing.
 
 def interpret(lines, now=None, theme=colors()):
   r'''
-Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are converted to the
+Interpret the output of ``GooseSLURM.squeue.read``. All fields are converted to the
 ``GooseSLURM.rich`` classes adding useful colors in the process.
+
+:arguments:
+
+  **lines** ``<list<dict>>``
+    The output of ``GooseSLURM.squeue.read``
+
+:options:
+
+  **theme** (``<dict>``)
+    The color-theme, as selected by ``GooseSLURM.squeue.colors``.
+
+:returns:
+
+  **lines** (``<list<dict>>``)
+    A list of dictionaries, that contain the different fields. All data are
+    ``GooseSLURM.rich.String`` or derived types.
   '''
 
   import time
@@ -137,6 +163,15 @@ Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are co
 # ==================================================================================================
 
 def read_interpret(data=None, now=None, theme=colors()):
+  r'''
+Read and interpret ``squeue -o "%all"``.
+
+:returns:
+
+  **lines** (``<list<dict>>``)
+    A list of dictionaries, that contain the different fields. All data are
+    ``GooseSLURM.rich.String`` or derived types.
+  '''
 
   return interpret(read(data), now, theme)
 

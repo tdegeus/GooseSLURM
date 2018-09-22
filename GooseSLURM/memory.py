@@ -5,7 +5,7 @@ import re
 
 def asBytes(data, default=None, default_unit=1):
   r'''
-Convert string to bytes, from:
+Convert string to bytes. The following input is accepted:
 
 *   A humanly readable string (e.g. "1G").
 *   ``int`` or ``float``: interpreted as bytes.
@@ -54,7 +54,7 @@ Convert string to bytes, from:
 
 def asUnit(data, unit, precision):
   r'''
-Convert to rich-string with a certain unit and precision, e.g. ``"1.1G"``.
+Convert to rich-string with a certain unit and precision. The output is e.g. ``"1.1G"``.
 
 :arguments:
 
@@ -83,7 +83,7 @@ Convert to rich-string with a certain unit and precision, e.g. ``"1.1G"``.
 
 def asHuman(data, precision=None):
   r'''
-Convert to string that has the biggest possible unit (e.g. ``1e6`` (bytes) -> ``"1.0M"``).
+Convert to string that has the biggest possible unit. For example ``1e6`` (bytes) -> ``"1.0M"``.
 
 :arguments:
 
@@ -122,7 +122,7 @@ Convert to string that has the biggest possible unit (e.g. ``1e6`` (bytes) -> ``
 
 def asSlurm(data):
   r'''
-Convert to a SLURM string (e.g. ``"1G"``).
+Convert to a SLURM string. For example ``"1G"``.
 
 :arguments:
 

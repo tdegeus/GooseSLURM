@@ -7,10 +7,17 @@ import re
 
 def colors(theme=None):
   r'''
-Return named colors:
+Return dictionary of colors.
 
-*   selection
-*   queued
+.. code-block:: python
+
+  {
+    'selection' : '...',
+    'free'      : '...',
+    'error'     : '...',
+    'warning'   : '...',
+    'low'       : '...',
+  }
 
 :options:
 
@@ -41,17 +48,24 @@ Return named colors:
 
 def read(data=None):
   r'''
-Read and convert the output of ``squeue -o "%all"`` (or specify its output as a string, for
-debugging). The output is a list of dictionaries, with that contain he different output fields. All
-data are strings.
+Read ``sinfo -o "%all"``.
 
-Proceed with ``GooseSLURM.squeue.interpret`` for pretty printing.
+:options:
+
+  **data** (``<str>``)
+    For debugging: specify the output of ``sinfo -o "%all"`` as string.
+
+:returns:
+
+  **lines** ``<list<dict>>``
+    A list of dictionaries, that contain the different fields. All data are strings.
   '''
 
   import subprocess
 
-  # get live job-info
-  if data is None: data = subprocess.check_output('sinfo -o "%all"',shell=True).decode('utf-8')
+  # get live info
+  if data is None:
+    data = subprocess.check_output('sinfo -o "%all"',shell=True).decode('utf-8')
 
   # extract the header and the info
   head,data = data.split('\n',1)
@@ -103,8 +117,24 @@ def mem_score(MEMORY,FREE_MEM,CPUS_A,CPUS_T,**kwargs):
 
 def interpret(lines, theme=colors()):
   r'''
-Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are converted to the
+Interpret the output of ``GooseSLURM.sinfo.read``. All fields are converted to the
 ``GooseSLURM.rich`` classes adding useful colors in the process.
+
+:arguments:
+
+  **lines** ``<list<dict>>``
+    The output of ``GooseSLURM.sinfo.read``
+
+:options:
+
+  **theme** (``<dict>``)
+    The color-theme, as selected by ``GooseSLURM.sinfo.colors``.
+
+:returns:
+
+  **lines** (``<list<dict>>``)
+    A list of dictionaries, that contain the different fields. All data are
+    ``GooseSLURM.rich.String`` or derived types.
   '''
 
   # interpret input as list
@@ -117,7 +147,7 @@ Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are co
     for key in line:
       if not isinstance(line[key], rich.String):
         line[key] = rich.String(line[key])
-		
+
 	# covert to float
     for key in ['CPU_LOAD']:
       line[key] = rich.Float(str(line[key]))
@@ -169,6 +199,15 @@ Interpret the job info (output of ``GooseSLURM.squeue.read``). All fields are co
 # ==================================================================================================
 
 def read_interpret(data=None, theme=colors()):
+  r'''
+Read and interpret ``sinfo -o "%all"``.
+
+:returns:
+
+  **lines** (``<list<dict>>``)
+    A list of dictionaries, that contain the different fields. All data are
+    ``GooseSLURM.rich.String`` or derived types.
+  '''
 
   return interpret(read(data), theme)
 

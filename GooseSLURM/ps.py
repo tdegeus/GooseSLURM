@@ -5,9 +5,13 @@ from . import rich
 
 def colors(theme=None):
   r'''
-Return named colors:
+Return dictionary of colors.
 
-*   selection
+.. code-block:: python
+
+  {
+    'selection' : '...',
+  }
 
 :options:
 
@@ -30,11 +34,17 @@ Return named colors:
 
 def read(data=None):
   r'''
-Read and convert the output of ``ps -eo pid,user,rss,%cpu,command`` (or specify its output as a
-string, for debugging). The output is a list of dictionaries, with that contain he different output
-fields. All data are strings.
+Read ``ps -eo pid,user,rss,%cpu,command``.
 
-Proceed with ``GooseSLURM.ps.interpret`` for pretty printing.
+:options:
+
+  **data** (``<str>``)
+    For debugging: specify the output of ``ps -eo pid,user,rss,%cpu,command`` as string.
+
+:returns:
+
+  **lines** ``<list<dict>>``
+    A list of dictionaries, that contain the different fields. All data are strings.
   '''
 
   import subprocess
@@ -79,8 +89,24 @@ Proceed with ``GooseSLURM.ps.interpret`` for pretty printing.
 
 def interpret(lines, theme=colors()):
   r'''
-Interpret the info (output of ``GooseSLURM.ps.read``). All fields are converted to the
+Interpret the output of ``GooseSLURM.ps.read``. All fields are converted to the
 ``GooseSLURM.rich`` classes adding useful colors in the process.
+
+:arguments:
+
+  **lines** ``<list<dict>>``
+    The output of ``GooseSLURM.ps.read``
+
+:options:
+
+  **theme** (``<dict>``)
+    The color-theme, as selected by ``GooseSLURM.ps.colors``.
+
+:returns:
+
+  **lines** (``<list<dict>>``)
+    A list of dictionaries, that contain the different fields. All data are
+    ``GooseSLURM.rich.String`` or derived types.
   '''
 
   # interpret input as list
@@ -107,6 +133,15 @@ Interpret the info (output of ``GooseSLURM.ps.read``). All fields are converted 
 # ==================================================================================================
 
 def read_interpret(data=None, theme=colors()):
+  r'''
+Read and interpret ``ps -eo pid,user,rss,%cpu,command``.
+
+:returns:
+
+  **lines** (``<list<dict>>``)
+    A list of dictionaries, that contain the different fields. All data are
+    ``GooseSLURM.rich.String`` or derived types.
+  '''
 
   return interpret(read(data),theme)
 
