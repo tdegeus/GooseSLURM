@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --partition debug
 
-# Define directory names [DO NOT CHANGE]
-# ======================================
+# I. Define directory names [DO NOT CHANGE]
+# =========================================
 
 # get name of the temporary directory working directory, physically on the compute-node
 workdir="${TMPDIR}"
@@ -40,7 +40,9 @@ cd ${workdir}
 
 # define clean-up function
 function clean_up {
-  # - delete temporary files
+  # - remove log-file on the compute-node, to avoid the one created by SLURM is overwritten
+  rm job.slurm.out
+  # - delete temporary files from the compute-node, before copying
   # rm -r ...
   # - change directory to the location of the sbatch command (on the head node)
   cd "${submitdir}"

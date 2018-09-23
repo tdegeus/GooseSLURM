@@ -5,7 +5,7 @@ from . import rich
 
 def print_long(lines):
   r'''
-Print table as follows
+Print full data without much formatting. The output looks as follows:
 
 .. code-block:: none
 
