@@ -164,6 +164,14 @@ if args['sort']:
 
     lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
+# ----------------------------------------- select columns -----------------------------------------
+
+if args['output']:
+
+  keys = [aliasInv[key.upper()] for key in args['output']]
+
+  columns = [column for column in columns if column['key'] in keys]
+
 # --------------------------------------------- print ----------------------------------------------
 
 if not args['summary']:
@@ -178,18 +186,13 @@ if not args['summary']:
   # optional: print as list and quit
   elif args['list']:
 
-    # - a field has be be manually selected
-    if not args['output']:
-      print('Select column using "--output"')
-      sys.exit(1)
-
     # - only one field can be selected
-    if len(args['output']) > 1:
+    if len(columns) > 1:
       print('Only one field can be selected')
       sys.exit(1)
 
     # - print and quit
-    gs.table.print_list(lines, args['output'][0].upper(), args['sep'])
+    gs.table.print_list(lines, columns[0]['key'], args['sep'])
 
     sys.exit(0)
 

@@ -11,7 +11,7 @@ Arguments:
 
 Options:
       --no-truncate       Print full columns, do not truncate based on screen width.
-      --width=<N>         Print with.
+      --width=<N>         Set print with.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
       --sep=<NAME>        Set column separator. [default:  ] (space)
       --debug=<FILE>      Debug. Output 'squeue -o "%all"' provided from file.

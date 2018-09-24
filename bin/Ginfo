@@ -14,7 +14,7 @@
 
 Usage:
   Ginfo [options]
-  Ginfo [options] [--cfree=N...] [--partition=N...] [--host=N...] [--sort=N...] [--user=N...] [--debug=N...]
+  Ginfo [options] [--cfree=N...] [--partition=N...] [--host=N...] [--sort=N...] [--output=N...] [--user=N...] [--debug=N...]
 
 Options:
   -U                      Limit output to the current user.
@@ -28,8 +28,9 @@ Options:
   -S, --summary           Print only summary.
       --no-header         Suppress header.
       --no-truncate       Print full columns, do not truncate based on screen width.
-      --width=<N>         Print with.
+      --width=<N>         Set print with.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
+      --list              Print selected column as list.
       --sep=<NAME>        Set column separator. [default:  ] (space)
       --long              Print full information (each column is printed as a line).
       --debug=<FILE>      Debug. Output 'sinfo -o "%all"' provided from file.
@@ -258,6 +259,14 @@ if args['sort']:
 
     lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
+# ----------------------------------------- select columns -----------------------------------------
+
+if args['output']:
+
+  keys = [aliasInv[key.upper()] for key in args['output']]
+
+  columns = [column for column in columns if column['key'] in keys]
+
 # --------------------------------------------- print ----------------------------------------------
 
 if not args['summary']:
@@ -266,6 +275,19 @@ if not args['summary']:
   if args['long']:
 
     gs.table.print_long(lines)
+
+    sys.exit(0)
+
+  # optional: print as list and quit
+  elif args['list']:
+
+    # - only one field can be selected
+    if len(columns) > 1:
+      print('Only one field can be selected')
+      sys.exit(1)
+
+    # - print and quit
+    gs.table.print_list(lines, columns[0]['key'], args['sep'])
 
     sys.exit(0)
 
