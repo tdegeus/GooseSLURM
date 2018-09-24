@@ -248,15 +248,15 @@ if args['user']:
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines = sorted(lines, key=lambda line: line['HOSTNAMES'])
-lines = sorted(lines, key=lambda line: line['PARTITION'])
+lines.sort(key=lambda line: line['HOSTNAMES'])
+lines.sort(key=lambda line: line['PARTITION'])
 
 # optional: sort by key(s)
 if args['sort']:
 
   for key in args['sort']:
 
-    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+    lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
 # --------------------------------------------- print ----------------------------------------------
 
@@ -325,7 +325,7 @@ lines = partitions
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines = sorted(lines, key=lambda line: line['PARTITION'], reverse=args['reverse'])
+lines.sort(key=lambda line: line['PARTITION'], reverse=args['reverse'])
 
 # optional: sort by key(s)
 if args['sort']:
@@ -338,7 +338,7 @@ if args['sort']:
 
   # apply sort
   for key in args['sort']:
-    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+    lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
 # --------------------------------------------- print ----------------------------------------------
 

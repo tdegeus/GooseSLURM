@@ -155,14 +155,14 @@ for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)','PARTITION']
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines = sorted(lines, key=lambda line: line['START_TIME'], reverse=True)
+lines.sort(key=lambda line: line['START_TIME'], reverse=True)
 
 # optional: sort by key(s)
 if args['sort']:
 
   for key in args['sort']:
 
-    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+    lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
 # --------------------------------------------- print ----------------------------------------------
 
@@ -230,7 +230,7 @@ lines = users
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines = sorted(lines, key=lambda line: line['USER'], reverse=args['reverse'])
+lines.sort(key=lambda line: line['USER'], reverse=args['reverse'])
 
 # optional: sort by key(s)
 if args['sort']:
@@ -243,7 +243,7 @@ if args['sort']:
 
   # apply sort
   for key in args['sort']:
-    lines = sorted(lines, key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+    lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
 # --------------------------------------------- print ----------------------------------------------
 
