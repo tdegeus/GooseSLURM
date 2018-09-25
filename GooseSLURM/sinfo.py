@@ -194,6 +194,9 @@ Interpret the output of ``GooseSLURM.sinfo.read``. All fields are converted to t
     if   float(line['CPU_RELJOB']) > 1.05: line['CPU_RELJOB'].color = theme['warning']
     elif float(line['CPU_RELJOB']) < 0.95: line['CPU_RELJOB'].color = theme['low'    ]
 
+    # highlight 'scores'
+    if float(line['MEM_RELJOB']) > 0.9: line['MEM_RELJOB'].color = theme['warning']
+
   return lines
 
 # ==================================================================================================
