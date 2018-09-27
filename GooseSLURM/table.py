@@ -170,20 +170,23 @@ there is insufficient room.
         dw = min(column['real']-column['width'],room)
         if dw <= 0: continue
         column['width'] += dw
-        room           -= dw
+        room            -= dw
 
   # apply width
-  # - to data
   for line in lines:
     for column in columns:
       line[column['key']].width = column['width']
       line[column['key']].align = column['align']
-  # - to header
-  for column in columns:
-    header[column['key']].width = column['width']
 
   # print to screen
   # ---------------
+
+  # select header based on columns
+  header = {column['key']: header[column['key']] for column in columns}
+
+  # apply with
+  for column in columns:
+    header[column['key']].width = column['width']
 
   # separator
   # - copy from header
