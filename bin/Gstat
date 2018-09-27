@@ -4,31 +4,31 @@
 
 Usage:
   Gstat [options]
-  Gstat [options] [--user=N...] [--account=N...] [--host=N...] [--sort=N...] [--name=N...] [--jobid=N...] [--output=N...]
+  Gstat [options] [--jobid=N...] [--host=N...] [--user=N...] [--name=N...] [--account=N...] [--partition=N...] [--sort=N...] [--output=N...]
 
 Options:
   -U                      Limit output to the current user.
-  -u, --user=<NAME>       Limit output to user(s)     (may be a regex).
-  -a, --account=<NAME>    Limit output to account(s)  (may be a regex).
-  -n, --name=<NAME>       Limit output to job-name(s) (may be a regex).
-  -j, --jobid=<NAME>      Limit output to job-id(s)   (may be a regex).
-      --host=<NAME>       Limit output to host(s)     (may be a regex).
-      --status=<NAME>     Limit output to status      (may be a regex).
-      --partition=<NAME>  Limit output to partition   (may be a regex).
+  -u, --user=<NAME>       Limit output to user(s)      (may be a regex).
+  -j, --jobid=<NAME>      Limit output to job-id(s)    (may be a regex).
+  -h, --host=<NAME>       Limit output to host(s)      (may be a regex).
+  -a, --account=<NAME>    Limit output to account(s)   (may be a regex).
+  -n, --name=<NAME>       Limit output to job-name(s)  (may be a regex).
+      --status=<NAME>     Limit output to status       (may be a regex).
+  -p, --partition=<NAME>  Limit output to partition(s) (may be a regex).
   -s, --sort=<NAME>       Sort by field (selected by the header name).
   -r, --reverse           Reverse sort.
-      --output=<NAME>     Select output columns (selected by the header name).
+  -o, --output=<NAME>     Select output columns (selected by the header name).
       --full-name         Show full user names.
   -S, --summary           Print only summary.
       --no-header         Suppress header.
       --no-truncate       Print full columns, do not truncate based on screen width.
       --width=<N>         Set print with.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
-      --list              Print selected column as list.
+  -l, --list              Print selected column as list.
       --sep=<NAME>        Set column separator. [default:  ] (space)
       --long              Print full information (each column is printed as a line).
-      --debug=<FILE>      Debug. Output 'squeue -o "%all"' provided from file.
-  -h, --help              Show help.
+      --debug=<FILE>      Debug: read 'squeue -o "%all"' from file.
+      --help              Show help.
       --version           Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM

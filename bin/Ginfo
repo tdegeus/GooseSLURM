@@ -14,27 +14,28 @@
 
 Usage:
   Ginfo [options]
-  Ginfo [options] [--cfree=N...] [--partition=N...] [--host=N...] [--sort=N...] [--output=N...] [--user=N...] [--debug=N...]
+  Ginfo [options] [--jobid=N...] [--host=N...] [--user=N...] [--cfree=N...] [--partition=N...] [--sort=N...] [--output=N...] [--debug=N...]
 
 Options:
   -U                      Limit output to the current user.
   -u, --user=<NAME>       Limit output to user(s)      (may be a regex).
+  -j, --jobid=<NAME>      Limit output to job-id(s)    (may be a regex).
+  -h, --host=<NAME>       Limit output to host(s)      (may be a regex).
   -f, --cfree=<NAME>      Limit output to free CPU(s)  (may be a regex).
   -p, --partition=<NAME>  Limit output to partition(s) (may be a regex).
-      --host=<NAME>       Limit output to host(s)      (may be a regex).
   -s, --sort=<NAME>       Sort by field (selected by the header name).
   -r, --reverse           Reverse sort.
-      --output=<NAME>     Select output columns (selected by the header name).
+  -o, --output=<NAME>     Select output columns (selected by the header name).
   -S, --summary           Print only summary.
       --no-header         Suppress header.
       --no-truncate       Print full columns, do not truncate based on screen width.
       --width=<N>         Set print with.
       --colors=<NAME>     Select color scheme from: none, dark. [default: dark]
-      --list              Print selected column as list.
+  -l, --list              Print selected column as list.
       --sep=<NAME>        Set column separator. [default:  ] (space)
       --long              Print full information (each column is printed as a line).
-      --debug=<FILE>      Debug. Output 'sinfo -o "%all"' provided from file.
-  -h, --help              Show help.
+      --debug=<FILE>      Debug: read 'sinfo -o "%all"' (and then squeue) from file.
+      --help              Show help.
       --version           Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
@@ -150,13 +151,57 @@ for key in ['HOSTNAMES','PARTITION','CPUS_I']:
     # - apply to the header
     header[key].color = theme['selection']
 
+# ---------------------------------- support function used below -----------------------------------
+
+# if needed, convert 'name[10-14,16]' to 'list(name10, name11, name12, name13, name14, name16)'
+def expand_nodelist(text):
+
+  # try to split 'name', '[10-14]'
+  match = list(filter(None, re.split(r'(\[[^\]]*\])', text)))
+
+  # no split made: no need to interpret anything, return as list
+  if len(match) == 1: return [text]
+
+  # split in variables
+  name, numbers = match
+
+  # remove brackets '[10-14,16]' -> '10-14,16'
+  numbers = numbers[1:-1]
+
+  # split '10-14,16' -> list('10-14', '16')
+  numbers = numbers.split(',')
+
+  # allocate output
+  nodes = []
+
+  # expand if needed
+  for number in numbers:
+
+    # '16' -> 'name16'
+    if len(number.split('-')) == 1:
+
+      # copy to list
+      nodes += [ name + number ]
+
+    # '10-14' -> list('name10', 'name11', 'name12', 'name13', 'name14')
+    else:
+
+      # get start and end numbers
+      start, end = number.split('-')
+
+      # expand between beginning and end
+      nodes += [ name + ('%0'+str(len(start))+'d')%i for i in range(int(start), int(end)+1) ]
+
+  # return output
+  return nodes
+
 # ----------------------------------------- limit to users -----------------------------------------
 
 # handle 'alias' options
 if args['U']: args['user'] += [pwd.getpwuid(os.getuid())[0]]
 
 # apply filter
-if args['user']:
+if args['user'] or args['jobid']:
 
   import itertools
 
@@ -179,7 +224,12 @@ if args['user']:
   jobs = [j for j in jobs if str(j['ST'])=='R']
 
   # limit to users' jobs
-  jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['USER'])) else 0 for n in args['user']])]
+  if args['user']:
+    jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['USER'])) else 0 for n in args['user']])]
+
+  # limit to specific jobs
+  if args['jobid']:
+    jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['JOBID'])) else 0 for n in args['jobid']])]
 
   # get list of nodes for the users' jobs
   # -------------------------------------
@@ -192,14 +242,8 @@ if args['user']:
 
     # simple name (e.g. 'f123') -> add to list
     if len(job.split(',')) == 1:
-      nodes += [job]
+      nodes += expand_nodelist(job)
       continue
-
-    # print debug information
-    if args['debug']: print('Parsing:', job)
-
-    # allocate list of identified nodes
-    out = []
 
     # split all array jobs, e.g.
     # g117,g[123-456],f[023-025] -> ('g117,g', '[123-456]', ',f', '[023-025]')
@@ -210,32 +254,13 @@ if args['user']:
 
       # strip plain jobs that are still prepending the array
       name = name.split(',')
-      # - add plain jobs to list
-      out += name[:-1]
-      # - store name of the array
-      name = name[-1]
+      # add plain jobs to node-list
+      nodes += name[:-1]
+      # interpret all batch jobs and add to node-list
+      nodes += expand_nodelist(name[-1]+numbers)
 
-      # isolate the numbers (remove brackets '[...]')
-      numbers = numbers[1:-1].split(',')
-
-      # loop over numbers
-      for number in numbers:
-        # - convert '123-456' to individual numbers
-        if len(number.split('-'))>1:
-          start, end = number.split('-')
-          out += [name+('%0'+str(len(start))+'d')%i for i in range(int(start), int(end)+1)]
-        # - copy readily individual numbers
-        else:
-          out += [name+number]
-
-    # filter empty items
-    out = list(filter(None,out))
-
-    # print debug information
-    if args['debug']: print(out)
-
-    # add to total users' list
-    nodes += out
+  # filter empty items
+  nodes = list(filter(None,nodes))
 
   # limit data
   lines = [l for l in lines if str(l['HOSTNAMES']) in nodes]
