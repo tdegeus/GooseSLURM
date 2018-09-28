@@ -184,7 +184,7 @@ there is insufficient room.
   # select header based on columns
   header = {column['key']: header[column['key']] for column in columns}
 
-  # apply with
+  # apply width to header
   for column in columns:
     header[column['key']].width = column['width']
 
