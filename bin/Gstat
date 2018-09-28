@@ -111,9 +111,11 @@ header = {column['key']: gs.rich.String(alias[column['key']],align=column['align
 # print settings for the summary
 columns_summary = [
   {'key':'USER'            , 'width':7 , 'align':'<', 'priority': True },
+  {'key':'ACCOUNT'         , 'width':7 , 'align':'<', 'priority': False},
   {'key':'CPUS'            , 'width':4 , 'align':'>', 'priority': True },
   {'key':'CPUS_R'          , 'width':6 , 'align':'>', 'priority': True },
   {'key':'CPUS_PD'         , 'width':6 , 'align':'>', 'priority': True },
+  {'key':'PARTITION'       , 'width':9 , 'align':'<', 'priority': False},
 ]
 
 # header
@@ -217,6 +219,10 @@ for user in users:
   # - isolate jobs for this user
   N = [line for line in lines if str(line['USER']) == str(user['USER'])]
 
+  # - get (a list of) partition(s)/account(s)
+  user['PARTITION'] = gs.rich.String(','.join(list(set([str(line['PARTITION']) for line in N]))))
+  user['ACCOUNT'  ] = gs.rich.String(','.join(list(set([str(line['ACCOUNT'  ]) for line in N]))))
+
   # - count used CPU (per category)
   user['CPUS'   ] = gs.rich.Integer(sum([int(line['CPUS'   ]) for line in N]))
   user['CPUS_R' ] = gs.rich.Integer(sum([int(line['CPUS_R' ]) for line in N]))
@@ -239,10 +245,10 @@ lines.sort(key=lambda line: line['USER'], reverse=args['reverse'])
 if args['sort']:
 
   # get available keys in the setting with fewer columns
-  keys = [alias[column['key']] for column in columns_summary]
+  keys = [column['key'] for column in columns_summary]
 
   # filter sort keys that are not available in this mode
-  args['sort'] = [key for key in args['sort'] if key in keys]
+  args['sort'] = [key for key in args['sort'] if key.upper() in keys]
 
   # apply sort
   for key in args['sort']:
