@@ -166,6 +166,11 @@ if args['sort']:
 
     lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
+# optional: reverse (without sort)
+elif args['reverse']:
+
+  lines = [line for line in lines[::-1]]
+
 # ----------------------------------------- select columns -----------------------------------------
 
 if args['output']:
