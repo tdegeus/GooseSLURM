@@ -157,7 +157,7 @@ for key in ['USER','ACCOUNT','NAME','JOBID','ST','NODELIST(REASON)','PARTITION']
 # ---------------------------------------------- sort ----------------------------------------------
 
 # default sort
-lines.sort(key=lambda line: line['START_TIME'], reverse=True)
+lines.sort(key=lambda line: line['START_TIME'], reverse=not args['reverse'])
 
 # optional: sort by key(s)
 if args['sort']:
@@ -165,11 +165,6 @@ if args['sort']:
   for key in args['sort']:
 
     lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-
-# optional: reverse (without sort)
-elif args['reverse']:
-
-  lines = [line for line in lines[::-1]]
 
 # ----------------------------------------- select columns -----------------------------------------
 
