@@ -378,10 +378,10 @@ lines.sort(key=lambda line: line['PARTITION'], reverse=args['reverse'])
 if args['sort']:
 
   # get available keys in the setting with fewer columns
-  keys = [alias[column['key']] for column in columns_summary]
+  keys = [alias[column['key']].upper() for column in columns_summary]
 
   # filter sort keys that are not available in this mode
-  args['sort'] = [key for key in args['sort'] if key in keys]
+  args['sort'] = [key for key in args['sort'] if key.upper() in keys]
 
   # apply sort
   for key in args['sort']:
