@@ -8,7 +8,7 @@ Overview
 
 This example focuses on a case in which you claim (or are given) more than one CPU on one node, which will be used to run several instances of a serial processes in parallel (for example using different input parameters, or for different statistical realizations). This case is relevant for example when the queuing system restricts allocation to entire nodes. In that case, no matter how many CPUs-per-node you would demand you would be given all CPUs on the node, so you should better make good use of it.
 
-The idea is to use `GNU Parallel <https://www.gnu.org/software/parallel/>`_ to do all the work for you. It is designed to run several serial processes in parallel. It is a simple ``perl`` script which is easy to 'install' ([see below](#local-installation-of-parallel)).  What it basically does is to run some (nested) loop in parallel. Each iteration of this loop contains a (long) process (e.g. Matlab, Python, your own executable, ...). Parallel then runs ``N`` processes at the same time (where ``N`` is the number of CPUs you have available). As soon as one process finishes, the next process is submitted, and so on until your entire loop is finished. It is perfectly fine that not all processes take the same amount of time, as soon as one CPU is freed, another process is started. And the great thing is: its syntax is extremely easy.
+The idea is to use `GNU Parallel <https://www.gnu.org/software/parallel/>`_ to do all the work for you. It is designed to run several serial processes in parallel. It is a simple ``perl`` script which is easy to 'install' (see `Local installation of parallel`_).  What it basically does is to run some (nested) loop in parallel. Each iteration of this loop contains a (long) process (e.g. Matlab, Python, your own executable, ...). Parallel then runs ``N`` processes at the same time (where ``N`` is the number of CPUs you have available). As soon as one process finishes, the next process is submitted, and so on until your entire loop is finished. It is perfectly fine that not all processes take the same amount of time, as soon as one CPU is freed, another process is started. And the great thing is: its syntax is extremely easy.
 
 .. note::
 
@@ -55,8 +55,6 @@ The job is submitted using
     $ sbatch job.slurm
 
 Once the job is completed, the output can be inspected:
-
-[:download:`source: job.slurm.out <job.slurm.out>`]
 
 .. code-block:: bash
 
