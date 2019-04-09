@@ -47,7 +47,8 @@ GooseSLURM
    :maxdepth: 1
 
    cluster.rst
-   linux_bash.rst
+   linux.rst
+   cheat-sheet.rst
 
 .. toctree::
    :caption: TOOLS

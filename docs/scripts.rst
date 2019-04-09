@@ -33,9 +33,5 @@ Gdel
 
 `Gdel <https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gdel>`_ deletes some or all of the user's jobs.
 
-Gcopy
------
-
-`Gcopy <https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gcopy>`_ copy files from a compute node, based on a JSON file stored by the job's submit script.
 
 
