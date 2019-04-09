@@ -42,8 +42,12 @@ GooseSLURM
 
   This library is free to use under the `MIT license <https://github.com/tdegeus/GooseSLURM/blob/master/LICENSE>`_. Any additions are very much appreciated, in terms of suggested functionality, code, documentation, testimonials, word of mouth advertisement, .... Bugs or feature requests can be filed on `GitHub <http://github.com/tdegeus/GooseSLURM>`_. As always, the code comes with no guarantee. None of the developers can be held responsible for possible mistakes.
 
-Command-line tools & Python interface
--------------------------------------
+.. toctree::
+   :caption: BASICS
+   :maxdepth: 1
+
+   cluster.rst
+   linux_bash.rst
 
 .. toctree::
    :caption: TOOLS
@@ -51,9 +55,6 @@ Command-line tools & Python interface
 
    scripts.rst
    python.rst
-
-Examples
---------
 
 .. toctree::
    :caption: EXAMPLES

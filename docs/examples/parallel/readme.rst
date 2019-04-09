@@ -45,8 +45,8 @@ Allocation of resources. These lines are interpreted by the ``sbatch`` command, 
 
 Run your executable in parallel. In this case the executable is mimicked using the `echo` command, which provided with two arguments. As an example a nested loop is run with the first argument an index in the range 1-12 and the second argument a name which gets the values 'summer' or 'winter'.
 
-Behavior
-========
+Behaviour
+=========
 
 The job is submitted using
 
