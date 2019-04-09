@@ -22,6 +22,10 @@ Job script
 .. literalinclude:: job.slurm
    :language: bash
 
+.. note::
+
+    To facilitate writing job-scripts, it can be created using the GooseSLURM Python module: [:download:`source: writeJob.py <writeJob.py>`].
+
 Code explained
 --------------
 
