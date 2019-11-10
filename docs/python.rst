@@ -3,10 +3,23 @@
 Python module
 *************
 
-Download/install
-================
+Installation
+============
 
+pip
+---
 
+Installing GooseSLUM proceeds easily with ``pip``:
+
+.. code-block:: bash
+
+    cd /path/to/GooseSLURM
+    pip install .
+
+.. note::
+
+    *   Be sure to use the proper executable for ``pip`` (it could for example be ``pip3``).
+    *   Add the ``--user`` option to the ``pip``-command to install in the user's home-folder.
 
 Overview
 ========

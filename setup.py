@@ -19,7 +19,7 @@ setup(
   long_description  = '',
   license           = 'MIT',
   packages          = ['GooseSLURM'],
-  scripts           = ['bin/Gcopy', 'bin/Gdel', 'bin/Ginfo', 'bin/Gstat', 'bin/Gsub'],
+  scripts           = ['bin/Gdel', 'bin/Ginfo', 'bin/Gstat', 'bin/Gsub'],
   install_requires  = ['docopt>=0.6.2'],
 )
 

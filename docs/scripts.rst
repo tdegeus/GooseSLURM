@@ -1,4 +1,6 @@
 
+.. _sec-scripts:
+
 ******************
 Command-line tools
 ******************
