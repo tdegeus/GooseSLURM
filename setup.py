@@ -16,8 +16,8 @@ setup(
     install_requires = ['docopt>=0.6.2', 'click>=4.0'],
     entry_points = {
           'console_scripts': [
-               'Gdel = GooseHDF5.cli.Gdel:main',
-               'Ginfo = GooseHDF5.cli.Ginfo:main',
-               'Gps = GooseHDF5.cli.Gps:main',
-               'Gstat = GooseHDF5.cli.Gstat:main',
-               'Gsub = GooseHDF5.cli.Gsub:main']})
+               'Gdel = GooseSLURM.cli.Gdel:main',
+               'Ginfo = GooseSLURM.cli.Ginfo:main',
+               'Gps = GooseSLURM.cli.Gps:main',
+               'Gstat = GooseSLURM.cli.Gstat:main',
+               'Gsub = GooseSLURM.cli.Gsub:main']})

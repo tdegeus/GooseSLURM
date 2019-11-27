@@ -91,21 +91,21 @@ def main():
   ]
 
   # header
-  header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  header = {column['key']: rich.String(alias[column['key']],align=column['align'])
     for column in columns}
 
   # select color theme
-  theme = gs.ps.colors(args['colors'].lower())
+  theme = ps.colors(args['colors'].lower())
 
   # ----------------------------------- load the output of "ps" ------------------------------------
 
   if not args['debug']:
 
-    lines = gs.ps.read_interpret(theme=theme)
+    lines = ps.read_interpret(theme=theme)
 
   else:
 
-    lines = gs.ps.read_interpret(
+    lines = ps.read_interpret(
       data  = open(args['debug'],'r').read(),
       theme = theme,
     )
@@ -152,7 +152,7 @@ def main():
     # optional: print all fields and quit
     if args['long']:
 
-      gs.table.print_long(lines)
+      table.print_long(lines)
 
       sys.exit(0)
 
@@ -165,14 +165,14 @@ def main():
         sys.exit(1)
 
       # - print and quit
-      gs.table.print_list(lines, columns[0]['key'], args['sep'])
+      table.print_list(lines, columns[0]['key'], args['sep'])
 
       sys.exit(0)
 
     # default: print columns
     else:
 
-      gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+      table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
 
       sys.exit(0)
 

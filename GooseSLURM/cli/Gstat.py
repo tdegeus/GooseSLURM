@@ -116,7 +116,7 @@ def main():
   ]
 
   # header
-  header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  header = {column['key']: rich.String(alias[column['key']],align=column['align'])
     for column in columns}
 
   # print settings for the summary
@@ -130,21 +130,21 @@ def main():
   ]
 
   # header
-  header_summary = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  header_summary = {column['key']: rich.String(alias[column['key']],align=column['align'])
     for column in columns_summary}
 
   # select color theme
-  theme = gs.squeue.colors(args['colors'].lower())
+  theme = squeue.colors(args['colors'].lower())
 
   # --------------------------------- load the output of "squeue" ----------------------------------
 
   if not args['debug']:
 
-    lines = gs.squeue.read_interpret(theme=theme)
+    lines = squeue.read_interpret(theme=theme)
 
   else:
 
-    lines = gs.squeue.read_interpret(
+    lines = squeue.read_interpret(
       data  = open(args['debug'],'r').read(),
       now   = os.path.getctime(args['debug']),
       theme = theme,
@@ -192,7 +192,7 @@ def main():
     # optional: print all fields and quit
     if args['long']:
 
-      gs.table.print_long(lines)
+      table.print_long(lines)
 
       sys.exit(0)
 
@@ -205,14 +205,14 @@ def main():
         sys.exit(1)
 
       # - print and quit
-      gs.table.print_list(lines, columns[0]['key'], args['sep'])
+      table.print_list(lines, columns[0]['key'], args['sep'])
 
       sys.exit(0)
 
     # default: print columns
     else:
 
-      gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+      table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
 
       sys.exit(0)
 
@@ -231,18 +231,18 @@ def main():
     N = [line for line in lines if str(line['USER']) == str(user['USER'])]
 
     # - get (a list of) partition(s)/account(s)
-    user['PARTITION'] = gs.rich.String(','.join(list(set([str(line['PARTITION']) for line in N]))))
-    user['ACCOUNT'  ] = gs.rich.String(','.join(list(set([str(line['ACCOUNT'  ]) for line in N]))))
+    user['PARTITION'] = rich.String(','.join(list(set([str(line['PARTITION']) for line in N]))))
+    user['ACCOUNT'  ] = rich.String(','.join(list(set([str(line['ACCOUNT'  ]) for line in N]))))
 
     # - count used CPU (per category)
-    user['CPUS'   ] = gs.rich.Integer(sum([int(line['CPUS'   ]) for line in N]))
-    user['CPUS_R' ] = gs.rich.Integer(sum([int(line['CPUS_R' ]) for line in N]))
-    user['CPUS_PD'] = gs.rich.Integer(sum([int(line['CPUS_PD']) for line in N]))
+    user['CPUS'   ] = rich.Integer(sum([int(line['CPUS'   ]) for line in N]))
+    user['CPUS_R' ] = rich.Integer(sum([int(line['CPUS_R' ]) for line in N]))
+    user['CPUS_PD'] = rich.Integer(sum([int(line['CPUS_PD']) for line in N]))
 
     # - remove zeros from output for more intuitive output
     for key in ['CPUS_R', 'CPUS_PD']:
       if int(user[key]) == 0:
-        user[key] = gs.rich.Integer('-')
+        user[key] = rich.Integer('-')
 
   # rename field
   lines = users
@@ -267,5 +267,5 @@ def main():
 
   # -------------------------------------------- print ---------------------------------------------
 
-  gs.table.print_columns(lines, columns_summary, header_summary,
+  table.print_columns(lines, columns_summary, header_summary,
     args['no_truncate'], args['sep'], args['width'])

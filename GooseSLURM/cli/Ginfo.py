@@ -114,7 +114,7 @@ def main():
   ]
 
   # header
-  header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  header = {column['key']: rich.String(alias[column['key']],align=column['align'])
     for column in columns}
 
   # print settings for the summary
@@ -129,21 +129,21 @@ def main():
   ]
 
   # header
-  header_summary = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+  header_summary = {column['key']: rich.String(alias[column['key']],align=column['align'])
     for column in columns_summary}
 
   # select color theme
-  theme = gs.sinfo.colors(args['colors'].lower())
+  theme = sinfo.colors(args['colors'].lower())
 
   # ---------------------------------- load the output of "sinfo" ----------------------------------
 
   if not args['debug']:
 
-    lines = gs.sinfo.read_interpret(theme=theme)
+    lines = sinfo.read_interpret(theme=theme)
 
   else:
 
-    lines = gs.sinfo.read_interpret(
+    lines = sinfo.read_interpret(
       data  = open(args['debug'][0],'r').read(),
       theme = theme,
     )
@@ -223,11 +223,11 @@ def main():
     # read
     if not args['debug']:
 
-      jobs = gs.squeue.read_interpret()
+      jobs = squeue.read_interpret()
 
     else:
 
-      jobs = gs.squeue.read_interpret(
+      jobs = squeue.read_interpret(
         data  = open(args['debug'][1],'r').read(),
         now   = os.path.getctime(args['debug'][1]),
       )
@@ -311,7 +311,7 @@ def main():
     # optional: print all fields and quit
     if args['long']:
 
-      gs.table.print_long(lines)
+      table.print_long(lines)
 
       sys.exit(0)
 
@@ -324,14 +324,14 @@ def main():
         sys.exit(1)
 
       # - print and quit
-      gs.table.print_list(lines, columns[0]['key'], args['sep'])
+      table.print_list(lines, columns[0]['key'], args['sep'])
 
       sys.exit(0)
 
     # default: print columns
     else:
 
-      gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+      table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
 
       sys.exit(0)
 
@@ -350,25 +350,25 @@ def main():
     N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
 
     # - get the CPU count
-    partition['CPUS_T'] = gs.rich.Integer(sum([int(line['CPUS_T']) for line in N]))
-    partition['CPUS_O'] = gs.rich.Integer(sum([int(line['CPUS_O']) for line in N]))
-    partition['CPUS_D'] = gs.rich.Integer(sum([int(line['CPUS_D']) for line in N]))
-    partition['CPUS_I'] = gs.rich.Integer(sum([int(line['CPUS_I']) for line in N]))
+    partition['CPUS_T'] = rich.Integer(sum([int(line['CPUS_T']) for line in N]))
+    partition['CPUS_O'] = rich.Integer(sum([int(line['CPUS_O']) for line in N]))
+    partition['CPUS_D'] = rich.Integer(sum([int(line['CPUS_D']) for line in N]))
+    partition['CPUS_I'] = rich.Integer(sum([int(line['CPUS_I']) for line in N]))
 
     # - initialize scores
-    partition['CPU_RELJOB'] = gs.rich.Float('')
-    partition['MEM_RELJOB'] = gs.rich.Float('')
+    partition['CPU_RELJOB'] = rich.Float('')
+    partition['MEM_RELJOB'] = rich.Float('')
 
     # - average load
     if len([1 for line in N if line['CPU_RELJOB'].isnumeric()]) > 0:
-      partition['CPU_RELJOB'] = gs.rich.Float(
+      partition['CPU_RELJOB'] = rich.Float(
         sum([float(line['CPU_RELJOB']) for line in N if line['CPU_RELJOB'].isnumeric()]) /
         sum([1.                        for line in N if line['CPU_RELJOB'].isnumeric()])
       )
 
     # - average memory consumption
     if len([1 for line in N if line['MEM_RELJOB'].isnumeric()]) > 0:
-      partition['MEM_RELJOB'] = gs.rich.Float(
+      partition['MEM_RELJOB'] = rich.Float(
         sum([float(line['MEM_RELJOB']) for line in N if line['MEM_RELJOB'].isnumeric()]) /
         sum([1.                        for line in N if line['MEM_RELJOB'].isnumeric()])
       )
@@ -401,5 +401,5 @@ def main():
 
   # -------------------------------------------- print ---------------------------------------------
 
-  gs.table.print_columns(lines, columns_summary, header_summary,
+  table.print_columns(lines, columns_summary, header_summary,
     args['no_truncate'], args['sep'], args['width'])
