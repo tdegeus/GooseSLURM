@@ -42,6 +42,9 @@ import re
 import subprocess
 import docopt
 import pwd
+import pkg_resources
+
+__version__ = pkg_resources.require("GooseSLURM")[0].version
 
 from .. import rich
 from .. import squeue
@@ -54,7 +57,7 @@ def main():
   # --------------------------------- parse command line arguments ---------------------------------
 
   # parse command-line options
-  args = docopt.docopt(__doc__,version='0.0.6')
+  args = docopt.docopt(__doc__, version=__version__)
 
   # change keys to simplify implementation:
   # - remove leading "-" and "--" from options
