@@ -19,7 +19,11 @@ Options:
 
 # --------------------------------------------------------------------------------------------------
 
-import os, sys, re, subprocess, docopt
+import os
+import sys
+import re
+import subprocess
+import docopt
 
 # ----------------------------------- function to fun a command ------------------------------------
 
@@ -37,36 +41,40 @@ def run(cmd,verbose=False,dry_run=False,**kwargs):
 
   return out
 
-# ---------------------------------- parse command line arguments ----------------------------------
+# --------------------------------------------------------------------------------------------------
 
-# parse command-line options
-args = docopt.docopt(__doc__,version='0.0.6')
+def main():
 
-# change keys to simplify implementation:
-# - remove leading "-" and "--" from options
-args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
-# - change "-" to "_" to facilitate direct use in print format
-args = {key.replace('-','_'): args[key] for key in args}
-# - remove "<...>"
-args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
+  # --------------------------------- parse command line arguments ---------------------------------
 
-# ---------------------------------------- check arguments -----------------------------------------
+  # parse command-line options
+  args = docopt.docopt(__doc__,version='0.0.6')
 
-for file in args['FILES']:
+  # change keys to simplify implementation:
+  # - remove leading "-" and "--" from options
+  args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+  # - change "-" to "_" to facilitate direct use in print format
+  args = {key.replace('-','_'): args[key] for key in args}
+  # - remove "<...>"
+  args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
 
-  if not os.path.isfile(file):
+  # --------------------------------------- check arguments ----------------------------------------
 
-    print('"%s" does not exist' % file)
+  for file in args['FILES']:
 
-    sys.exit(1)
+    if not os.path.isfile(file):
 
-# --------------------------------------------- submit ---------------------------------------------
+      print('"%s" does not exist' % file)
 
-for file in args['FILES']:
+      sys.exit(1)
 
-  path, name = os.path.split(file)
+  # -------------------------------------------- submit --------------------------------------------
 
-  if len(path) > 0 : cmd = 'cd %s; sbatch %s' % ( path, name )
-  else             : cmd = 'sbatch %s'        % ( name       )
+  for file in args['FILES']:
 
-  run(cmd,**args)
+    path, name = os.path.split(file)
+
+    if len(path) > 0 : cmd = 'cd %s; sbatch %s' % ( path, name )
+    else             : cmd = 'sbatch %s'        % ( name       )
+
+    run(cmd,**args)

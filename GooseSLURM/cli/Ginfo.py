@@ -43,351 +43,363 @@ Options:
 
 # --------------------------------------------------------------------------------------------------
 
-import os, sys, re, subprocess, docopt, pwd
+import os
+import sys
+import re
+import subprocess
+import docopt
+import pwd
 
-import GooseSLURM as gs
+from .. import rich
+from .. import sinfo
+from .. import squeue
+from .. import table
 
-# ---------------------------------- parse command line arguments ----------------------------------
+# --------------------------------------------------------------------------------------------------
 
-# parse command-line options
-args = docopt.docopt(__doc__,version='0.0.6')
+def main():
 
-# change keys to simplify implementation:
-# - remove leading "-" and "--" from options
-args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
-# - change "-" to "_" to facilitate direct use in print format
-args = {key.replace('-','_'): args[key] for key in args}
+  # --------------------------------- parse command line arguments ---------------------------------
 
-# --------------------------------- field-names and print settings ---------------------------------
+  # parse command-line options
+  args = docopt.docopt(__doc__,version='0.0.6')
 
-# conversion map: default field-names -> custom field-names
-alias = {
-  'HOSTNAMES'  : 'Host',
-  'CPUS_T'     : 'CPUs',
-  'CPUS_I'     : 'Cfree',
-  'CPUS_D'     : 'Cdown',
-  'CPUS_O'     : 'Con',
-  'CPU_RELJOB' : 'CPU%',
-  'PARTITION'  : 'Partition',
-  'MEMORY'     : 'Mem',
-  'FREE_MEM'   : 'Mfree',
-  'MEM_RELJOB' : 'Mem%',
-  'TIMELIMIT'  : 'Tlim',
-  'STATE'      : 'State',
-}
+  # change keys to simplify implementation:
+  # - remove leading "-" and "--" from options
+  args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
+  # - change "-" to "_" to facilitate direct use in print format
+  args = {key.replace('-','_'): args[key] for key in args}
 
-# conversion map: custom field-names -> default field-names
-aliasInv = {alias[key].upper():key for key in alias}
+  # -------------------------------- field-names and print settings --------------------------------
 
-# rename command line options -> default field-names
-for key in [key for key in args]:
-  if key.upper() in aliasInv:
-    args[aliasInv[key.upper()]] = args.pop(key)
+  # conversion map: default field-names -> custom field-names
+  alias = {
+    'HOSTNAMES'  : 'Host',
+    'CPUS_T'     : 'CPUs',
+    'CPUS_I'     : 'Cfree',
+    'CPUS_D'     : 'Cdown',
+    'CPUS_O'     : 'Con',
+    'CPU_RELJOB' : 'CPU%',
+    'PARTITION'  : 'Partition',
+    'MEMORY'     : 'Mem',
+    'FREE_MEM'   : 'Mfree',
+    'MEM_RELJOB' : 'Mem%',
+    'TIMELIMIT'  : 'Tlim',
+    'STATE'      : 'State',
+  }
 
-# print settings of all columns
-# - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
-# - "align"   : alignment of the columns (except the header)
-# - "priority": priority of column expansing, columns marked "True" are expanded first
-columns = [
-  {'key':'HOSTNAMES' ,'width':4, 'align':'<', 'priority':True },
-  {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
-  {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
-  {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
-  {'key':'MEMORY'    ,'width':3, 'align':'>', 'priority':True },
-  {'key':'FREE_MEM'  ,'width':5, 'align':'>', 'priority':True },
-  {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
-  {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
-  {'key':'TIMELIMIT' ,'width':4, 'align':'>', 'priority':False},
-  {'key':'STATE'     ,'width':5, 'align':'<', 'priority':False},
-]
+  # conversion map: custom field-names -> default field-names
+  aliasInv = {alias[key].upper():key for key in alias}
 
-# header
-header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
-  for column in columns}
+  # rename command line options -> default field-names
+  for key in [key for key in args]:
+    if key.upper() in aliasInv:
+      args[aliasInv[key.upper()]] = args.pop(key)
 
-# print settings for the summary
-columns_summary = [
-  {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
-  {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
-  {'key':'CPUS_O'    ,'width':5, 'align':'>', 'priority':True },
-  {'key':'CPUS_D'    ,'width':5, 'align':'>', 'priority':True },
-  {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
-  {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
-  {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
-]
+  # print settings of all columns
+  # - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
+  # - "align"   : alignment of the columns (except the header)
+  # - "priority": priority of column expansing, columns marked "True" are expanded first
+  columns = [
+    {'key':'HOSTNAMES' ,'width':4, 'align':'<', 'priority':True },
+    {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
+    {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
+    {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
+    {'key':'MEMORY'    ,'width':3, 'align':'>', 'priority':True },
+    {'key':'FREE_MEM'  ,'width':5, 'align':'>', 'priority':True },
+    {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
+    {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
+    {'key':'TIMELIMIT' ,'width':4, 'align':'>', 'priority':False},
+    {'key':'STATE'     ,'width':5, 'align':'<', 'priority':False},
+  ]
 
-# header
-header_summary = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
-  for column in columns_summary}
+  # header
+  header = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+    for column in columns}
 
-# select color theme
-theme = gs.sinfo.colors(args['colors'].lower())
+  # print settings for the summary
+  columns_summary = [
+    {'key':'PARTITION' ,'width':9, 'align':'<', 'priority':True },
+    {'key':'CPUS_T'    ,'width':4, 'align':'>', 'priority':True },
+    {'key':'CPUS_O'    ,'width':5, 'align':'>', 'priority':True },
+    {'key':'CPUS_D'    ,'width':5, 'align':'>', 'priority':True },
+    {'key':'CPUS_I'    ,'width':5, 'align':'>', 'priority':True },
+    {'key':'CPU_RELJOB','width':4, 'align':'>', 'priority':True },
+    {'key':'MEM_RELJOB','width':4, 'align':'>', 'priority':True },
+  ]
 
-# ----------------------------------- load the output of "sinfo" -----------------------------------
+  # header
+  header_summary = {column['key']: gs.rich.String(alias[column['key']],align=column['align'])
+    for column in columns_summary}
 
-if not args['debug']:
+  # select color theme
+  theme = gs.sinfo.colors(args['colors'].lower())
 
-  lines = gs.sinfo.read_interpret(theme=theme)
+  # ---------------------------------- load the output of "sinfo" ----------------------------------
 
-else:
+  if not args['debug']:
 
-  lines = gs.sinfo.read_interpret(
-    data  = open(args['debug'][0],'r').read(),
-    theme = theme,
-  )
+    lines = gs.sinfo.read_interpret(theme=theme)
 
-# ------------------------------ limit based on command-line options -------------------------------
+  else:
 
-for key in ['HOSTNAMES','PARTITION','CPUS_I']:
+    lines = gs.sinfo.read_interpret(
+      data  = open(args['debug'][0],'r').read(),
+      theme = theme,
+    )
 
-  if args[key]:
+  # ----------------------------- limit based on command-line options ------------------------------
+
+  for key in ['HOSTNAMES','PARTITION','CPUS_I']:
+
+    if args[key]:
+
+      # limit data
+      lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
+
+      # color-highlight selected columns
+      # - apply to all remaining lines
+      for line in lines: line[key].color = theme['selection']
+      # - apply to the header
+      header[key].color = theme['selection']
+
+  # --------------------------------- support function used below ----------------------------------
+
+  # if needed, convert 'name[10-14,16]' to 'list(name10, name11, name12, name13, name14, name16)'
+  def expand_nodelist(text):
+
+    # try to split 'name', '[10-14]'
+    match = list(filter(None, re.split(r'(\[[^\]]*\])', text)))
+
+    # no split made: no need to interpret anything, return as list
+    if len(match) == 1: return [text]
+
+    # split in variables
+    name, numbers = match
+
+    # remove brackets '[10-14,16]' -> '10-14,16'
+    numbers = numbers[1:-1]
+
+    # split '10-14,16' -> list('10-14', '16')
+    numbers = numbers.split(',')
+
+    # allocate output
+    nodes = []
+
+    # expand if needed
+    for number in numbers:
+
+      # '16' -> 'name16'
+      if len(number.split('-')) == 1:
+
+        # copy to list
+        nodes += [ name + number ]
+
+      # '10-14' -> list('name10', 'name11', 'name12', 'name13', 'name14')
+      else:
+
+        # get start and end numbers
+        start, end = number.split('-')
+
+        # expand between beginning and end
+        nodes += [ name + ('%0'+str(len(start))+'d')%i for i in range(int(start), int(end)+1) ]
+
+    # return output
+    return nodes
+
+  # ---------------------------------------- limit to users ----------------------------------------
+
+  # handle 'alias' options
+  if args['U']: args['user'] += [pwd.getpwuid(os.getuid())[0]]
+
+  # apply filter
+  if args['user'] or args['jobid']:
+
+    import itertools
+
+    # get list of jobs
+    # ----------------
+
+    # read
+    if not args['debug']:
+
+      jobs = gs.squeue.read_interpret()
+
+    else:
+
+      jobs = gs.squeue.read_interpret(
+        data  = open(args['debug'][1],'r').read(),
+        now   = os.path.getctime(args['debug'][1]),
+      )
+
+    # limit to running jobs
+    jobs = [j for j in jobs if str(j['ST'])=='R']
+
+    # limit to users' jobs
+    if args['user']:
+      jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['USER'])) else 0 for n in args['user']])]
+
+    # limit to specific jobs
+    if args['jobid']:
+      jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['JOBID'])) else 0 for n in args['jobid']])]
+
+    # get list of nodes for the users' jobs
+    # -------------------------------------
+
+    # allocate list of nodes
+    nodes = []
+
+    # loop over jobs
+    for job in jobs:
+
+      # simple name (e.g. 'f123') -> add to list
+      if len(job.split(',')) == 1:
+        nodes += expand_nodelist(job)
+        continue
+
+      # split all array jobs, e.g.
+      # g117,g[123-456],f[023-025] -> ('g117,g', '[123-456]', ',f', '[023-025]')
+      match = list(filter(None, re.split(r'(\[[^\]]*\])', job)))
+
+      # loop over arrays
+      for name, numbers in zip(match[0::2], match[1::2]):
+
+        # strip plain jobs that are still prepending the array
+        name = name.split(',')
+        # add plain jobs to node-list
+        nodes += name[:-1]
+        # interpret all batch jobs and add to node-list
+        nodes += expand_nodelist(name[-1]+numbers)
+
+    # filter empty items
+    nodes = list(filter(None,nodes))
 
     # limit data
-    lines = [l for l in lines if sum([1 if re.match(n,str(l[key])) else 0 for n in args[key]])]
+    lines = [l for l in lines if str(l['HOSTNAMES']) in nodes]
 
     # color-highlight selected columns
     # - apply to all remaining lines
-    for line in lines: line[key].color = theme['selection']
+    for line in lines: line['HOSTNAMES'].color = theme['selection']
     # - apply to the header
-    header[key].color = theme['selection']
+    header['HOSTNAMES'].color = theme['selection']
 
-# ---------------------------------- support function used below -----------------------------------
+  # --------------------------------------------- sort ---------------------------------------------
 
-# if needed, convert 'name[10-14,16]' to 'list(name10, name11, name12, name13, name14, name16)'
-def expand_nodelist(text):
+  # default sort
+  lines.sort(key=lambda line: line['HOSTNAMES'])
+  lines.sort(key=lambda line: line['PARTITION'])
 
-  # try to split 'name', '[10-14]'
-  match = list(filter(None, re.split(r'(\[[^\]]*\])', text)))
+  # optional: sort by key(s)
+  if args['sort']:
 
-  # no split made: no need to interpret anything, return as list
-  if len(match) == 1: return [text]
+    for key in args['sort']:
 
-  # split in variables
-  name, numbers = match
+      lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
-  # remove brackets '[10-14,16]' -> '10-14,16'
-  numbers = numbers[1:-1]
+  # ---------------------------------------- select columns ----------------------------------------
 
-  # split '10-14,16' -> list('10-14', '16')
-  numbers = numbers.split(',')
+  if args['output']:
 
-  # allocate output
-  nodes = []
+    keys = [aliasInv[key.upper()] for key in args['output']]
 
-  # expand if needed
-  for number in numbers:
+    columns = [column for column in columns if column['key'] in keys]
 
-    # '16' -> 'name16'
-    if len(number.split('-')) == 1:
+  # -------------------------------------------- print ---------------------------------------------
 
-      # copy to list
-      nodes += [ name + number ]
+  if not args['summary']:
 
-    # '10-14' -> list('name10', 'name11', 'name12', 'name13', 'name14')
+    # optional: print all fields and quit
+    if args['long']:
+
+      gs.table.print_long(lines)
+
+      sys.exit(0)
+
+    # optional: print as list and quit
+    elif args['list']:
+
+      # - only one field can be selected
+      if len(columns) > 1:
+        print('Only one field can be selected')
+        sys.exit(1)
+
+      # - print and quit
+      gs.table.print_list(lines, columns[0]['key'], args['sep'])
+
+      sys.exit(0)
+
+    # default: print columns
     else:
 
-      # get start and end numbers
-      start, end = number.split('-')
+      gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
 
-      # expand between beginning and end
-      nodes += [ name + ('%0'+str(len(start))+'d')%i for i in range(int(start), int(end)+1) ]
+      sys.exit(0)
 
-  # return output
-  return nodes
+  # ------------------------------------ summarize information -------------------------------------
 
-# ----------------------------------------- limit to users -----------------------------------------
+  # get names of the different partitions
+  partitions = sorted(set([str(line['PARTITION']) for line in lines]))
 
-# handle 'alias' options
-if args['U']: args['user'] += [pwd.getpwuid(os.getuid())[0]]
+  # start a new list of "node information", summed on the relevant nodes
+  partitions = [{'PARTITION':gs.rich.String(key)} for key in partitions]
 
-# apply filter
-if args['user'] or args['jobid']:
+  # loop over partitions
+  for partition in partitions:
 
-  import itertools
+    # - isolate nodes for this partition
+    N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
 
-  # get list of jobs
-  # ----------------
+    # - get the CPU count
+    partition['CPUS_T'] = gs.rich.Integer(sum([int(line['CPUS_T']) for line in N]))
+    partition['CPUS_O'] = gs.rich.Integer(sum([int(line['CPUS_O']) for line in N]))
+    partition['CPUS_D'] = gs.rich.Integer(sum([int(line['CPUS_D']) for line in N]))
+    partition['CPUS_I'] = gs.rich.Integer(sum([int(line['CPUS_I']) for line in N]))
 
-  # read
-  if not args['debug']:
+    # - initialize scores
+    partition['CPU_RELJOB'] = gs.rich.Float('')
+    partition['MEM_RELJOB'] = gs.rich.Float('')
 
-    jobs = gs.squeue.read_interpret()
+    # - average load
+    if len([1 for line in N if line['CPU_RELJOB'].isnumeric()]) > 0:
+      partition['CPU_RELJOB'] = gs.rich.Float(
+        sum([float(line['CPU_RELJOB']) for line in N if line['CPU_RELJOB'].isnumeric()]) /
+        sum([1.                        for line in N if line['CPU_RELJOB'].isnumeric()])
+      )
 
-  else:
+    # - average memory consumption
+    if len([1 for line in N if line['MEM_RELJOB'].isnumeric()]) > 0:
+      partition['MEM_RELJOB'] = gs.rich.Float(
+        sum([float(line['MEM_RELJOB']) for line in N if line['MEM_RELJOB'].isnumeric()]) /
+        sum([1.                        for line in N if line['MEM_RELJOB'].isnumeric()])
+      )
 
-    jobs = gs.squeue.read_interpret(
-      data  = open(args['debug'][1],'r').read(),
-      now   = os.path.getctime(args['debug'][1]),
-    )
+    # - highlight 'scores'
+    if   int  (partition['CPUS_I']    ) > 0   : partition['CPUS_I'    ].color = theme['free'   ]
+    if   float(partition['CPU_RELJOB']) > 1.05: partition['CPU_RELJOB'].color = theme['warning']
+    elif float(partition['CPU_RELJOB']) < 0.95: partition['CPU_RELJOB'].color = theme['low'    ]
 
-  # limit to running jobs
-  jobs = [j for j in jobs if str(j['ST'])=='R']
+  # rename field
+  lines = partitions
 
-  # limit to users' jobs
-  if args['user']:
-    jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['USER'])) else 0 for n in args['user']])]
+  # --------------------------------------------- sort ---------------------------------------------
 
-  # limit to specific jobs
-  if args['jobid']:
-    jobs = [str(j['NODELIST']) for j in jobs if sum([1 if re.match(n,str(j['JOBID'])) else 0 for n in args['jobid']])]
+  # default sort
+  lines.sort(key=lambda line: line['PARTITION'], reverse=args['reverse'])
 
-  # get list of nodes for the users' jobs
-  # -------------------------------------
+  # optional: sort by key(s)
+  if args['sort']:
 
-  # allocate list of nodes
-  nodes = []
+    # get available keys in the setting with fewer columns
+    keys = [alias[column['key']].upper() for column in columns_summary]
 
-  # loop over jobs
-  for job in jobs:
+    # filter sort keys that are not available in this mode
+    args['sort'] = [key for key in args['sort'] if key.upper() in keys]
 
-    # simple name (e.g. 'f123') -> add to list
-    if len(job.split(',')) == 1:
-      nodes += expand_nodelist(job)
-      continue
+    # apply sort
+    for key in args['sort']:
+      lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
 
-    # split all array jobs, e.g.
-    # g117,g[123-456],f[023-025] -> ('g117,g', '[123-456]', ',f', '[023-025]')
-    match = list(filter(None, re.split(r'(\[[^\]]*\])', job)))
+  # -------------------------------------------- print ---------------------------------------------
 
-    # loop over arrays
-    for name, numbers in zip(match[0::2], match[1::2]):
-
-      # strip plain jobs that are still prepending the array
-      name = name.split(',')
-      # add plain jobs to node-list
-      nodes += name[:-1]
-      # interpret all batch jobs and add to node-list
-      nodes += expand_nodelist(name[-1]+numbers)
-
-  # filter empty items
-  nodes = list(filter(None,nodes))
-
-  # limit data
-  lines = [l for l in lines if str(l['HOSTNAMES']) in nodes]
-
-  # color-highlight selected columns
-  # - apply to all remaining lines
-  for line in lines: line['HOSTNAMES'].color = theme['selection']
-  # - apply to the header
-  header['HOSTNAMES'].color = theme['selection']
-
-# ---------------------------------------------- sort ----------------------------------------------
-
-# default sort
-lines.sort(key=lambda line: line['HOSTNAMES'])
-lines.sort(key=lambda line: line['PARTITION'])
-
-# optional: sort by key(s)
-if args['sort']:
-
-  for key in args['sort']:
-
-    lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-
-# ----------------------------------------- select columns -----------------------------------------
-
-if args['output']:
-
-  keys = [aliasInv[key.upper()] for key in args['output']]
-
-  columns = [column for column in columns if column['key'] in keys]
-
-# --------------------------------------------- print ----------------------------------------------
-
-if not args['summary']:
-
-  # optional: print all fields and quit
-  if args['long']:
-
-    gs.table.print_long(lines)
-
-    sys.exit(0)
-
-  # optional: print as list and quit
-  elif args['list']:
-
-    # - only one field can be selected
-    if len(columns) > 1:
-      print('Only one field can be selected')
-      sys.exit(1)
-
-    # - print and quit
-    gs.table.print_list(lines, columns[0]['key'], args['sep'])
-
-    sys.exit(0)
-
-  # default: print columns
-  else:
-
-    gs.table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
-
-    sys.exit(0)
-
-# ------------------------------------- summarize information --------------------------------------
-
-# get names of the different partitions
-partitions = sorted(set([str(line['PARTITION']) for line in lines]))
-
-# start a new list of "node information", summed on the relevant nodes
-partitions = [{'PARTITION':gs.rich.String(key)} for key in partitions]
-
-# loop over partitions
-for partition in partitions:
-
-  # - isolate nodes for this partition
-  N = [line for line in lines if str(line['PARTITION']) == str(partition['PARTITION'])]
-
-  # - get the CPU count
-  partition['CPUS_T'] = gs.rich.Integer(sum([int(line['CPUS_T']) for line in N]))
-  partition['CPUS_O'] = gs.rich.Integer(sum([int(line['CPUS_O']) for line in N]))
-  partition['CPUS_D'] = gs.rich.Integer(sum([int(line['CPUS_D']) for line in N]))
-  partition['CPUS_I'] = gs.rich.Integer(sum([int(line['CPUS_I']) for line in N]))
-
-  # - initialize scores
-  partition['CPU_RELJOB'] = gs.rich.Float('')
-  partition['MEM_RELJOB'] = gs.rich.Float('')
-
-  # - average load
-  if len([1 for line in N if line['CPU_RELJOB'].isnumeric()]) > 0:
-    partition['CPU_RELJOB'] = gs.rich.Float(
-      sum([float(line['CPU_RELJOB']) for line in N if line['CPU_RELJOB'].isnumeric()]) /
-      sum([1.                        for line in N if line['CPU_RELJOB'].isnumeric()])
-    )
-
-  # - average memory consumption
-  if len([1 for line in N if line['MEM_RELJOB'].isnumeric()]) > 0:
-    partition['MEM_RELJOB'] = gs.rich.Float(
-      sum([float(line['MEM_RELJOB']) for line in N if line['MEM_RELJOB'].isnumeric()]) /
-      sum([1.                        for line in N if line['MEM_RELJOB'].isnumeric()])
-    )
-
-  # - highlight 'scores'
-  if   int  (partition['CPUS_I']    ) > 0   : partition['CPUS_I'    ].color = theme['free'   ]
-  if   float(partition['CPU_RELJOB']) > 1.05: partition['CPU_RELJOB'].color = theme['warning']
-  elif float(partition['CPU_RELJOB']) < 0.95: partition['CPU_RELJOB'].color = theme['low'    ]
-
-# rename field
-lines = partitions
-
-# ---------------------------------------------- sort ----------------------------------------------
-
-# default sort
-lines.sort(key=lambda line: line['PARTITION'], reverse=args['reverse'])
-
-# optional: sort by key(s)
-if args['sort']:
-
-  # get available keys in the setting with fewer columns
-  keys = [alias[column['key']].upper() for column in columns_summary]
-
-  # filter sort keys that are not available in this mode
-  args['sort'] = [key for key in args['sort'] if key.upper() in keys]
-
-  # apply sort
-  for key in args['sort']:
-    lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
-
-# --------------------------------------------- print ----------------------------------------------
-
-gs.table.print_columns(lines, columns_summary, header_summary,
-  args['no_truncate'], args['sep'], args['width'])
+  gs.table.print_columns(lines, columns_summary, header_summary,
+    args['no_truncate'], args['sep'], args['width'])
