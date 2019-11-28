@@ -24,9 +24,8 @@ import sys
 import re
 import subprocess
 import docopt
-import pkg_resources
 
-__version__ = pkg_resources.require("GooseSLURM")[0].version
+from .. import __version__
 
 # ----------------------------------- function to fun a command ------------------------------------
 

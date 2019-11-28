@@ -1,10 +1,14 @@
 
 from setuptools import setup
 from setuptools import find_packages
+import re
+
+filepath = 'GooseSLURM/__init__.py'
+__version__ = re.findall(r'__version__ = \'(.*)\'', open(filepath).read())[0]
 
 setup(
     name = 'GooseSLURM',
-    version = '0.1.0',
+    version = __version__,
     license = 'MIT',
     author = 'Tom de Geus',
     author_email = 'tom@geus.me',

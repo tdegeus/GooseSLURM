@@ -49,10 +49,8 @@ import re
 import subprocess
 import docopt
 import pwd
-import pkg_resources
 
-__version__ = pkg_resources.require("GooseSLURM")[0].version
-
+from .. import __version__
 from .. import rich
 from .. import sinfo
 from .. import squeue
