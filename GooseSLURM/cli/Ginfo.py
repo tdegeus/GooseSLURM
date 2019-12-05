@@ -342,7 +342,7 @@ def main():
   partitions = sorted(set([str(line['PARTITION']) for line in lines]))
 
   # start a new list of "node information", summed on the relevant nodes
-  partitions = [{'PARTITION':gs.rich.String(key)} for key in partitions]
+  partitions = [{'PARTITION': rich.String(key)} for key in partitions]
 
   # loop over partitions
   for partition in partitions:

@@ -223,7 +223,7 @@ def main():
   users = sorted(set([str(line['USER']) for line in lines]))
 
   # start a new list of "user information", summed on the relevant users
-  users = [{'USER':gs.rich.String(key)} for key in users]
+  users = [{'USER': rich.String(key)} for key in users]
 
   # loop over users
   for user in users:
