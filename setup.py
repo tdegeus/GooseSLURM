@@ -20,6 +20,7 @@ setup(
     install_requires = ['docopt>=0.6.2', 'click>=4.0'],
     entry_points = {
           'console_scripts': [
+               'Gchecksync = GooseSLURM.cli.Gchecksync:main',
                'Gdel = GooseSLURM.cli.Gdel:main',
                'Ginfo = GooseSLURM.cli.Ginfo:main',
                'Gps = GooseSLURM.cli.Gps:main',
