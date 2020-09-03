@@ -35,5 +35,8 @@ Gdel
 
 `Gdel <https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gdel>`_ deletes some or all of the user's jobs.
 
+Gscript
+-------
 
+`Gscript <https://github.com/tdegeus/GooseSLURM/blob/master/bin/Gscript>`_ write a default job-script, equal to the Python library.
 
