@@ -66,6 +66,12 @@ GooseSLURM
    examples/tempdir/readme.rst
    examples/json_log/readme.rst
 
+.. toctree::
+   :caption: DEVELOP
+   :maxdepth: 1
+
+   changelog.rst
+
 Indices and tables
 ==================
 
