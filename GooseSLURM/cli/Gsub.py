@@ -1,82 +1,74 @@
 #!/usr/bin/env python3
 '''Gsub
-  Submit job-scripts from their directory.
+    Submit job-scripts from their directory.
 
 Usage:
-  Gsub [options] <FILES>...
+    Gsub [options] <files>...
 
 Arguments:
-  Job-scripts
+    Job-scripts
 
 Options:
-      --dry-run   Print commands to screen, without executing.
-      --verbose   Verbose all commands and their output.
-  -h, --help      Show help.
-      --version   Show version.
+        --dry-run   Print commands to screen, without executing.
+        --verbose   Verbose all commands and their output.
+    -w, --wait=N    Seconds to wait between submitting jobs. [default: 2]
+    -q, --quiet     Do no show progress.
+    -h, --help      Show help.
+        --version   Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
-
-# --------------------------------------------------------------------------------------------------
 
 import os
 import sys
 import re
 import subprocess
 import docopt
+import time
+import tqdm
 
 from .. import __version__
 
-# ----------------------------------- function to fun a command ------------------------------------
+def run(cmd, verbose=False, dry_run=False):
 
-def run(cmd,verbose=False,dry_run=False,**kwargs):
+    if dry_run:
+        print(cmd)
+        return None
 
-  if dry_run:
-    print(cmd)
-    return None
+    out = subprocess.check_output(cmd, shell=True).decode('utf-8')
 
-  out = subprocess.check_output(cmd,shell=True).decode('utf-8')
+    if verbose:
+        print(cmd)
+        print(out,end='')
 
-  if verbose:
-    print(cmd)
-    print(out,end='')
+    return out
 
-  return out
-
-# --------------------------------------------------------------------------------------------------
 
 def main():
 
-  # --------------------------------- parse command line arguments ---------------------------------
+    # parse command-line options
+    args = docopt.docopt(__doc__, version=__version__)
 
-  # parse command-line options
-  args = docopt.docopt(__doc__, version=__version__)
+    # check arguments
+    for file in args['<files>']:
+        if not os.path.isfile(file):
+            print('"%s" does not exist' % file)
+            return 1
 
-  # change keys to simplify implementation:
-  # - remove leading "-" and "--" from options
-  args = {re.sub(r'([\-]{1,2})(.*)',r'\2',key): args[key] for key in args}
-  # - change "-" to "_" to facilitate direct use in print format
-  args = {key.replace('-','_'): args[key] for key in args}
-  # - remove "<...>"
-  args = {re.sub(r'(<)(.*)(>)',r'\2',key): args[key] for key in args}
+    # submit
+    pbar = tqdm.tqdm(args['<files>'], disable=args['--quiet'])
 
-  # --------------------------------------- check arguments ----------------------------------------
+    for file in pbar:
 
-  for file in args['FILES']:
+        pbar.set_description(file)
 
-    if not os.path.isfile(file):
+        path, name = os.path.split(file)
 
-      print('"%s" does not exist' % file)
+        if len(path) > 0:
+            cmd = 'cd {0:s}; sbatch {1:s}'.format(path, name)
+        else:
+            cmd = 'sbatch {0:s}'.format(name)
 
-      sys.exit(1)
+        run(cmd, verbose=args['--verbose'], dry_run=args['--dry-run'])
 
-  # -------------------------------------------- submit --------------------------------------------
-
-  for file in args['FILES']:
-
-    path, name = os.path.split(file)
-
-    if len(path) > 0 : cmd = 'cd %s; sbatch %s' % ( path, name )
-    else             : cmd = 'sbatch %s'        % ( name       )
-
-    run(cmd,**args)
+        time.sleep(float(args['--wait']))
