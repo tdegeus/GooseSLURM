@@ -57,7 +57,7 @@ def dump(files, ifile, outname):
         return
 
     data = {
-        'submitted': [files[i] for i in range(ifile - 1)]
+        'submitted': [files[i] for i in range(ifile - 1)],
         'pending': [files[i] for i in range(ifile, len(files))]
     }
 
