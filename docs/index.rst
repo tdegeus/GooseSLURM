@@ -61,6 +61,7 @@ GooseSLURM
    :caption: EXAMPLES
    :maxdepth: 1
 
+   tips.rst
    examples/parallel/readme.rst
    examples/tempdir/readme.rst
    examples/json_log/readme.rst
