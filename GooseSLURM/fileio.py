@@ -34,6 +34,8 @@ Optionally the key to the item can be specified as a list. E.g.
 
     data = YamlRead(filename)
 
+    print(data, key)
+
     if len(key) == 0 and type(data) != list:
         Error('Specify key for "{1:s}"'.format(filename))
 
