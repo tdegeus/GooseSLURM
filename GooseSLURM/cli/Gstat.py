@@ -213,7 +213,8 @@ def main():
     # default: print columns
     else:
 
-      table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+      table.print_columns(lines, columns, header,
+        args['no_truncate'], args['sep'], args['width'], not args['no_header'])
 
       sys.exit(0)
 
@@ -269,4 +270,4 @@ def main():
   # -------------------------------------------- print ---------------------------------------------
 
   table.print_columns(lines, columns_summary, header_summary,
-    args['no_truncate'], args['sep'], args['width'])
+    args['no_truncate'], args['sep'], args['width'], not args['no_header'])

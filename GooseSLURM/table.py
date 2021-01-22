@@ -49,7 +49,7 @@ Print full data without much formatting. The output looks as follows:
 
 # ==================================================================================================
 
-def print_columns(lines, columns, header, no_truncate=False, sep=', ', cols=None):
+def print_columns(lines, columns, header, no_truncate=False, sep=', ', cols=None, print_header=True):
   r'''
 Print table to fit the screen. This function can show data truncated, or even suppress columns if
 there is insufficient room.
@@ -80,6 +80,9 @@ there is insufficient room.
 
   **cols** ([``None``] | ``<int>``)
     Number of characters on one line. If ``None`` the current terminal's width is used.
+
+  **print_header** ([``True``] | ``False``)
+    Optionally skip printing of header.
   '''
 
   # check available data
@@ -196,9 +199,10 @@ there is insufficient room.
     hline[key].data = '=' * hline[key].width
 
   # header
-  print(sep.join(hline [column['key']].format() for column in columns))
-  print(sep.join(header[column['key']].format() for column in columns))
-  print(sep.join(hline [column['key']].format() for column in columns))
+  if print_header:
+    print(sep.join(hline [column['key']].format() for column in columns))
+    print(sep.join(header[column['key']].format() for column in columns))
+    print(sep.join(hline [column['key']].format() for column in columns))
   # data
   for line in lines:
     print(sep.join(line[column['key']].format() for column in columns))
