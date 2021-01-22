@@ -72,6 +72,8 @@ def main():
 
     # checkout existing output
     if args['--output']:
+        filename = args['--output']
+        dirname = os.path.dirname(filename)
         if os.path.isfile(filename):
             if not click.confirm('Overwrite "{0:s}"?'.format(filename)):
                 return 1
