@@ -1,5 +1,4 @@
 import yaml
-import sys
 import os
 import operator
 import functools
