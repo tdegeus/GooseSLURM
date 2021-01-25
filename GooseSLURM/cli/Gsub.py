@@ -56,7 +56,7 @@ def dump(files, ifile, outname):
     if not outname:
         return
 
-    print(file, ifile)
+    print(files, ifile)
 
     data = {
         'submitted': [files[i] for i in range(ifile - 1)],
