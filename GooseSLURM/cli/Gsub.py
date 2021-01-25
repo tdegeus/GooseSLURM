@@ -108,5 +108,5 @@ def main():
             cmd = 'sbatch {0:s}'.format(name)
 
         run(cmd, verbose=args['--verbose'], dry_run=args['--dry-run'])
-        dump(files, ifile, args['--output'])
+        dump(files, ifile + 1, args['--output'])
         time.sleep(float(args['--wait']))
