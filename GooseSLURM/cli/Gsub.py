@@ -7,16 +7,16 @@ Usage:
     Gsub [options] <files>...
 
 Arguments:
-    Job-scripts
+    Job-scripts.
 
 Options:
         --dry-run   Print commands to screen, without executing.
         --verbose   Verbose all commands and their output.
-    -i, --input=N   Submit files stored in YAML-file.
-    -k, --key=N     Path in the YAML-file, separated by "/". [default: /]
-    -o, --output=N  Output status to YAML-file.
+    -i, --input=N   Submit job-scripts stored in YAML-file.
+    -k, --key=N     Path in the input YAML-file, separated by "/". [default: /]
+    -o, --output=N  Output submitted/pending job-scripts to YAML-file (updated after each submit).
     -w, --wait=N    Seconds to wait between submitting jobs. [default: 2]
-    -q, --quiet     Do no show progress.
+    -q, --quiet     Do no show progress-bar.
     -h, --help      Show help.
         --version   Show version.
 
@@ -61,7 +61,7 @@ def dump(files, ifile, outname):
         'pending': [files[i] for i in range(ifile, len(files))]
     }
 
-    fileio.YamlDump(outname, data, force=True)
+    fileio.YamlDump(outname, data)
 
 
 def main():
@@ -72,20 +72,18 @@ def main():
 
     # checkout existing output
     if args['--output']:
-        filename = args['--output']
-        dirname = os.path.dirname(filename)
-        if os.path.isfile(filename):
-            if not click.confirm('Overwrite "{0:s}"?'.format(filename)):
-                return 1
-        elif not os.path.isdir(dirname) and len(dirname) > 0:
-            if not click.confirm('Create "{0:s}"?'.format(os.path.dirname(filename))):
-                return 1
+        if not fileio.ContinueDump(args['--output']):
+            return 1
 
     # read YAML-file
     if args['--input']:
-        source = args['--input']
-        key = list(filter(None, args['--key'].split('/')))
-        files = fileio.YamlGetItem(source, key)
+        try:
+            source = args['--input']
+            key = list(filter(None, args['--key'].split('/')))
+            files = fileio.YamlGetItem(source, key)
+        except Exception as e:
+            print(e)
+            return 1
 
     # check arguments
     for file in files:
