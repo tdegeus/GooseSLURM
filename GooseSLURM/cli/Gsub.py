@@ -77,6 +77,9 @@ def main():
 
     # read YAML-file
     if args['--input']:
+        source = args['--input']
+        key = list(filter(None, args['--key'].split('/')))
+        print(key)
         try:
             source = args['--input']
             key = list(filter(None, args['--key'].split('/')))
