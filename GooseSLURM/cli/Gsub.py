@@ -56,14 +56,10 @@ def dump(files, ifile, outname):
     if not outname:
         return
 
-    print(files, ifile)
-
     data = {
         'submitted': [files[i] for i in range(ifile)],
         'pending': [files[i] for i in range(ifile, len(files))]
     }
-
-    print(data)
 
     fileio.YamlDump(outname, data)
 
