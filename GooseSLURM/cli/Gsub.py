@@ -77,10 +77,6 @@ def main():
 
     # read YAML-file
     if args['--input']:
-
-        source = args['--input']
-        key = list(filter(None, args['--key'].split('/')))
-        files = fileio.YamlGetItem(source, key)
         try:
             source = args['--input']
             key = list(filter(None, args['--key'].split('/')))
@@ -88,7 +84,6 @@ def main():
         except Exception as e:
             print(e)
             return 1
-        print(source, key, files)
 
     # check arguments
     for file in files:
