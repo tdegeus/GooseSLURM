@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-'''Gdel
+"""Gdel
   Stop running jobs.
 
 Usage:
@@ -19,7 +18,7 @@ Options:
       --version           Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
-'''
+"""
 
 # --------------------------------------------------------------------------------------------------
 

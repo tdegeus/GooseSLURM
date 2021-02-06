@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 '''Gstat
   Summarize the status of the jobs (wrapper around "squeue").
 
