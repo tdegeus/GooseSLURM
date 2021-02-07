@@ -2,455 +2,453 @@
 from . import duration
 from . import memory
 
-# ==================================================================================================
 
 class String:
-  r'''
+    r'''
 Rich string.
 
 .. note::
 
-  All options are attributes, that can be modified at all times.
+    All options are attributes, that can be modified at all times.
 
 :options:
 
-  **data** (``<str>`` | ``None``)
-    The data.
+    **data** (``<str>`` | ``None``)
+        The data.
 
-  **width** ([``None``] | ``<int>``)
-    Print width (formatted print only).
+    **width** ([``None``] | ``<int>``)
+        Print width (formatted print only).
 
-  **color** ([``None``] | ``<str>``)
-    Print color, e.g. "1;32" for bold green (formatted print only).
+    **color** ([``None``] | ``<str>``)
+        Print color, e.g. "1;32" for bold green (formatted print only).
 
-  **align** ([``'<'``] | ``'>'``)
-    Print alignment (formatted print only).
+    **align** ([``'<'``] | ``'>'``)
+        Print alignment (formatted print only).
 
-  **dummy** ([``0``] | ``<int>`` | ``<float>``)
-    Dummy numerical value.
+    **dummy** ([``0``] | ``<int>`` | ``<float>``)
+        Dummy numerical value.
 
 :methods:
 
-  **A.format()**
-    Formatted string.
+    **A.format()**
+        Formatted string.
 
-  **str(A)**
-    Unformatted string.
+    **str(A)**
+        Unformatted string.
 
-  **A.isnumeric()**
-    Return if the "data" is numeric.
+    **A.isnumeric()**
+        Return if the "data" is numeric.
 
-  **int(A)**
-    Dummy integer.
+    **int(A)**
+        Dummy integer.
 
-  **float(A)**
-    Dummy float.
-  '''
+    **float(A)**
+        Dummy float.
+    '''
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __init__(self, data, width=None, align='<', color=None, dummy=0):
+    def __init__(self, data, width=None, align='<', color=None, dummy=0):
 
-    self.data  = data
-    self.width = width
-    self.color = color
-    self.align = align
-    self.dummy = dummy
+        self.data = data
+        self.width = width
+        self.color = color
+        self.align = align
+        self.dummy = dummy
 
-  # ------------------------------------------------------------------------------------------------
 
-  def format(self):
-    r'''
+    def format(self):
+        r'''
 Return formatted string: align/width/color are applied.
-    '''
+        '''
 
-    if self.width and self.color:
-      fmt = '\x1b[{color:s}m{{0:{align:s}{width:d}.{width:d}s}}\x1b[0m'.format(**self.__dict__)
-    elif self.width:
-      fmt = '{{0:{align:s}{width:d}.{width:d}s}}'.format(**self.__dict__)
-    elif self.color:
-      fmt = '\x1b[{color:s}m{{0:{align:s}s}}\x1b[0m'.format(**self.__dict__)
-    else:
-      fmt = '{{0:{align:s}s}}'.format(**self.__dict__)
+        if self.width and self.color:
+            fmt = '\x1b[{color:s}m{{0:{align:s}{width:d}.{width:d}s}}\x1b[0m'.format(
+                **self.__dict__)
+        elif self.width:
+            fmt = '{{0:{align:s}{width:d}.{width:d}s}}'.format(**self.__dict__)
+        elif self.color:
+            fmt = '\x1b[{color:s}m{{0:{align:s}s}}\x1b[0m'.format(**self.__dict__)
+        else:
+            fmt = '{{0:{align:s}s}}'.format(**self.__dict__)
 
-    return fmt.format(str(self))
+        return fmt.format(str(self))
 
-  # ------------------------------------------------------------------------------------------------
 
-  def isnumeric(self):
-    r'''
+    def isnumeric(self):
+        r'''
 Return if the "data" is numeric : always zero for this class.
-    '''
+        '''
 
-    return False
+        return False
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __str__(self):
+    def __str__(self):
 
-    return str(self.data)
+        return str(self.data)
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __int__(self):
+    def __int__(self):
 
-    return int(self.dummy)
+        return int(self.dummy)
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __float__(self):
+    def __float__(self):
 
-    return float(self.dummy)
+        return float(self.dummy)
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __repr__(self):
+    def __repr__(self):
 
-    return str(self)
+        return str(self)
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __lt__(self,other):
+    def __lt__(self, other):
 
-    return str(self) < str(other)
+        return str(self) < str(other)
 
-# ==================================================================================================
 
 class Integer(String):
-  r'''
+    r'''
 Rich integer.
 
 .. note::
 
-  All options are attributes, that can be modified at all times.
+    All options are attributes, that can be modified at all times.
 
 :options:
 
-  **data** (``<str>`` | ``None``)
-    The data.
+    **data** (``<str>`` | ``None``)
+        The data.
 
-  **width** ([``None``] | ``<int>``)
-    Print width (formatted print only).
+    **width** ([``None``] | ``<int>``)
+        Print width (formatted print only).
 
-  **color** ([``None``] | ``<str>``)
-    Print color, e.g. "1;32" for bold green (formatted print only).
+    **color** ([``None``] | ``<str>``)
+        Print color, e.g. "1;32" for bold green (formatted print only).
 
-  **align** ([``'<'``] | ``'>'``)
-    Print alignment (formatted print only).
+    **align** ([``'<'``] | ``'>'``)
+        Print alignment (formatted print only).
 
-  **dummy** ([``0``] | ``<int>`` | ``<float>``)
-    Dummy numerical value, used in case of non-numerical ``data``.
+    **dummy** ([``0``] | ``<int>`` | ``<float>``)
+        Dummy numerical value, used in case of non-numerical ``data``.
 
 :methods:
 
-  **A.format()**
-    Formatted string.
+    **A.format()**
+        Formatted string.
 
-  **str(A)**
-    Unformatted string.
+    **str(A)**
+        Unformatted string.
 
-  **A.isnumeric()**
-    Return if the "data" is numeric.
+    **A.isnumeric()**
+        Return if the "data" is numeric.
 
-  **int(A)**
-    Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
+    **int(A)**
+        Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
 
-  **float(A)**
-    Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
-  '''
-
-  # ------------------------------------------------------------------------------------------------
-
-  def __init__(self,data,**kwargs):
-
-    try   : data = int(data)
-    except: pass
-
-    super().__init__(data,**kwargs)
-
-  # ------------------------------------------------------------------------------------------------
-
-  def isnumeric(self):
-    r'''
-Return if the "data" is numeric : always zero for this class.
+    **float(A)**
+        Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
     '''
 
-    if type(self.data) == int  : return True
-    if type(self.data) == float: return True
 
-    return False
+    def __init__(self, data, **kwargs):
 
-  # ------------------------------------------------------------------------------------------------
+        try:
+            data = int(data)
+        except BaseException:
+            pass
 
-  def __int__(self):
+        super().__init__(data, **kwargs)
 
-    if type(self.data) == int  : return self.data
-    if type(self.data) == float: return int(self.data)
 
-    return int(self.dummy)
+    def isnumeric(self):
+        r'''
+Return if the "data" is numeric : always zero for this class.
+        '''
 
-  # ------------------------------------------------------------------------------------------------
+        if isinstance(self.data, int):
+            return True
+        if isinstance(self.data, float):
+            return True
 
-  def __float__(self):
+        return False
 
-    if type(self.data) == int  : return float(self.data)
-    if type(self.data) == float: return self.data
 
-    return float(self.dummy)
+    def __int__(self):
 
-  # ------------------------------------------------------------------------------------------------
+        if isinstance(self.data, int):
+            return self.data
+        if isinstance(self.data, float):
+            return int(self.data)
 
-  def __lt__(self,other):
+        return int(self.dummy)
 
-    if   self .isnumeric() and other.isnumeric(): return int(self) < int(other)
-    elif self .isnumeric()                      : return  0
-    elif other.isnumeric()                      : return -1
 
-    return self.data < other.data
+    def __float__(self):
 
-# ==================================================================================================
+        if isinstance(self.data, int):
+            return float(self.data)
+        if isinstance(self.data, float):
+            return self.data
+
+        return float(self.dummy)
+
+
+    def __lt__(self, other):
+
+        if self .isnumeric() and other.isnumeric():
+            return int(self) < int(other)
+        elif self .isnumeric():
+            return 0
+        elif other.isnumeric():
+            return -1
+
+        return self.data < other.data
+
 
 class Float(String):
-  r'''
+    r'''
 Rich float.
 
 .. note::
 
-  All options are attributes, that can be modified at all times.
+    All options are attributes, that can be modified at all times.
 
 :options:
 
-  **data** (``<str>`` | ``None``)
-    The data.
+    **data** (``<str>`` | ``None``)
+        The data.
 
-  **width** ([``None``] | ``<int>``)
-    Print width (formatted print only).
+    **width** ([``None``] | ``<int>``)
+        Print width (formatted print only).
 
-  **color** ([``None``] | ``<str>``)
-    Print color, e.g. "1;32" for bold green (formatted print only).
+    **color** ([``None``] | ``<str>``)
+        Print color, e.g. "1;32" for bold green (formatted print only).
 
-  **align** ([``'<'``] | ``'>'``)
-    Print alignment (formatted print only).
+    **align** ([``'<'``] | ``'>'``)
+        Print alignment (formatted print only).
 
-  **precision** ([``2``] | ``<int>``)
-    Print precision (formatted print only).
+    **precision** ([``2``] | ``<int>``)
+        Print precision (formatted print only).
 
-  **dummy** ([``0``] | ``<int>`` | ``<float>``)
-    Dummy numerical value, used in case of non-numerical ``data``.
+    **dummy** ([``0``] | ``<int>`` | ``<float>``)
+        Dummy numerical value, used in case of non-numerical ``data``.
 
 :methods:
 
-  **A.format()**
-    Formatted string.
+    **A.format()**
+        Formatted string.
 
-  **str(A)**
-    Unformatted string.
+    **str(A)**
+        Unformatted string.
 
-  **A.isnumeric()**
-    Return if the "data" is numeric.
+    **A.isnumeric()**
+        Return if the "data" is numeric.
 
-  **int(A)**
-    Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
+    **int(A)**
+        Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
 
-  **float(A)**
-    Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
-  '''
-
-  # ------------------------------------------------------------------------------------------------
-
-  def __init__(self,data,**kwargs):
-
-    try   : data = float(data)
-    except: pass
-
-    self.precision = kwargs.pop('precision',2)
-
-    super().__init__(data,**kwargs)
-
-  # ------------------------------------------------------------------------------------------------
-
-  def isnumeric(self):
-    r'''
-Return if the "data" is numeric : always zero for this class.
+    **float(A)**
+        Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
     '''
 
-    if type(self.data) == float: return True
-    if type(self.data) == int  : return True
 
-    return False
+    def __init__(self, data, **kwargs):
 
-  # ------------------------------------------------------------------------------------------------
+        try:
+            data = float(data)
+        except BaseException:
+            pass
 
-  def __str__(self):
+        self.precision = kwargs.pop('precision', 2)
 
-    if not self.isnumeric(): return self.data
+        super().__init__(data, **kwargs)
 
-    return '{{0:.{precision:d}f}}'.format(**self.__dict__).format(self.data)
 
-  # ------------------------------------------------------------------------------------------------
+    def isnumeric(self):
+        r'''
+Return if the "data" is numeric : always zero for this class.
+        '''
 
-  def __int__(self):
+        if isinstance(self.data, float):
+            return True
+        if isinstance(self.data, int):
+            return True
 
-    if type(self.data) == float: return int(self.data)
-    if type(self.data) == int  : return self.data
+        return False
 
-    return int(self.dummy)
 
-  # ------------------------------------------------------------------------------------------------
+    def __str__(self):
 
-  def __float__(self):
+        if not self.isnumeric():
+            return self.data
 
-    if type(self.data) == float: return self.data
-    if type(self.data) == int  : return float(self.data)
+        return '{{0:.{precision:d}f}}'.format(**self.__dict__).format(self.data)
 
-    return float(self.dummy)
 
-  # ------------------------------------------------------------------------------------------------
+    def __int__(self):
 
-  def __lt__(self,other):
+        if isinstance(self.data, float):
+            return int(self.data)
+        if isinstance(self.data, int):
+            return self.data
 
-    if   self .isnumeric() and other.isnumeric(): return float(self) < float(other)
-    elif self .isnumeric()                      : return  0
-    elif other.isnumeric()                      : return -1
+        return int(self.dummy)
 
-    return self.data < other.data
 
-# ==================================================================================================
+    def __float__(self):
+
+        if isinstance(self.data, float):
+            return self.data
+        if isinstance(self.data, int):
+            return float(self.data)
+
+        return float(self.dummy)
+
+
+    def __lt__(self, other):
+
+        if self .isnumeric() and other.isnumeric():
+            return float(self) < float(other)
+        elif self .isnumeric():
+            return 0
+        elif other.isnumeric():
+            return -1
+
+        return self.data < other.data
+
 
 class Duration(Integer):
-  r'''
+    r'''
 Rich duration (seconds).
 
 .. note::
 
-  All options are attributes, that can be modified at all times.
+    All options are attributes, that can be modified at all times.
 
 :options:
 
-  **data** (``<str>`` | ``None``)
-    The data.
+    **data** (``<str>`` | ``None``)
+        The data.
 
-  **width** ([``None``] | ``<int>``)
-    Print width (formatted print only).
+    **width** ([``None``] | ``<int>``)
+        Print width (formatted print only).
 
-  **color** ([``None``] | ``<str>``)
-    Print color, e.g. "1;32" for bold green (formatted print only).
+    **color** ([``None``] | ``<str>``)
+        Print color, e.g. "1;32" for bold green (formatted print only).
 
-  **align** ([``'<'``] | ``'>'``)
-    Print alignment (formatted print only).
+    **align** ([``'<'``] | ``'>'``)
+        Print alignment (formatted print only).
 
-  **precision** ([``None``] | ``<int>``)
-    Print precision to use for the conversion (formatted print only). ``None`` means automatic
-    precision. See ``GooseSLURM.duration.asHuman``.
+    **precision** ([``None``] | ``<int>``)
+        Print precision to use for the conversion (formatted print only). ``None`` means automatic
+        precision. See ``GooseSLURM.duration.asHuman``.
 
-  **dummy** ([``0``] | ``<int>`` | ``<float>``)
-    Dummy numerical value, used in case of non-numerical ``data``.
+    **dummy** ([``0``] | ``<int>`` | ``<float>``)
+        Dummy numerical value, used in case of non-numerical ``data``.
 
 :methods:
 
-  **A.format()**
-    Formatted string, after unit conversion.
+    **A.format()**
+        Formatted string, after unit conversion.
 
-  **str(A)**
-    Unformatted string, after unit conversion.
+    **str(A)**
+        Unformatted string, after unit conversion.
 
-  **A.isnumeric()**
-    Return if the "data" is numeric.
+    **A.isnumeric()**
+        Return if the "data" is numeric.
 
-  **int(A)**
-    Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
+    **int(A)**
+        Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
 
-  **float(A)**
-    Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
-  '''
+    **float(A)**
+        Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
+    '''
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __init__(self,data,**kwargs):
+    def __init__(self, data, **kwargs):
 
-    data = duration.asSeconds(data, default=data)
+        data = duration.asSeconds(data, default=data)
 
-    self.precision = kwargs.pop('precision', None)
+        self.precision = kwargs.pop('precision', None)
 
-    super().__init__(data,**kwargs)
+        super().__init__(data, **kwargs)
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __str__(self):
+    def __str__(self):
 
-    if not self.isnumeric(): return self.data
+        if not self.isnumeric():
+            return self.data
 
-    return duration.asHuman(self.data, self.precision)
+        return duration.asHuman(self.data, self.precision)
 
-# ==================================================================================================
 
 class Memory(Integer):
-  r'''
+    r'''
 Rich memory (bytes).
 
 .. note::
 
-  All options are attributes, that can be modified at all times.
+    All options are attributes, that can be modified at all times.
 
 :options:
 
-  **data** (``<str>`` | ``None``)
-    The data.
+    **data** (``<str>`` | ``None``)
+        The data.
 
-  **width** ([``None``] | ``<int>``)
-    Print width (formatted print only).
+    **width** ([``None``] | ``<int>``)
+        Print width (formatted print only).
 
-  **color** ([``None``] | ``<str>``)
-    Print color, e.g. "1;32" for bold green (formatted print only).
+    **color** ([``None``] | ``<str>``)
+        Print color, e.g. "1;32" for bold green (formatted print only).
 
-  **align** ([``'<'``] | ``'>'``)
-    Print alignment (formatted print only).
+    **align** ([``'<'``] | ``'>'``)
+        Print alignment (formatted print only).
 
-  **precision** ([``None``] | ``<int>``)
-    Print precision to use for the conversion (formatted print only). ``None`` means automatic
-    precision. See ``GooseSLURM.memory.asHuman``.
+    **precision** ([``None``] | ``<int>``)
+        Print precision to use for the conversion (formatted print only). ``None`` means automatic
+        precision. See ``GooseSLURM.memory.asHuman``.
 
-  **dummy** ([``0``] | ``<int>`` | ``<float>``)
-    Dummy numerical value, used in case of non-numerical ``data``.
+    **dummy** ([``0``] | ``<int>`` | ``<float>``)
+        Dummy numerical value, used in case of non-numerical ``data``.
 
-  **default_unit** (``int``)
-    The unit to assume if no unit if specified (specify the number of bytes).
+    **default_unit** (``int``)
+        The unit to assume if no unit if specified (specify the number of bytes).
 
 :methods:
 
-  **A.format()**
-    Formatted string, after unit conversion.
+    **A.format()**
+        Formatted string, after unit conversion.
 
-  **str(A)**
-    Unformatted string, after unit conversion.
+    **str(A)**
+        Unformatted string, after unit conversion.
 
-  **A.isnumeric()**
-    Return if the "data" is numeric.
+    **A.isnumeric()**
+        Return if the "data" is numeric.
 
-  **int(A)**
-    Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
+    **int(A)**
+        Return ``data`` as integer (``dummy`` is returned if ``data`` is not numeric).
 
-  **float(A)**
-    Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
-  '''
+    **float(A)**
+        Return ``data`` as float (``dummy`` is returned if ``data`` is not numeric).
+    '''
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __init__(self,data,**kwargs):
+    def __init__(self, data, **kwargs):
 
-    if 'default_unit' in kwargs:
-      data = memory.asBytes(data, default=data, default_unit=kwargs.pop('default_unit'))
-    else:
-      data = memory.asBytes(data, default=data)
+        if 'default_unit' in kwargs:
+            data = memory.asBytes(data, default=data, default_unit=kwargs.pop('default_unit'))
+        else:
+            data = memory.asBytes(data, default=data)
 
-    self.precision = kwargs.pop('precision', None)
+        self.precision = kwargs.pop('precision', None)
 
-    super().__init__(data,**kwargs)
+        super().__init__(data, **kwargs)
 
-  # ------------------------------------------------------------------------------------------------
 
-  def __str__(self):
+    def __str__(self):
 
-    if not self.isnumeric(): return self.data
+        if not self.isnumeric():
+            return self.data
 
-    return memory.asHuman(self.data, self.precision)
+        return memory.asHuman(self.data, self.precision)

@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-'''Gsub
+r'''Gsub
     Submit job-scripts from their directory.
 
 Usage:
@@ -10,15 +9,32 @@ Arguments:
     Job-scripts.
 
 Options:
-        --dry-run   Print commands to screen, without executing.
-        --verbose   Verbose all commands and their output.
-    -i, --input=N   Submit job-scripts stored in YAML-file.
-    -k, --key=N     Path in the input YAML-file, separated by "/". [default: /]
-    -o, --output=N  Output submitted/pending job-scripts to YAML-file (updated after each submit).
-    -w, --wait=N    Seconds to wait between submitting jobs. [default: 2]
-    -q, --quiet     Do no show progress-bar.
-    -h, --help      Show help.
-        --version   Show version.
+    --dry-run
+        Print commands to screen, without executing.
+
+    --verbose
+        Verbose all commands and their output.
+
+    -i, --input=N
+        Submit job-scripts stored in YAML-file.
+
+    -k, --key=N
+        Path in the input YAML-file, separated by "/". [default: /]
+
+    -o, --output=N
+        Output submitted/pending job-scripts to YAML-file (updated after each submit).
+
+    -w, --wait=N
+        Seconds to wait between submitting jobs. [default: 2]
+
+    -q, --quiet
+        Do no show progress-bar.
+
+    -h, --help
+        Show help.
+
+    --version
+        Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 '''
@@ -46,7 +62,7 @@ def run(cmd, verbose=False, dry_run=False):
 
     if verbose:
         print(cmd)
-        print(out,end='')
+        print(out, end='')
 
     return out
 

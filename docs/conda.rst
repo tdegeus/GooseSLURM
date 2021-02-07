@@ -1,11 +1,7 @@
 
-****
-Tips
-****
-
-
+**********************
 Use conda to pre-build
-======================
+**********************
 
 When using a compiled code it can be useful to build once (on the appropriate hardware)
 and simply use the executable in a job.
