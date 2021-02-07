@@ -54,6 +54,7 @@ GooseSLURM
    :caption: TOOLS
    :maxdepth: 1
 
+   getting.rst
    scripts.rst
    python.rst
 
@@ -61,7 +62,7 @@ GooseSLURM
    :caption: EXAMPLES
    :maxdepth: 1
 
-   tips.rst
+   conda.rst
    examples/parallel/readme.rst
    examples/tempdir/readme.rst
    examples/json_log/readme.rst

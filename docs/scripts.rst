@@ -5,9 +5,6 @@
 Command-line tools
 ******************
 
-Tools
-=====
-
 Gstat
 -----
 

@@ -48,13 +48,13 @@ Optionally the key to the item can be specified as a list. E.g.
 
     data = YamlRead(filename)
 
-    if len(key) == 0 and type(data) != list:
+    if len(key) == 0 and not isinstance(data, list):
         raise IOError('Specify key for "{0:s}"'.format(filename))
 
     if len(key) > 0:
         try:
             return functools.reduce(operator.getitem, key, data)
-        except:
+        except BaseException:
             raise IOError('"{0:s}" not in "{1:s}"'.format('/'.join(key), filename))
 
     return data
