@@ -9,4 +9,4 @@ from . import squeue
 from . import sinfo
 from . import ps
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'

@@ -2,6 +2,12 @@
 Chang-log
 *********
 
+v0.3.1
+======
+
+*   Updating formatting (of code and of docs)
+*   Adding command-line tools to autodoc
+
 v0.3.0
 ======
 
