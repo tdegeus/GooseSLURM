@@ -130,12 +130,15 @@ def main():
             jobid = out.split('Submitted batch job ')[1]
             while True:
                 start = time.time()
-                status = run('squeue -j {0:s}'.format(jobid))
-                print(status.split('\n'))
-                if len(status.split('\n')) == 1:
-                    break
+                status = run('squeue -j {0:s}'.format(jobid)).split('\n')
                 end = time.time()
-                if end - start < 10:
-                    time.sleep(10 - (end - start))
+                print(status)
+                if len(status) == 1:
+                    break
+                if len(status) == 2:
+                    if len(status)[1] == 0:
+                        break
+                if end - start < 20:
+                    time.sleep(20 - (end - start))
 
         time.sleep(float(args['--wait']))
