@@ -128,6 +128,7 @@ def main():
 
         if args['--serial']:
             jobid = out.split('Submitted batch job ')[1]
+            time.sleep(20)
             while True:
                 start = time.time()
                 status = run('squeue -j {0:s}'.format(jobid)).split('\n')
@@ -136,7 +137,7 @@ def main():
                 if len(status) == 1:
                     break
                 if len(status) == 2:
-                    if len(status)[1] == 0:
+                    if len(status[1]) == 0:
                         break
                 if end - start < 20:
                     time.sleep(20 - (end - start))
