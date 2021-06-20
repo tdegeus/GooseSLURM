@@ -25,7 +25,11 @@ Options:
         Output submitted/pending job-scripts to YAML-file (updated after each submit).
 
     -w, --wait=N
-        Seconds to wait between submitting jobs. [default: 2]
+        Seconds to wait between submitting jobs. [default: 0.1]
+
+    -s, --serial
+        Serial submission: submit the next job only when the previous is finished.
+        Can be useful for example on build partitions.
 
     -q, --quiet
         Do no show progress-bar.
@@ -119,6 +123,18 @@ def main():
         else:
             cmd = 'sbatch {0:s}'.format(name)
 
-        run(cmd, verbose=args['--verbose'], dry_run=args['--dry-run'])
+        out = run(cmd, verbose=args['--verbose'], dry_run=args['--dry-run'])
         dump(files, ifile + 1, args['--output'])
+
+        if args['--serial']:
+            jobid = out.split('Submitted batch job ')[1]
+            while True:
+                start = time.time()
+                status = run('squeue -j {0:s}'.format(jobid))
+                if len(status.split('\n')) > 1:
+                    break
+                end = time.time()
+                if end - start < 10:
+                    time.sleep(10 - (end - start))
+
         time.sleep(float(args['--wait']))
