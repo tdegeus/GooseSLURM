@@ -59,9 +59,10 @@ GooseSLURM
    python.rst
 
 .. toctree::
-   :caption: EXAMPLES
+   :caption: TIPS & EXAMPLES
    :maxdepth: 1
 
+   copy.rst
    conda.rst
    examples/parallel/readme.rst
    examples/tempdir/readme.rst
