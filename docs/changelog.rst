@@ -2,6 +2,11 @@
 Chang-log
 *********
 
+v0.4.0
+======
+
+*   Gsub: Adding serial option to wait until the previous job to finish.
+
 v0.3.1
 ======
 
