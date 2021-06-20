@@ -133,7 +133,6 @@ def main():
                 start = time.time()
                 status = run('squeue -j {0:s}'.format(jobid)).split('\n')
                 end = time.time()
-                print(status)
                 if len(status) == 1:
                     break
                 if len(status) == 2:
