@@ -128,9 +128,11 @@ def main():
 
         if args['--serial']:
             jobid = out.split('Submitted batch job ')[1]
+            print(jobid)
             while True:
                 start = time.time()
                 status = run('squeue -j {0:s}'.format(jobid))
+                print(status.split('\n'))
                 if len(status.split('\n')) > 1:
                     break
                 end = time.time()
