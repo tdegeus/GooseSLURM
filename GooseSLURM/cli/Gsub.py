@@ -148,8 +148,8 @@ def run():
 
         opt = []
 
-        if contrain:
-            opt += [f"--contrain {contrain}"]
+        if contraint:
+            opt += [f"--contraint {contraint}"]
 
         fbar = tqdm.tqdm(args.files, disable=args.quiet)
 
