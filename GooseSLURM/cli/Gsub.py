@@ -11,6 +11,7 @@ Arguments:
 Options:
     -c, --constrain=arg
         Add *sbatch* command-line option ``constrain``.
+        If this option is repeat submission will be for each of the constraints.
 
     -t, --time=arg
         Add *sbatch* command-line option ``time``.
@@ -113,6 +114,9 @@ def run():
     parser.add_argument("files", nargs="*", type=str)
     args = parser.parse_args()
 
+    if not args.constrain:
+        args.constrain = [None]
+
     # checkout existing output
     if args.output:
         if not fileio.ContinueDump(args.output):
@@ -125,45 +129,59 @@ def run():
         key = list(filter(None, args["--key"].split("/")))
         args.files = fileio.YamlGetItem(args.input, key)
 
+    assert len(args.files) > 0
     assert all([os.path.isfile(os.path.realpath(file)) for file in args.files])
 
     # construct command
     sbatch = ["sbatch"]
-    for key, opt in zip(["constrain", "time", "account"], [args.constrain, args.time, args.account]):
+    for key, opt in zip(["time", "account"], [args.time, args.account]):
         if opt:
             sbatch += [f"--{key} {opt}"]
 
     # submit
-    pbar = tqdm.tqdm(args.files, disable=args["--quiet"])
 
-    for ifile, file in enumerate(pbar):
-        pbar.set_description(file)
-        path, name = os.path.split(file)
+    cbar = tqdm.tqdm(args.constrain, disable=args.quiet or len(args.constrain) == 1)
 
-        if len(path) > 0:
-            cmd = f"cd {path}; " + " ".join(sbatch + [name])
-        else:
-            cmd = " ".join(sbatch + [name])
+    for constrain in cbar:
 
-        ret = run(cmd, verbose=args.verbose, dry_run=args.dry_run)
-        dump(args.files, ifile + 1, args.output)
+        cbar.set_description(constrain)
 
-        if args.serial:
-            jobid = ret.split("Submitted batch job ")[1]
-            time.sleep(20)
-            while True:
-                start = time.time()
-                status = run("squeue -j {0:s}".format(jobid)).split("\n")
-                end = time.time()
-                if len(status) == 1:
-                    break
-                if len(status) == 2:
-                    if len(status[1]) == 0:
+        opt = []
+
+        if contrain:
+            opt += [f"--contrain {contrain}"]
+
+        fbar = tqdm.tqdm(args.files, disable=args.quiet)
+
+        for ifile, file in enumerate(fbar):
+
+            fbar.set_description(file)
+            path, name = os.path.split(file)
+
+            cmd = [" ".join(sbatch + opt + [name])]
+
+            if len(path) > 0:
+                cmd = [f"cd {path}"] + cmd
+
+            ret = run("; ".join(cmd), verbose=args.verbose, dry_run=args.dry_run)
+            dump(args.files, ifile + 1, args.output)
+
+            if args.serial:
+                jobid = ret.split("Submitted batch job ")[1]
+                time.sleep(20)
+                while True:
+                    start = time.time()
+                    status = run("squeue -j {0:s}".format(jobid)).split("\n")
+                    end = time.time()
+                    if len(status) == 1:
                         break
-                if end - start < 20:
-                    time.sleep(20 - (end - start))
+                    if len(status) == 2:
+                        if len(status[1]) == 0:
+                            break
+                    if end - start < 20:
+                        time.sleep(20 - (end - start))
 
-        time.sleep(float(args.wait))
+            time.sleep(float(args.wait))
 
 
 def main():
