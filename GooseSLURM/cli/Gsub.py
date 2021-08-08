@@ -63,7 +63,7 @@ from .. import __version__
 from .. import fileio
 
 
-def run(cmd, verbose=False, dry_run=False):
+def exec_cmd(cmd, verbose=False, dry_run=False):
 
     if dry_run:
         print(cmd)
@@ -99,7 +99,7 @@ def run():
 
     parser = Parser()
 
-    parser.add_argument("-c", "--constrain", type=str)
+    parser.add_argument("-c", "--constrain", type=str, action='append')
     parser.add_argument("-t", "--time", type=str)
     parser.add_argument("-a", "--account", type=str)
     parser.add_argument("-i", "--input", type=str)
@@ -163,10 +163,10 @@ def run():
             if len(path) > 0:
                 cmd = [f"cd {path}"] + cmd
 
-            ret = run("; ".join(cmd), verbose=args.verbose, dry_run=args.dry_run)
+            ret = exec_cmd("; ".join(cmd), verbose=args.verbose, dry_run=args.dry_run)
             dump(args.files, ifile + 1, args.output)
 
-            if args.serial:
+            if args.serial and not args.dry_run:
                 jobid = ret.split("Submitted batch job ")[1]
                 time.sleep(20)
                 while True:
@@ -186,11 +186,11 @@ def run():
 
 def main():
 
-    try:
-        run()
-    except Exception as e:
-        print(e)
-        return 1
+    # try:
+    run()
+    # except Exception as e:
+    #     print(e)
+    #     return 1
 
 
 if __name__ == "__main__":
