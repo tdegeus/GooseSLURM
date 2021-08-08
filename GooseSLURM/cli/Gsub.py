@@ -117,6 +117,10 @@ def run():
     if not args.constrain:
         args.constrain = [None]
 
+    if args.dry_run:
+        args.quiet = True
+        args.verbose = True
+
     # checkout existing output
     if args.output:
         if not fileio.ContinueDump(args.output):
@@ -171,7 +175,7 @@ def run():
                 time.sleep(20)
                 while True:
                     start = time.time()
-                    status = run("squeue -j {0:s}".format(jobid)).split("\n")
+                    status = exec_cmd("squeue -j {0:s}".format(jobid)).split("\n")
                     end = time.time()
                     if len(status) == 1:
                         break
