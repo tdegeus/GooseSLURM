@@ -1,5 +1,5 @@
 r"""Gsub
-    Submit job-scripts from their directory.
+    Submit job-scripts from the directory of the job-script.
 
 Usage:
     Gsub [options] --input=arg
@@ -9,9 +9,9 @@ Arguments:
     Job-scripts.
 
 Options:
-    -c, --constrain=arg
-        Add *sbatch* command-line option ``constrain``.
-        If this option is repeat submission will be for each of the constraints.
+    -c, --constraint=arg
+        Add *sbatch* command-line option ``constraint``.
+        If this option is repeated, submission will be for each of the constraints.
 
     -t, --time=arg
         Add *sbatch* command-line option ``time``.
@@ -25,13 +25,13 @@ Options:
     -k, --key=arg
         Path in the input YAML-file, separated by "/". [default: /]
 
-    -o, --output=arg
+    --status=arg
         Output submitted/pending job-scripts to YAML-file (updated after each submit).
 
-    -w, --wait=arg
-        Seconds to wait between submitting jobs. [default: 0.1]
+    -d, --delay=arg
+        Seconds to delay between submitting jobs. [default: 0.1]
 
-    -s, --serial
+    -w, --wait
         Serial submission: submit the next job only when the previous is finished.
         Can be useful for example on build partitions.
 
@@ -63,16 +63,31 @@ from .. import __version__
 from .. import fileio
 
 
-def exec_cmd(cmd, verbose=False, dry_run=False):
+def cd_myexec(args, cwd, verbose=False, dry_run=False):
 
     if dry_run:
-        print(cmd)
+        print(f"cd {cwd}; " + " ".join(args))
         return None
 
-    ret = subprocess.check_output(cmd, shell=True).decode("utf-8")
+    ret = subprocess.check_output(args, cwd=cwd, shell=True).decode("utf-8")
 
     if verbose:
-        print(cmd)
+        print(f"cd {cwd}; " + " ".join(args))
+        print(ret, end="")
+
+    return ret
+
+
+def myexec(args, verbose=False, dry_run=False):
+
+    if dry_run:
+        print(" ".join(args))
+        return None
+
+    ret = subprocess.check_output(args, shell=True).decode("utf-8")
+
+    if verbose:
+        print(" ".join(args))
         print(ret, end="")
 
     return ret
@@ -99,14 +114,14 @@ def run():
 
     parser = Parser()
 
-    parser.add_argument("-c", "--constrain", type=str, action='append')
+    parser.add_argument("-c", "--constraint", type=str, action='append')
     parser.add_argument("-t", "--time", type=str)
     parser.add_argument("-a", "--account", type=str)
     parser.add_argument("-i", "--input", type=str)
     parser.add_argument("-k", "--key", type=str)
-    parser.add_argument("-o", "--output", type=str)
-    parser.add_argument("-w", "--wait", type=float, default=0.1)
-    parser.add_argument("-s", "--serial", action="store_true")
+    parser.add_argument("--status", type=str)
+    parser.add_argument("-d", "--delay", type=float, default=0.1)
+    parser.add_argument("-w", "--wait", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("-q", "--quiet", action="store_true")
@@ -114,16 +129,16 @@ def run():
     parser.add_argument("files", nargs="*", type=str)
     args = parser.parse_args()
 
-    if not args.constrain:
-        args.constrain = [None]
+    if not args.constraint:
+        args.constraint = [None]
 
     if args.dry_run:
         args.quiet = True
         args.verbose = True
 
-    # checkout existing output
-    if args.output:
-        if not fileio.ContinueDump(args.output):
+    # prompt to overwrite existing status-file
+    if args.status:
+        if not fileio.ContinueDump(args.status):
             return 1
 
     # interpret YAML-file
@@ -138,22 +153,22 @@ def run():
 
     # construct command
     sbatch = ["sbatch"]
-    for key, opt in zip(["time", "account"], [args.time, args.account]):
+    for key, opt in zip(["time", "account", "wait"], [args.time, args.account, arg.wait]):
         if opt:
             sbatch += [f"--{key} {opt}"]
 
     # submit
 
-    cbar = tqdm.tqdm(args.constrain, disable=args.quiet or len(args.constrain) == 1)
+    cbar = tqdm.tqdm(args.constraint, disable=args.quiet or len(args.constraint) == 1)
 
-    for constrain in cbar:
+    for constraint in cbar:
 
-        cbar.set_description(constrain)
+        cbar.set_description(constraint)
 
         opt = []
 
-        if constrain:
-            opt += [f"--constrain {constrain}"]
+        if constraint:
+            opt += [f"--constraint {constraint}"]
 
         fbar = tqdm.tqdm(args.files, disable=args.quiet)
 
@@ -161,31 +176,16 @@ def run():
 
             fbar.set_description(file)
             path, name = os.path.split(file)
-
-            cmd = [" ".join(sbatch + opt + [name])]
+            cmd = sbatch + opt + [name]
 
             if len(path) > 0:
-                cmd = [f"cd {path}"] + cmd
+                ret = cd_myexec(cmd, path, verbose=args.verbose, dry_run=args.dry_run)
+            else:
+                ret = myexec(cmd, verbose=args.verbose, dry_run=args.dry_run)
 
-            ret = exec_cmd("; ".join(cmd), verbose=args.verbose, dry_run=args.dry_run)
-            dump(args.files, ifile + 1, args.output)
+            dump(args.files, ifile + 1, args.status)
 
-            if args.serial and not args.dry_run:
-                jobid = ret.split("Submitted batch job ")[1]
-                time.sleep(20)
-                while True:
-                    start = time.time()
-                    status = exec_cmd("squeue -j {0:s}".format(jobid)).split("\n")
-                    end = time.time()
-                    if len(status) == 1:
-                        break
-                    if len(status) == 2:
-                        if len(status[1]) == 0:
-                            break
-                    if end - start < 20:
-                        time.sleep(20 - (end - start))
-
-            time.sleep(float(args.wait))
+            time.sleep(float(args.delay))
 
 
 def main():
