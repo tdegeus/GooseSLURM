@@ -3,7 +3,7 @@ from . import duration
 from . import memory
 
 
-def plain(filename='job.slurm', command=[], cd_submitdir=True, **sbatch):
+def plain(filename='job.slurm', command=[], cd_submitdir=True, shell="#!/bin/bash -l", **sbatch):
     r'''
 Return simple SBATCH-file (as text).
 
@@ -17,6 +17,9 @@ Return simple SBATCH-file (as text).
 
     **cd_submitdir** ([``True``] | ``False``)
         Include ``cd "${SLURM_SUBMIT_DIR}"`` at the beginning of the script.
+
+    **shell** (``<str>``)
+        The shell to use.
 
 :SBATCH options:
 
@@ -57,18 +60,19 @@ Return simple SBATCH-file (as text).
     sbatch = '\n'.join(['#SBATCH --{0:s} {1:s}'.format(key, str(arg))
                         for key, arg in sbatch.items()])
 
-    return '''#!/bin/bash
+    return '''{shell:s}
 {sbatch:s}
 
 {command:s}
   '''.format(
+        shell=shell,
         sbatch=sbatch,
         filename=filename,
         command=command,
     )
 
 
-def tempdir(filename='job.slurm', remove=[], command=[], **sbatch):
+def tempdir(filename='job.slurm', remove=[], command=[], shell="#!/bin/bash -l", **sbatch):
     r'''
 Return SBATCH-file (as text) that uses a temporary working directory on the compute node.
 
@@ -82,6 +86,9 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
 
     **command** (``<str>`` | ``<list>``)
         Command(s) to execute. If the input is a list each entry is included as an individual line.
+
+    **shell** (``<str>``)
+        The shell to use.
 
 :SBATCH options:
 
@@ -124,7 +131,7 @@ Return SBATCH-file (as text) that uses a temporary working directory on the comp
     sbatch = '\n'.join(['#SBATCH --{0:s} {1:s}'.format(key, str(arg))
                         for key, arg in sbatch.items()])
 
-    return '''#!/bin/bash
+    return '''{shell:s}
 {sbatch:s}
 
 # I. Define directory names [DO NOT CHANGE]
@@ -206,6 +213,7 @@ trap 'clean_up' EXIT
 
 {command:s}
   '''.format(
+        shell=shell,
         sbatch=sbatch,
         filename=filename,
         command=command,
