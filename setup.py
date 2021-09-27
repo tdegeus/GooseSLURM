@@ -1,14 +1,8 @@
-import re
-
 from setuptools import find_packages
 from setuptools import setup
 
-filepath = "GooseSLURM/__init__.py"
-__version__ = re.findall(r"__version__ = \'(.*)\'", open(filepath).read())[0]
-
 setup(
     name="GooseSLURM",
-    version=__version__,
     license="MIT",
     author="Tom de Geus",
     author_email="tom@geus.me",
@@ -17,7 +11,9 @@ setup(
     keywords="SLURM",
     url="https://github.com/tdegeus/GooseSLURM",
     packages=find_packages(),
-    install_requires=["docopt>=0.6.2", "click>=4.0"],
+    use_scm_version={"write_to": "GooseSLURM/_version.py"},
+    setup_requires=["setuptools_scm"],
+    install_requires=["docopt", "click"],
     entry_points={
         "console_scripts": [
             "Gdel = GooseSLURM.cli.Gdel:main",

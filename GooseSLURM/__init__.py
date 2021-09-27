@@ -7,5 +7,3 @@ from . import scripts
 from . import sinfo
 from . import squeue
 from . import table
-
-__version__ = "0.5.1"
