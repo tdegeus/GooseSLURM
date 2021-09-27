@@ -1,4 +1,4 @@
-r'''Gdel
+r"""Gdel
     Stop running jobs.
 
 Usage:
@@ -31,16 +31,15 @@ Options:
         Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
-'''
-
-
+"""
 import os
-import sys
+import pwd
 import re
 import subprocess
-import docopt
+import sys
+
 import click
-import pwd
+import docopt
 
 from .. import __version__
 from .. import rich
@@ -57,30 +56,30 @@ def main():
 
     # change keys to simplify implementation:
     # - remove leading "-" and "--" from options
-    args = {re.sub(r'([\-]{1,2})(.*)', r'\2', key): args[key] for key in args}
+    args = {re.sub(r"([\-]{1,2})(.*)", r"\2", key): args[key] for key in args}
     # - change "-" to "_" to facilitate direct use in print format
-    args = {key.replace('-', '_'): args[key] for key in args}
+    args = {key.replace("-", "_"): args[key] for key in args}
     # - remove "<...>"
-    args = {re.sub(r'(<)(.*)(>)', r'\2', key): args[key] for key in args}
+    args = {re.sub(r"(<)(.*)(>)", r"\2", key): args[key] for key in args}
 
     # -- field-names and print settings --
 
     # conversion map: default field-names -> custom field-names
     alias = {
-        'JOBID': 'JobID',
-        'USER': 'User',
-        'ACCOUNT': 'Account',
-        'NAME': 'Name',
-        'START_TIME': 'Tstart',
-        'TIME_LEFT': 'Tleft',
-        'NODES': '#node',
-        'CPUS': '#CPU',
-        'CPUS_R': '#CPU(R)',
-        'CPUS_PD': '#CPU(PD)',
-        'MIN_MEMORY': 'MEM',
-        'ST': 'ST',
-        'NODELIST(REASON)': 'Host',
-        'PARTITION': 'Partition',
+        "JOBID": "JobID",
+        "USER": "User",
+        "ACCOUNT": "Account",
+        "NAME": "Name",
+        "START_TIME": "Tstart",
+        "TIME_LEFT": "Tleft",
+        "NODES": "#node",
+        "CPUS": "#CPU",
+        "CPUS_R": "#CPU(R)",
+        "CPUS_PD": "#CPU(PD)",
+        "MIN_MEMORY": "MEM",
+        "ST": "ST",
+        "NODELIST(REASON)": "Host",
+        "PARTITION": "Partition",
     }
 
     # conversion map: custom field-names -> default field-names
@@ -88,7 +87,7 @@ def main():
 
     # rename command line options -> default field-names
     # - add key-names
-    aliasInv['STATUS'] = 'ST'
+    aliasInv["STATUS"] = "ST"
     # - apply conversion
     for key in [key for key in args]:
         if key.upper() in aliasInv:
@@ -99,50 +98,40 @@ def main():
     # - "align"   : alignment of the columns (except the header)
     # - "priority": priority of column expansing, columns marked "True" are expanded first
     columns = [
-        {'key': 'JOBID', 'width': 7, 'align': '>', 'priority': True},
-        {'key': 'USER', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'ACCOUNT', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'NAME', 'width': 11, 'align': '<', 'priority': False},
-        {'key': 'START_TIME', 'width': 6, 'align': '>', 'priority': True},
-        {'key': 'TIME_LEFT', 'width': 5, 'align': '>', 'priority': True},
-        {'key': 'NODES', 'width': 5, 'align': '>', 'priority': True},
-        {'key': 'CPUS', 'width': 4, 'align': '>', 'priority': True},
-        {'key': 'MIN_MEMORY', 'width': 3, 'align': '>', 'priority': True},
-        {'key': 'ST', 'width': 2, 'align': '<', 'priority': True},
-        {'key': 'PARTITION', 'width': 9, 'align': '<', 'priority': False},
-        {'key': 'NODELIST(REASON)', 'width': 5, 'align': '<', 'priority': False},
+        {"key": "JOBID", "width": 7, "align": ">", "priority": True},
+        {"key": "USER", "width": 7, "align": "<", "priority": True},
+        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": True},
+        {"key": "NAME", "width": 11, "align": "<", "priority": False},
+        {"key": "START_TIME", "width": 6, "align": ">", "priority": True},
+        {"key": "TIME_LEFT", "width": 5, "align": ">", "priority": True},
+        {"key": "NODES", "width": 5, "align": ">", "priority": True},
+        {"key": "CPUS", "width": 4, "align": ">", "priority": True},
+        {"key": "MIN_MEMORY", "width": 3, "align": ">", "priority": True},
+        {"key": "ST", "width": 2, "align": "<", "priority": True},
+        {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
+        {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False},
     ]
 
     # header
-    header = {column['key']: rich.String(alias[column['key']], align=column['align'])
-              for column in columns}
-
-    # print settings for the summary
-    columns_summary = [
-        {'key': 'USER', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'CPUS', 'width': 4, 'align': '>', 'priority': True},
-        {'key': 'CPUS_R', 'width': 6, 'align': '>', 'priority': True},
-        {'key': 'CPUS_PD', 'width': 6, 'align': '>', 'priority': True},
-    ]
-
-    # header
-    header_summary = {column['key']: rich.String(alias[column['key']], align=column['align'])
-                      for column in columns_summary}
+    header = {
+        column["key"]: rich.String(alias[column["key"]], align=column["align"])
+        for column in columns
+    }
 
     # select color theme
-    theme = squeue.colors(args['colors'].lower())
+    theme = squeue.colors(args["colors"].lower())
 
     # -- load the output of "squeue" --
 
-    if not args['debug']:
+    if not args["debug"]:
 
         lines = squeue.read_interpret(theme=theme)
 
     else:
 
         lines = squeue.read_interpret(
-            data=open(args['debug'], 'r').read(),
-            now=os.path.getctime(args['debug']),
+            data=open(args["debug"]).read(),
+            now=os.path.getctime(args["debug"]),
             theme=theme,
         )
 
@@ -152,27 +141,27 @@ def main():
     user = pwd.getpwuid(os.getuid())[0]
 
     # filter to current user
-    lines = [line for line in lines if re.match(user, str(line['USER']))]
+    lines = [line for line in lines if re.match(user, str(line["USER"]))]
 
     # filter to running/queued jobs (other jobs cannot be cancelled)
-    lines = [line for line in lines if str(line['ST']) in ['R', 'PD']]
+    lines = [line for line in lines if str(line["ST"]) in ["R", "PD"]]
 
     # list with fields on which filters are applied
-    filters = ['USER', 'ST']
+    filters = ["USER", "ST"]
 
     # filter to input list of job-ids
-    if args['JOBID']:
+    if args["JOBID"]:
         # - convert to set
-        jobs = set(args['JOBID'])
+        jobs = set(args["JOBID"])
         # - filter running jobs
-        lines = [line for line in lines if str(line['JOBID']) in jobs]
+        lines = [line for line in lines if str(line["JOBID"]) in jobs]
         # - set selection-color
-        filters += ['JOBID']
+        filters += ["JOBID"]
 
     # set selection-color
     for key in filters:
         for line in lines:
-            line[key].color = theme['selection']
+            line[key].color = theme["selection"]
 
     # no jobs -> quit
     if len(lines) == 0:
@@ -181,20 +170,22 @@ def main():
     # -- prompt confirmation, cancel jobs --
 
     # print header
-    print('Delete jobs : ')
+    print("Delete jobs : ")
 
     # print selected jobs
-    table.print_columns(lines, columns, header, args['no_truncate'], args['sep'], args['width'])
+    table.print_columns(
+        lines, columns, header, args["no_truncate"], args["sep"], args["width"]
+    )
 
     # prompt response
-    if not click.confirm('Proceed?'):
+    if not click.confirm("Proceed?"):
         sys.exit(1)
 
     # construct command
-    cmd = 'scancel ' + ' '.join([str(line['JOBID']) for line in lines])
+    cmd = "scancel " + " ".join([str(line["JOBID"]) for line in lines])
 
     # run/print command
-    if not args['debug']:
-        print(subprocess.check_output(cmd, shell=True).decode('utf-8'), end='')
+    if not args["debug"]:
+        print(subprocess.check_output(cmd, shell=True).decode("utf-8"), end="")
     else:
         print(cmd)

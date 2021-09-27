@@ -126,7 +126,3 @@ Actual job
    :lines: 51-
 
 Here you can do what you want. Remember that all read and write operations in the current directory (i.e. all files like ``./somepath``) are local on the compute node (which is as efficient as reading and writing gets). Avoid here to do anything involving the home folder, as that is a network mount.
-
-
-
-

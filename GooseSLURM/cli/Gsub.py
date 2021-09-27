@@ -1,4 +1,4 @@
-r'''Gsub
+r"""Gsub
     Submit job-scripts from their directory.
 
 Usage:
@@ -43,16 +43,13 @@ Options:
         Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
-'''
-
+"""
 import os
-import sys
-import re
 import subprocess
-import docopt
 import time
+
+import docopt
 import tqdm
-import click
 
 from .. import __version__
 from .. import fileio
@@ -64,11 +61,11 @@ def run(cmd, verbose=False, dry_run=False):
         print(cmd)
         return None
 
-    out = subprocess.check_output(cmd, shell=True).decode('utf-8')
+    out = subprocess.check_output(cmd, shell=True).decode("utf-8")
 
     if verbose:
         print(cmd)
-        print(out, end='')
+        print(out, end="")
 
     return out
 
@@ -79,8 +76,8 @@ def dump(files, ifile, outname):
         return
 
     data = {
-        'submitted': [files[i] for i in range(ifile)],
-        'pending': [files[i] for i in range(ifile, len(files))]
+        "submitted": [files[i] for i in range(ifile)],
+        "pending": [files[i] for i in range(ifile, len(files))],
     }
 
     fileio.YamlDump(outname, data)
@@ -90,18 +87,18 @@ def main():
 
     # parse command-line options
     args = docopt.docopt(__doc__, version=__version__)
-    files = args['<files>']
+    files = args["<files>"]
 
     # checkout existing output
-    if args['--output']:
-        if not fileio.ContinueDump(args['--output']):
+    if args["--output"]:
+        if not fileio.ContinueDump(args["--output"]):
             return 1
 
     # read YAML-file
-    if args['--input']:
+    if args["--input"]:
         try:
-            source = args['--input']
-            key = list(filter(None, args['--key'].split('/')))
+            source = args["--input"]
+            key = list(filter(None, args["--key"].split("/")))
             files = fileio.YamlGetItem(source, key)
         except Exception as e:
             print(e)
@@ -114,7 +111,7 @@ def main():
             return 1
 
     # submit
-    pbar = tqdm.tqdm(files, disable=args['--quiet'])
+    pbar = tqdm.tqdm(files, disable=args["--quiet"])
 
     for ifile, file in enumerate(pbar):
         pbar.set_description(file)
@@ -133,6 +130,6 @@ def main():
         submit += [name]
         commands += [" ".join(submit)]
 
-        out = run(" && ".join(commands), verbose=args['--verbose'], dry_run=args['--dry-run'])
-        dump(files, ifile + 1, args['--output'])
-        time.sleep(float(args['--delay']))
+        run(" && ".join(commands), verbose=args["--verbose"], dry_run=args["--dry-run"])
+        dump(files, ifile + 1, args["--output"])
+        time.sleep(float(args["--delay"]))

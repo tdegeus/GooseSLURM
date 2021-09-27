@@ -1,137 +1,150 @@
-
 from . import duration
 from . import memory
 
 
-def plain(filename='job.slurm', command=[], cd_submitdir=True, shell="#!/bin/bash -l", **sbatch):
-    r'''
-Return simple SBATCH-file (as text).
+def plain(
+    filename="job.slurm",
+    command=[],
+    cd_submitdir=True,
+    shell="#!/bin/bash -l",
+    **sbatch,
+):
+    r"""
+    Return simple SBATCH-file (as text).
 
-:options:
+    :options:
 
-    **filename** (``<str>`` | [``'job.slurm'``])
-        The filename to assume to construct default paths for the out file.
+        **filename** (``<str>`` | [``'job.slurm'``])
+            The filename to assume to construct default paths for the out file.
 
-    **command** (``<str>`` | ``<list>``)
-        Command(s) to execute. If the input is a list each entry is included as an individual line.
+        **command** (``<str>`` | ``<list>``)
+            Command(s) to execute.
+            If the input is a list each entry is included as an individual line.
 
-    **cd_submitdir** ([``True``] | ``False``)
-        Include ``cd "${SLURM_SUBMIT_DIR}"`` at the beginning of the script.
+        **cd_submitdir** ([``True``] | ``False``)
+            Include ``cd "${SLURM_SUBMIT_DIR}"`` at the beginning of the script.
 
-    **shell** (``<str>``)
-        The shell to use.
+        **shell** (``<str>``)
+            The shell to use.
 
-:SBATCH options:
+    :SBATCH options:
 
-    **mem** (``<int>`` | ``<str>``)
-        Memory claim (may be human readable, see ``GooseSLUM.memory.asSlurm``).
+        **mem** (``<int>`` | ``<str>``)
+            Memory claim (may be human readable, see ``GooseSLUM.memory.asSlurm``).
 
-    **time**  (``<str>``)
-        Wall-time claim (may be human readable, see ``GooseSLUM.duration.asSlurm``).
+        **time**  (``<str>``)
+            Wall-time claim (may be human readable, see ``GooseSLUM.duration.asSlurm``).
 
-    **out** ([``filename+'.out'``] | ``<str``>)
-        Name of the output file.
+        **out** ([``filename+'.out'``] | ``<str``>)
+            Name of the output file.
 
-    ...
-    '''
+        ...
+    """
 
     # convert to string (if needed)
     if not isinstance(command, str):
-        command = '\n'.join(command)
+        command = "\n".join(command)
 
     # add command
     if cd_submitdir:
 
-        command = '\n' + command
+        command = "\n" + command
         command = 'cd "${SLURM_SUBMIT_DIR}"\n' + command
-        command = '# change current directory to the location of the sbatch command\n' + command
+        command = (
+            "# change current directory to the location of the sbatch command\n"
+            + command
+        )
 
     # convert sbatch options
     # - change format
     for key, item in sbatch.items():
-        if key in ['time']:
+        if key in ["time"]:
             sbatch[key] = duration.asSlurm(item)
-        if key in ['mem']:
-            sbatch[key] = memory  .asSlurm(item)
+        if key in ["mem"]:
+            sbatch[key] = memory.asSlurm(item)
     # - add defaults
-    sbatch.setdefault('out', filename + '.out')
+    sbatch.setdefault("out", filename + ".out")
 
     # - convert to string
-    sbatch = '\n'.join(['#SBATCH --{0:s} {1:s}'.format(key, str(arg))
-                        for key, arg in sbatch.items()])
+    sbatch = "\n".join(
+        [f"#SBATCH --{key:s} {str(arg):s}" for key, arg in sbatch.items()]
+    )
 
-    return '''{shell:s}
+    return """{shell:s}
 {sbatch:s}
 
 {command:s}
-  '''.format(
+  """.format(
         shell=shell,
         sbatch=sbatch,
-        filename=filename,
         command=command,
     )
 
 
-def tempdir(filename='job.slurm', remove=[], command=[], shell="#!/bin/bash -l", **sbatch):
-    r'''
-Return SBATCH-file (as text) that uses a temporary working directory on the compute node.
+def tempdir(
+    filename="job.slurm", remove=[], command=[], shell="#!/bin/bash -l", **sbatch
+):
+    r"""
+    Return SBATCH-file (as text) that uses a temporary working directory on the compute node.
 
-:options:
+    :options:
 
-    **filename** ([``'job.slurm'``] | ``<str>``)
-        The filename to assume to construct default paths for the out- and JSON files.
+        **filename** ([``'job.slurm'``] | ``<str>``)
+            The filename to assume to construct default paths for the out- and JSON files.
 
-    **remove** (``<list>``)
-        List with files/folders to remove from the temporary directory before copying.
+        **remove** (``<list>``)
+            List with files/folders to remove from the temporary directory before copying.
 
-    **command** (``<str>`` | ``<list>``)
-        Command(s) to execute. If the input is a list each entry is included as an individual line.
+        **command** (``<str>`` | ``<list>``)
+            Command(s) to execute.
+            If the input is a list each entry is included as an individual line.
 
-    **shell** (``<str>``)
-        The shell to use.
+        **shell** (``<str>``)
+            The shell to use.
 
-:SBATCH options:
+    :SBATCH options:
 
-    **mem** (``<int>`` | ``<str>``)
-        Memory claim (may be human readable, see ``GooseSLUM.memory.asSlurm``).
+        **mem** (``<int>`` | ``<str>``)
+            Memory claim (may be human readable, see ``GooseSLUM.memory.asSlurm``).
 
-    **time**  (``<str>``)
-        Wall-time claim (may be human readable, see ``GooseSLUM.duration.asSlurm``).
+        **time**  (``<str>``)
+            Wall-time claim (may be human readable, see ``GooseSLUM.duration.asSlurm``).
 
-    **out** ([``filename+'.out'``] | ``<str``>)
-        Name of the output file.
+        **out** ([``filename+'.out'``] | ``<str``>)
+            Name of the output file.
 
-    ...
-    '''
+        ...
+    """
 
     # convert to string
     if len(remove) > 0:
-        remove = 'rm -r ' + ' '.join(remove)
+        remove = "rm -r " + " ".join(remove)
     else:
-        remove = '# rm -r ...'
+        remove = "# rm -r ..."
 
     # convert to string (if needed)
     if not isinstance(command, str):
-        command = '\n'.join(command)
+        command = "\n".join(command)
 
     # convert sbatch options
     # - change format
     for key, item in sbatch.items():
-        if key in ['time']:
+        if key in ["time"]:
             sbatch[key] = duration.asSlurm(item)
-        if key in ['mem']:
-            sbatch[key] = memory  .asSlurm(item)
+        if key in ["mem"]:
+            sbatch[key] = memory.asSlurm(item)
     # - add defaults
-    sbatch.setdefault('out', filename + '.out')
+    sbatch.setdefault("out", filename + ".out")
 
     # extract name of the output file
-    outfile = sbatch['out']
+    outfile = sbatch["out"]
 
     # - convert to string
-    sbatch = '\n'.join(['#SBATCH --{0:s} {1:s}'.format(key, str(arg))
-                        for key, arg in sbatch.items()])
+    sbatch = "\n".join(
+        [f"#SBATCH --{key:s} {str(arg):s}" for key, arg in sbatch.items()]
+    )
 
-    return '''{shell:s}
+    return """{shell:s}
 {sbatch:s}
 
 # I. Define directory names [DO NOT CHANGE]
@@ -212,7 +225,7 @@ trap 'clean_up' EXIT
 # ============================================
 
 {command:s}
-  '''.format(
+  """.format(
         shell=shell,
         sbatch=sbatch,
         filename=filename,

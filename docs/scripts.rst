@@ -31,5 +31,3 @@ Gdel
 ----
 
 .. automodule:: GooseSLURM.cli.Gdel
-
-
