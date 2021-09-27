@@ -143,7 +143,7 @@ def main():
         for rep in range(int(args.repeat)):
             pbar.set_description(file)
             path, name = os.path.split(file)
-            options = [f"--chdir {os.path.abspath(path):s}"]
+            options = ["--chdir", os.path.abspath(path)]
             if args.wait:
                 options += ["--wait"]
             for opt in ["constraint", "dependency"]:
