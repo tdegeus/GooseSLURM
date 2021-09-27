@@ -148,9 +148,9 @@ def main():
                 options += ["--wait"]
             for opt in ["constraint", "dependency"]:
                 if dargs[opt]:
-                    options += [f"--{opt:s} {dargs[opt]:s}"]
+                    options += [f"--{opt:s}", dargs[opt]]
             if rep:
-                options += [f"--dependency {jobid}"]
+                options += ["--dependency", str(jobid)]
             options += [name]
             jobid = sbatch(options, verbose=args.verbose, dry_run=args.dry_run)
             log[file] += [jobid]
