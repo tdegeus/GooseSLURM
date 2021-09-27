@@ -19,10 +19,40 @@ class Test_Gsub(unittest.TestCase):
         with open(myjob, "w") as file:
             file.write(GooseSLURM.scripts.plain(myjob))
 
-        subprocess.check_output(["Gsub", "--quiet", myjob]).decode("utf-8")
+        subprocess.check_output(["Gsub", "--quiet", myjob])
 
         os.remove(log_sbatch)
         os.remove(myjob)
+
+    def test_logfile(self):
+
+        myjob = "myjob.slurm"
+        mylog = "mylog.yaml"
+
+        for filename in [log_sbatch, myjob, mylog]:
+            if os.path.isfile(filename):
+                os.remove(filename)
+
+        with open(myjob, "w") as file:
+            file.write(GooseSLURM.scripts.plain(myjob))
+
+        subprocess.check_output(["Gsub", "--quiet", "--log", mylog, myjob])
+
+        log = GooseSLURM.fileio.YamlRead(mylog)
+
+        self.assertIn(myjob, log)
+        self.assertEqual(log[myjob], ["1"])
+
+        subprocess.check_output(["Gsub", "--quiet", "--log", mylog, myjob])
+
+        log = GooseSLURM.fileio.YamlRead(mylog)
+
+        self.assertIn(myjob, log)
+        self.assertEqual(log[myjob], ["1", "2"])
+
+        os.remove(log_sbatch)
+        os.remove(myjob)
+        os.remove(mylog)
 
     def test_repeat(self):
 
