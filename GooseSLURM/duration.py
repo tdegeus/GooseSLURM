@@ -13,7 +13,8 @@ def asSeconds(data, default=None):
     :arguments:
 
         **data** (``<str>`` | ``<float>`` | ``<int>``)
-            The input string (number are equally accepted; they are directly interpreted as seconds).
+            The input string
+            (number are equally accepted; they are directly interpreted as seconds).
 
     :options:
 
@@ -132,7 +133,8 @@ def asUnit(data, unit, precision):
 
 def asHuman(data, precision=None):
     r"""
-    Convert to string that has the biggest possible unit. For example: ``100`` (seconds) -> ``"1.7m"``.
+    Convert to string that has the biggest possible unit.
+    For example: ``100`` (seconds) -> ``"1.7m"``.
 
     :arguments:
 

@@ -322,8 +322,9 @@ class Duration(Integer):
             Print alignment (formatted print only).
 
         **precision** ([``None``] | ``<int>``)
-            Print precision to use for the conversion (formatted print only). ``None`` means automatic
-            precision. See ``GooseSLURM.duration.asHuman``.
+            Print precision to use for the conversion (formatted print only).
+            ``None`` means automatic precision.
+            See ``GooseSLURM.duration.asHuman``.
 
         **dummy** ([``0``] | ``<int>`` | ``<float>``)
             Dummy numerical value, used in case of non-numerical ``data``.
@@ -385,8 +386,9 @@ class Memory(Integer):
             Print alignment (formatted print only).
 
         **precision** ([``None``] | ``<int>``)
-            Print precision to use for the conversion (formatted print only). ``None`` means automatic
-            precision. See ``GooseSLURM.memory.asHuman``.
+            Print precision to use for the conversion (formatted print only).
+            ``None`` means automatic precision.
+            See ``GooseSLURM.memory.asHuman``.
 
         **dummy** ([``0``] | ``<int>`` | ``<float>``)
             Dummy numerical value, used in case of non-numerical ``data``.

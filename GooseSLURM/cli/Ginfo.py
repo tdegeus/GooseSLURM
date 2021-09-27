@@ -196,9 +196,9 @@ def main():
 
             # limit data
             lines = [
-                l
-                for l in lines
-                if sum(1 if re.match(n, str(l[key])) else 0 for n in args[key])
+                line
+                for line in lines
+                if sum(1 if re.match(n, str(line[key])) else 0 for n in args[key])
             ]
 
             # color-highlight selected columns
@@ -264,8 +264,6 @@ def main():
 
     # apply filter
     if args["user"] or args["jobid"]:
-
-        import itertools
 
         # get list of jobs
         # ----------------
@@ -333,7 +331,7 @@ def main():
         nodes = list(filter(None, nodes))
 
         # limit data
-        lines = [l for l in lines if str(l["HOSTNAMES"]) in nodes]
+        lines = [line for line in lines if str(line["HOSTNAMES"]) in nodes]
 
         # color-highlight selected columns
         # - apply to all remaining lines

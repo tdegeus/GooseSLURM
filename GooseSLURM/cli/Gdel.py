@@ -118,20 +118,6 @@ def main():
         for column in columns
     }
 
-    # print settings for the summary
-    columns_summary = [
-        {"key": "USER", "width": 7, "align": "<", "priority": True},
-        {"key": "CPUS", "width": 4, "align": ">", "priority": True},
-        {"key": "CPUS_R", "width": 6, "align": ">", "priority": True},
-        {"key": "CPUS_PD", "width": 6, "align": ">", "priority": True},
-    ]
-
-    # header
-    header_summary = {
-        column["key"]: rich.String(alias[column["key"]], align=column["align"])
-        for column in columns_summary
-    }
-
     # select color theme
     theme = squeue.colors(args["colors"].lower())
 

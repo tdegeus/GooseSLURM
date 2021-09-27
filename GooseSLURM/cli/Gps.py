@@ -151,9 +151,9 @@ def main():
 
             # limit data
             lines = [
-                l
-                for l in lines
-                if sum(1 if re.match(n, str(l[key])) else 0 for n in args[key])
+                line
+                for line in lines
+                if sum(1 if re.match(n, str(line[key])) else 0 for n in args[key])
             ]
 
             # color-highlight selected columns

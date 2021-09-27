@@ -48,7 +48,6 @@ import os
 import subprocess
 import time
 
-import click
 import docopt
 import tqdm
 
@@ -131,8 +130,6 @@ def main():
         submit += [name]
         commands += [" ".join(submit)]
 
-        out = run(
-            " && ".join(commands), verbose=args["--verbose"], dry_run=args["--dry-run"]
-        )
+        run(" && ".join(commands), verbose=args["--verbose"], dry_run=args["--dry-run"])
         dump(files, ifile + 1, args["--output"])
         time.sleep(float(args["--delay"]))

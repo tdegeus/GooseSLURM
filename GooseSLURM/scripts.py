@@ -18,7 +18,8 @@ def plain(
             The filename to assume to construct default paths for the out file.
 
         **command** (``<str>`` | ``<list>``)
-            Command(s) to execute. If the input is a list each entry is included as an individual line.
+            Command(s) to execute.
+            If the input is a list each entry is included as an individual line.
 
         **cd_submitdir** ([``True``] | ``False``)
             Include ``cd "${SLURM_SUBMIT_DIR}"`` at the beginning of the script.
@@ -76,7 +77,6 @@ def plain(
   """.format(
         shell=shell,
         sbatch=sbatch,
-        filename=filename,
         command=command,
     )
 
@@ -96,7 +96,8 @@ def tempdir(
             List with files/folders to remove from the temporary directory before copying.
 
         **command** (``<str>`` | ``<list>``)
-            Command(s) to execute. If the input is a list each entry is included as an individual line.
+            Command(s) to execute.
+            If the input is a list each entry is included as an individual line.
 
         **shell** (``<str>``)
             The shell to use.

@@ -20,8 +20,9 @@ def print_long(lines):
     :arguments:
 
       **lines** (``[ {'JOBID': '1234', ...}, ...]``)
-        List of lines, with each line stored as a dictionary. Note that all data has to be stored as one
-        as string, or as one the GooseSLURM.rich classes (no rich printing is used though).
+        List of lines, with each line stored as a dictionary.
+        Note that all data has to be stored as one as string,
+        or as one the GooseSLURM.rich classes (no rich printing is used though).
     """
 
     # width of the field-names
@@ -50,14 +51,15 @@ def print_columns(
     lines, columns, header, no_truncate=False, sep=", ", cols=None, print_header=True
 ):
     r"""
-    Print table to fit the screen. This function can show data truncated, or even suppress columns if
-    there is insufficient room.
+    Print table to fit the screen. This function can show data truncated, or even suppress columns
+    if there is insufficient room.
 
     :arguments:
 
       **lines** (``[ {'JOBID': '1234', ...}, ...]``)
-        List of lines, with each line stored as a dictionary. Note that all data has to be stored as one
-        of the GooseSLURM.rich classes (to customize the color, precision, ...) or as string.
+        List of lines, with each line stored as a dictionary.
+        Note that all data has to be stored as one of the GooseSLURM.rich classes
+        (to customize the color, precision, ...) or as string.
 
       **columns** (``[ {'key': 'JOBID', 'width': 7, 'align': '>', 'priority': True}, ...]``)
         List with print settings of each column:
@@ -220,8 +222,9 @@ def print_list(lines, key, sep=" "):
     :arguments:
 
       **lines** (``[ {'JOBID': '1234', ...}, ...]``)
-        List of lines, with each line stored as a dictionary. Note that all data has to be stored as one
-        as string, or as one the GooseSLURM.rich classes (no rich printing is used though).
+        List of lines, with each line stored as a dictionary.
+        Note that all data has to be stored as one as string,
+        or as one the GooseSLURM.rich classes (no rich printing is used though).
 
       **key** (``'JOBID'``)
         Column to print.
