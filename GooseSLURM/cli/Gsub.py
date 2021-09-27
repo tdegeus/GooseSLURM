@@ -51,7 +51,7 @@ import time
 import docopt
 import tqdm
 
-from .. import __version__
+from .. import version
 from .. import fileio
 
 
@@ -86,7 +86,7 @@ def dump(files, ifile, outname):
 def main():
 
     # parse command-line options
-    args = docopt.docopt(__doc__, version=__version__)
+    args = docopt.docopt(__doc__, version=version)
     files = args["<files>"]
 
     # checkout existing output

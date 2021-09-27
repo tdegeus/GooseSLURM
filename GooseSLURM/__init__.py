@@ -7,3 +7,5 @@ from . import scripts
 from . import sinfo
 from . import squeue
 from . import table
+from ._version import version
+from ._version import version_tuple

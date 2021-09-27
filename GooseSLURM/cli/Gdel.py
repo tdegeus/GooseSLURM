@@ -41,7 +41,7 @@ import sys
 import click
 import docopt
 
-from .. import __version__
+from .. import version
 from .. import rich
 from .. import squeue
 from .. import table
@@ -52,7 +52,7 @@ def main():
     # -- parse command line arguments --
 
     # parse command-line options
-    args = docopt.docopt(__doc__, version=__version__)
+    args = docopt.docopt(__doc__, version=version)
 
     # change keys to simplify implementation:
     # - remove leading "-" and "--" from options
