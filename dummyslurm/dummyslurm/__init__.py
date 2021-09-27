@@ -1,8 +1,10 @@
 import argparse
-import yaml
 import os
 
+import yaml
+
 version = "1.2.3"
+
 
 def sbatch():
 
@@ -18,10 +20,7 @@ def sbatch():
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "args",
-        nargs="*"
-    )
+    parser.add_argument("args", nargs="*")
 
     args = parser.parse_args()
 
@@ -32,9 +31,3 @@ def sbatch():
 
     with open(logfile, "w") as file:
         yaml.dump(log, file)
-
-
-
-
-
-

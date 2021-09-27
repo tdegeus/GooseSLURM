@@ -115,6 +115,7 @@ def main():
     args = docopt.docopt(__doc__, version=version)
     files = args["<files>"]
     log = read_log(files, args["--log"])
+    jobid = ""
 
     for filename in files:
         if not os.path.isfile(filename):
@@ -135,7 +136,9 @@ def main():
             if rep:
                 options += [f"--dependency {jobid}"]
             options += [name]
-            jobid = sbatch(options, verbose=args["--verbose"], dry_run=args["--dry-run"])
+            jobid = sbatch(
+                options, verbose=args["--verbose"], dry_run=args["--dry-run"]
+            )
             log[file] += [jobid]
             if args["--log"]:
                 fileio.YamlDump(args["--log"], log)

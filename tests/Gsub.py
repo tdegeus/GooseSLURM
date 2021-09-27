@@ -1,10 +1,11 @@
 import os
-import shutil
 import subprocess
 import unittest
+
 import GooseSLURM
 
 log_sbatch = "_sbatch.yaml"
+
 
 class Test_Gsub(unittest.TestCase):
     def test_basic(self):
@@ -23,7 +24,6 @@ class Test_Gsub(unittest.TestCase):
         os.remove(log_sbatch)
         os.remove(myjob)
 
-
     def test_repeat(self):
 
         myjob = "myjob.slurm"
@@ -35,7 +35,7 @@ class Test_Gsub(unittest.TestCase):
         with open(myjob, "w") as file:
             file.write(GooseSLURM.scripts.plain(myjob))
 
-        subprocess.check_output(["Gsub", "--quiet", "--repeat", "4", myjob]).decode("utf-8")
+        subprocess.check_output(["Gsub", "--quiet", "--repeat", "4", myjob])
 
         log = GooseSLURM.fileio.YamlRead(log_sbatch)
 
