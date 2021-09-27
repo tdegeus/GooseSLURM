@@ -45,11 +45,11 @@ Options:
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 """
+import argparse
 import os
 import subprocess
 import time
 
-import argparse
 import tqdm
 
 from .. import fileio
@@ -110,7 +110,6 @@ def read_log(files, logfile=None):
 
 
 def main():
-
     class Parser(argparse.ArgumentParser):
         def print_help(self):
             print(__doc__)
