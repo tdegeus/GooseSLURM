@@ -5,7 +5,6 @@ from . import memory
 def plain(
     filename="job.slurm",
     command=[],
-    cd_submitdir=True,
     shell="#!/bin/bash -l",
     **sbatch,
 ):
@@ -20,9 +19,6 @@ def plain(
         **command** (``<str>`` | ``<list>``)
             Command(s) to execute.
             If the input is a list each entry is included as an individual line.
-
-        **cd_submitdir** ([``True``] | ``False``)
-            Include ``cd "${SLURM_SUBMIT_DIR}"`` at the beginning of the script.
 
         **shell** (``<str>``)
             The shell to use.
@@ -44,16 +40,6 @@ def plain(
     # convert to string (if needed)
     if not isinstance(command, str):
         command = "\n".join(command)
-
-    # add command
-    if cd_submitdir:
-
-        command = "\n" + command
-        command = 'cd "${SLURM_SUBMIT_DIR}"\n' + command
-        command = (
-            "# change current directory to the location of the sbatch command\n"
-            + command
-        )
 
     # convert sbatch options
     # - change format
@@ -153,31 +139,9 @@ def tempdir(
 # get name of the temporary directory working directory, physically on the compute-node
 workdir="${{TMPDIR}}"
 
-# get submit directory
+# get current directory
 # (every file/folder below this directory is copied to the compute node)
-submitdir="${{SLURM_SUBMIT_DIR}}"
-
-# II. Write job info to a log file [MAY BE CHANGED/OMITTED]
-# =========================================================
-
-# get hostname
-myhost=`hostname`
-
-# write JSON-file
-cat <<EOF > {filename:s}.json
-{{
-  "submitdir"           : "${{submitdir}}",
-  "workdir"             : "${{workdir}}",
-  "workdir_host"        : "${{myhost}}",
-  "hostname"            : "${{myhost}}",
-  "SLURM_SUBMIT_DIR"    : "${{SLURM_SUBMIT_DIR}}",
-  "SLURM_JOB_ID"        : "${{SLURM_JOB_ID}}",
-  "SLURM_JOB_NODELIST"  : "${{SLURM_JOB_NODELIST}}",
-  "SLURM_SUBMIT_HOST"   : "${{SLURM_SUBMIT_HOST}}",
-  "SLURM_JOB_NUM_NODES" : "${{SLURM_JOB_NUM_NODES}}",
-  "SLURM_CPUS_PER_TASK" : "${{SLURM_CPUS_PER_TASK}}"
-}}
-EOF
+submitdir="$(pwd)"
 
 # 1. Transfer to node [DO NOT CHANGE]
 # ===================================
