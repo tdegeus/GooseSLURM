@@ -42,14 +42,14 @@ class Test_Gsub(unittest.TestCase):
         log = GooseSLURM.fileio.YamlRead(mylog)
 
         self.assertIn(myjob, log)
-        self.assertEqual(log[myjob], ["1"])
+        self.assertEqual(log[myjob], [1])
 
         subprocess.check_output(["Gsub", "--quiet", "--log", mylog, myjob])
 
         log = GooseSLURM.fileio.YamlRead(mylog)
 
         self.assertIn(myjob, log)
-        self.assertEqual(log[myjob], ["1", "2"])
+        self.assertEqual(log[myjob], [1, 2])
 
         os.remove(log_sbatch)
         os.remove(myjob)

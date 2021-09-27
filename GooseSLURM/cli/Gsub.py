@@ -47,6 +47,7 @@ Options:
 """
 import argparse
 import os
+import re
 import subprocess
 import time
 
@@ -74,7 +75,7 @@ def sbatch(options, verbose=False, dry_run=False):
     if verbose:
         print(out, end="")
 
-    return out.split("\n")[0].split("Submitted batch job ")[1]
+    return int(re.split(r"(Submitted batch job)([\ ]*)([0-9]*)(.*)", out)[3])
 
 
 def read_log(files, logfile=None):
