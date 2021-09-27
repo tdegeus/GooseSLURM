@@ -3,7 +3,6 @@ from . import memory
 
 
 def plain(
-    filename="job.slurm",
     command=[],
     shell="#!/bin/bash -l",
     **sbatch,
@@ -12,9 +11,6 @@ def plain(
     Return simple SBATCH-file (as text).
 
     :options:
-
-        **filename** (``<str>`` | [``'job.slurm'``])
-            The filename to assume to construct default paths for the out file.
 
         **command** (``<str>`` | ``<list>``)
             Command(s) to execute.
@@ -31,8 +27,8 @@ def plain(
         **time**  (``<str>``)
             Wall-time claim (may be human readable, see ``GooseSLUM.duration.asSlurm``).
 
-        **out** ([``filename+'.out'``] | ``<str``>)
-            Name of the output file.
+        **out** (``<str``>)
+            Name of the output file, e.g. ``myjob_%j.out``.
 
         ...
     """
@@ -42,14 +38,11 @@ def plain(
         command = "\n".join(command)
 
     # convert sbatch options
-    # - change format
     for key, item in sbatch.items():
         if key in ["time"]:
             sbatch[key] = duration.asSlurm(item)
         if key in ["mem"]:
             sbatch[key] = memory.asSlurm(item)
-    # - add defaults
-    sbatch.setdefault("out", filename + ".out")
 
     # - convert to string
     sbatch = "\n".join(
@@ -67,16 +60,11 @@ def plain(
     )
 
 
-def tempdir(
-    filename="job.slurm", remove=[], command=[], shell="#!/bin/bash -l", **sbatch
-):
+def tempdir(remove=[], command=[], shell="#!/bin/bash -l", **sbatch):
     r"""
     Return SBATCH-file (as text) that uses a temporary working directory on the compute node.
 
     :options:
-
-        **filename** ([``'job.slurm'``] | ``<str>``)
-            The filename to assume to construct default paths for the out- and JSON files.
 
         **remove** (``<list>``)
             List with files/folders to remove from the temporary directory before copying.
@@ -96,8 +84,8 @@ def tempdir(
         **time**  (``<str>``)
             Wall-time claim (may be human readable, see ``GooseSLUM.duration.asSlurm``).
 
-        **out** ([``filename+'.out'``] | ``<str``>)
-            Name of the output file.
+        **out** (``<str``>)
+            Name of the output file, e.g. ``myjob_%j.out``.
 
         ...
     """
@@ -113,14 +101,11 @@ def tempdir(
         command = "\n".join(command)
 
     # convert sbatch options
-    # - change format
     for key, item in sbatch.items():
         if key in ["time"]:
             sbatch[key] = duration.asSlurm(item)
         if key in ["mem"]:
             sbatch[key] = memory.asSlurm(item)
-    # - add defaults
-    sbatch.setdefault("out", filename + ".out")
 
     # extract name of the output file
     outfile = sbatch["out"]
@@ -192,7 +177,6 @@ trap 'clean_up' EXIT
   """.format(
         shell=shell,
         sbatch=sbatch,
-        filename=filename,
         command=command,
         outfile=outfile,
         remove=remove,

@@ -1,7 +1,8 @@
 import os
-import re
 import subprocess
 import unittest
+
+import numpy as np
 
 import GooseSLURM
 
@@ -72,17 +73,14 @@ class Test_Gsub(unittest.TestCase):
 
         for i, command in enumerate(log["commands"]):
 
-            deps = None
-            for c in command:
-                args = re.split(r"(--dependency)([\ ]*)([0-9]*)(.*)", c)
-                if len(args) >= 4:
-                    deps = int(args[3])
-                    break
+            j = np.argwhere(np.array(command) == "--dependency").ravel()
 
             if i:
-                self.assertEqual(deps, i)
+                self.assertTrue(len(j) == 1)
+                self.assertTrue(len(command) > j[0])
+                self.assertEqual(command[j[0] + 1], str(i))
             else:
-                self.assertEqual(deps, None)
+                self.assertTrue(len(j) == 0)
 
         os.remove(log_sbatch)
         os.remove(myjob)
