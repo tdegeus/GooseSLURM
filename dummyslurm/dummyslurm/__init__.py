@@ -1,5 +1,5 @@
-import argparse
 import os
+import sys
 
 import yaml
 
@@ -18,15 +18,9 @@ def sbatch():
         with open(logfile) as file:
             log = yaml.load(file.read(), Loader=yaml.FullLoader)
 
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("args", nargs="*")
-
-    args = parser.parse_args()
-
     print("Submitted batch job {:d}".format(log["jobid"]))
 
-    log["commands"] += [args.args]
+    log["commands"] += [sys.argv[1:]]
     log["jobid"] += 1
 
     with open(logfile, "w") as file:

@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import unittest
 
@@ -71,10 +72,17 @@ class Test_Gsub(unittest.TestCase):
 
         for i, command in enumerate(log["commands"]):
 
+            deps = None
+            for c in command:
+                args = re.split(r"(--dependency)([\ ]*)([0-9]*)(.*)", c)
+                if len(args) >= 4:
+                    deps = int(args[3])
+                    break
+
             if i:
-                self.assertIn(f"--dependency {i:d}", command)
+                self.assertEqual(deps, i)
             else:
-                self.assertNotIn(f"--dependency {i:d}", command)
+                self.assertEqual(deps, None)
 
         os.remove(log_sbatch)
         os.remove(myjob)
