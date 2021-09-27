@@ -1,8 +1,8 @@
 r"""Gsub
-    Submit job-scripts from their directory.
+    Submit job-scripts and add the "--chdir" option
+    to run the scripts from the directory in with the sbatch-file is stored.
 
 Usage:
-    Gsub [options] --input=N
     Gsub [options] <files>...
 
 Arguments:
@@ -15,17 +15,19 @@ Options:
     --verbose
         Verbose all commands and their output.
 
-    -i, --input=N
-        Submit job-scripts stored in YAML-file.
+    --log=N
+        Log the JobIDs to a YAML-file (updated after each submit).
+        Existing log files are appended.
 
-    -k, --key=N
-        Path in the input YAML-file, separated by "/". [default: /]
-
-    -o, --output=N
-        Output submitted/pending job-scripts to YAML-file (updated after each submit).
-
-    -d, --delay=N
+    --delay=N
         Seconds to wait between submitting jobs. [default: 0.1]
+
+    -r, --repeat=N
+        Submit using dependencies such that the job will be repeated 'n' times. [default: 1]
+
+    -d, --dependency=N
+        (sbatch option) Defer the start of this job until the specified dependencies
+        have been satisfied completed.
 
     -w, --wait
         (sbatch option) Do not exit until the submitted job terminates..
@@ -33,7 +35,7 @@ Options:
     -c, --constraint=N
         (sbatch option) Nodes can have features assigned to them by the Slurm administrator.
 
-    -q, --quiet
+    -Q, --quiet
         Do no show progress-bar.
 
     -h, --help
@@ -55,81 +57,85 @@ from .. import fileio
 from .. import version
 
 
-def run(cmd, verbose=False, dry_run=False):
+def sbatch(options, verbose=False, dry_run=False):
+    """
+    Submit job and return the job-id.
+    """
+
+    assert type(options) == list
+
+    if dry_run or verbose:
+        print(" ".join(["sbatch"] + options))
 
     if dry_run:
-        print(cmd)
         return None
 
-    out = subprocess.check_output(cmd, shell=True).decode("utf-8")
+    out = subprocess.check_output(["sbatch"] + options).decode("utf-8")
 
     if verbose:
-        print(cmd)
         print(out, end="")
 
-    return out
+    return out.split("\n")[0].split("Submitted batch job ")[1]
 
 
-def dump(files, ifile, outname):
+def read_log(files, logfile=None):
+    """
+    Read existing log-file.
+    If the file does not exists an empty log is returned.
 
-    if not outname:
-        return
+    :param files: List of files to submit.
+    :param logfile: Filename of the log-file.
+    :return: Log as dict.
+    """
 
-    data = {
-        "submitted": [files[i] for i in range(ifile)],
-        "pending": [files[i] for i in range(ifile, len(files))],
-    }
+    log = {filename: [] for filename in files}
 
-    fileio.YamlDump(outname, data)
+    if logfile is None:
+        return log
+
+    if not os.path.isfile(os.path.realpath(logfile)):
+        return log
+
+    log = fileio.YamlRead(logfile)
+
+    if type(log) != dict:
+        raise OSError("Unable to interpret log file")
+
+    for filename in files:
+        if filename not in log:
+            raise OSError(f'"{filename} not in log file"')
+        if type(log[filename]) != list:
+            raise OSError(f'Log of "{filename}" not interpretable')
+
+    return log
 
 
 def main():
 
-    # parse command-line options
     args = docopt.docopt(__doc__, version=version)
     files = args["<files>"]
+    log = read_log(files, args["--log"])
 
-    # checkout existing output
-    if args["--output"]:
-        if not fileio.ContinueDump(args["--output"]):
-            return 1
+    for filename in files:
+        if not os.path.isfile(filename):
+            raise OSError(f'"{filename}" does not exist')
 
-    # read YAML-file
-    if args["--input"]:
-        try:
-            source = args["--input"]
-            key = list(filter(None, args["--key"].split("/")))
-            files = fileio.YamlGetItem(source, key)
-        except Exception as e:
-            print(e)
-            return 1
-
-    # check arguments
-    for file in files:
-        if not os.path.isfile(file):
-            print('"%s" does not exist' % file)
-            return 1
-
-    # submit
     pbar = tqdm.tqdm(files, disable=args["--quiet"])
 
     for ifile, file in enumerate(pbar):
-        pbar.set_description(file)
-        path, name = os.path.split(file)
-
-        commands = []
-
-        if len(path) > 0:
-            commands += [f"cd {path}"]
-
-        submit = ["sbatch"]
-        if args["--wait"]:
-            submit += ["--wait"]
-        if args["--constraint"]:
-            submit += ["--constraint {:s}".format(args["--constraint"])]
-        submit += [name]
-        commands += [" ".join(submit)]
-
-        run(" && ".join(commands), verbose=args["--verbose"], dry_run=args["--dry-run"])
-        dump(files, ifile + 1, args["--output"])
-        time.sleep(float(args["--delay"]))
+        for rep in range(int(args["--repeat"])):
+            pbar.set_description(file)
+            path, name = os.path.split(file)
+            options = [f"--chdir {os.path.abspath(path):s}"]
+            if args["--wait"]:
+                options += ["--wait"]
+            for opt in ["--constraint", "--dependency"]:
+                if args[opt]:
+                    options += [f"{opt:s} {args[opt]:s}"]
+            if rep:
+                options += [f"--dependency {jobid}"]
+            options += [name]
+            jobid = sbatch(options, verbose=args["--verbose"], dry_run=args["--dry-run"])
+            log[file] += [jobid]
+            fileio.YamlDump(args["--log"], log)
+            time.sleep(float(args["--delay"]))
