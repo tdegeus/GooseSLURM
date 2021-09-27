@@ -41,10 +41,10 @@ import sys
 import click
 import docopt
 
-from .. import version
 from .. import rich
 from .. import squeue
 from .. import table
+from .. import version
 
 
 def main():

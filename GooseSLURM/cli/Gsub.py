@@ -51,8 +51,8 @@ import time
 import docopt
 import tqdm
 
-from .. import version
 from .. import fileio
+from .. import version
 
 
 def run(cmd, verbose=False, dry_run=False):
