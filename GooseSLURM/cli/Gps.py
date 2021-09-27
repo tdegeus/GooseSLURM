@@ -1,4 +1,4 @@
-'''Gps
+"""Gps
     List memory usage per process.
 
 Usage:
@@ -59,19 +59,17 @@ Options:
 
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
-'''
-
-
+"""
 import os
-import sys
-import re
-import subprocess
-import docopt
 import pwd
+import re
+import sys
+
+import docopt
 
 from .. import __version__
-from .. import rich
 from .. import ps
+from .. import rich
 from .. import table
 
 
@@ -84,23 +82,23 @@ def main():
 
     # change keys to simplify implementation:
     # - remove leading "-" and "--" from options
-    args = {re.sub(r'([\-]{1,2})(.*)', r'\2', key): args[key] for key in args}
+    args = {re.sub(r"([\-]{1,2})(.*)", r"\2", key): args[key] for key in args}
     # - change "-" to "_" to facilitate direct use in print format
-    args = {key.replace('-', '_'): args[key] for key in args}
+    args = {key.replace("-", "_"): args[key] for key in args}
 
     # -------------------------------- field-names and print settings --------
 
     # handle 'alias' options
-    if args['U']:
-        args['user'] += [pwd.getpwuid(os.getuid())[0]]
+    if args["U"]:
+        args["user"] += [pwd.getpwuid(os.getuid())[0]]
 
     # conversion map: default field-names -> custom field-names
     alias = {
-        'USER': 'USER',
-        'PID': 'PID',
-        'RSS': 'MEM',
-        '%CPU': '%CPU',
-        'COMMAND': 'COMMAND',
+        "USER": "USER",
+        "PID": "PID",
+        "RSS": "MEM",
+        "%CPU": "%CPU",
+        "COMMAND": "COMMAND",
     }
 
     # conversion map: custom field-names -> default field-names
@@ -116,98 +114,112 @@ def main():
     # - "align"   : alignment of the columns (except the header)
     # - "priority": priority of column expansing, columns marked "True" are expanded first
     columns = [
-        {'key': 'PID', 'width': 3, 'align': '>', 'priority': True},
-        {'key': 'USER', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'RSS', 'width': 4, 'align': '>', 'priority': True},
-        {'key': '%CPU', 'width': 4, 'align': '>', 'priority': True},
-        {'key': 'COMMAND', 'width': 10, 'align': '<', 'priority': True},
+        {"key": "PID", "width": 3, "align": ">", "priority": True},
+        {"key": "USER", "width": 7, "align": "<", "priority": True},
+        {"key": "RSS", "width": 4, "align": ">", "priority": True},
+        {"key": "%CPU", "width": 4, "align": ">", "priority": True},
+        {"key": "COMMAND", "width": 10, "align": "<", "priority": True},
     ]
 
     # header
-    header = {column['key']: rich.String(alias[column['key']], align=column['align'])
-              for column in columns}
+    header = {
+        column["key"]: rich.String(alias[column["key"]], align=column["align"])
+        for column in columns
+    }
 
     # select color theme
-    theme = ps.colors(args['colors'].lower())
+    theme = ps.colors(args["colors"].lower())
 
     # -- load the output of "ps" --
 
-    if not args['debug']:
+    if not args["debug"]:
 
         lines = ps.read_interpret(theme=theme)
 
     else:
 
         lines = ps.read_interpret(
-            data=open(args['debug'], 'r').read(),
+            data=open(args["debug"]).read(),
             theme=theme,
         )
 
     # ----------------------------- limit based on command-line options ------
 
-    for key in ['USER', 'PID', 'COMMAND']:
+    for key in ["USER", "PID", "COMMAND"]:
 
         if args[key]:
 
             # limit data
-            lines = [l for l in lines if sum(
-                [1 if re.match(n, str(l[key])) else 0 for n in args[key]])]
+            lines = [
+                l
+                for l in lines
+                if sum(1 if re.match(n, str(l[key])) else 0 for n in args[key])
+            ]
 
             # color-highlight selected columns
             # - apply to all remaining lines
             for line in lines:
-                line[key].color = theme['selection']
+                line[key].color = theme["selection"]
             # - apply to the header
-            header[key].color = theme['selection']
+            header[key].color = theme["selection"]
 
     # -- sort --
 
     # default sort
-    lines.sort(key=lambda line: line['RSS'], reverse=False)
+    lines.sort(key=lambda line: line["RSS"], reverse=False)
 
     # optional: sort by key(s)
-    if args['sort']:
+    if args["sort"]:
 
-        for key in args['sort']:
+        for key in args["sort"]:
 
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+            lines.sort(
+                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
+            )
 
     # -- select columns --
 
-    if args['output']:
+    if args["output"]:
 
-        keys = [aliasInv[key.upper()] for key in args['output']]
+        keys = [aliasInv[key.upper()] for key in args["output"]]
 
-        columns = [column for column in columns if column['key'] in keys]
+        columns = [column for column in columns if column["key"] in keys]
 
     # -- print --
 
     if True:
 
         # optional: print all fields and quit
-        if args['long']:
+        if args["long"]:
 
             table.print_long(lines)
 
             sys.exit(0)
 
         # optional: print as list and quit
-        elif args['list']:
+        elif args["list"]:
 
             # - only one field can be selected
             if len(columns) > 1:
-                print('Only one field can be selected')
+                print("Only one field can be selected")
                 sys.exit(1)
 
             # - print and quit
-            table.print_list(lines, columns[0]['key'], args['sep'])
+            table.print_list(lines, columns[0]["key"], args["sep"])
 
             sys.exit(0)
 
         # default: print columns
         else:
 
-            table.print_columns(lines, columns, header,
-                                args['no_truncate'], args['sep'], args['width'], not args['no_header'])
+            table.print_columns(
+                lines,
+                columns,
+                header,
+                args["no_truncate"],
+                args["sep"],
+                args["width"],
+                not args["no_header"],
+            )
 
             sys.exit(0)

@@ -1,4 +1,4 @@
-'''Gstat
+"""Gstat
     Summarize the status of the jobs (wrapper around "squeue").
 
 Usage:
@@ -76,15 +76,13 @@ Options:
         Show version.
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
-'''
-
-
+"""
 import os
-import sys
-import re
-import subprocess
-import docopt
 import pwd
+import re
+import sys
+
+import docopt
 
 from .. import __version__
 from .. import rich
@@ -101,32 +99,32 @@ def main():
 
     # change keys to simplify implementation:
     # - remove leading "-" and "--" from options
-    args = {re.sub(r'([\-]{1,2})(.*)', r'\2', key): args[key] for key in args}
+    args = {re.sub(r"([\-]{1,2})(.*)", r"\2", key): args[key] for key in args}
     # - change "-" to "_" to facilitate direct use in print format
-    args = {key.replace('-', '_'): args[key] for key in args}
+    args = {key.replace("-", "_"): args[key] for key in args}
 
     # -- field-names and print settings --
 
     # handle 'alias' options
-    if args['U']:
-        args['user'] += [pwd.getpwuid(os.getuid())[0]]
+    if args["U"]:
+        args["user"] += [pwd.getpwuid(os.getuid())[0]]
 
     # conversion map: default field-names -> custom field-names
     alias = {
-        'JOBID': 'JobID',
-        'USER': 'User',
-        'ACCOUNT': 'Account',
-        'NAME': 'Name',
-        'START_TIME': 'Tstart',
-        'TIME_LEFT': 'Tleft',
-        'NODES': '#node',
-        'CPUS': '#CPU',
-        'CPUS_R': '#CPU(R)',
-        'CPUS_PD': '#CPU(PD)',
-        'MIN_MEMORY': 'MEM',
-        'ST': 'ST',
-        'NODELIST(REASON)': 'Host',
-        'PARTITION': 'Partition',
+        "JOBID": "JobID",
+        "USER": "User",
+        "ACCOUNT": "Account",
+        "NAME": "Name",
+        "START_TIME": "Tstart",
+        "TIME_LEFT": "Tleft",
+        "NODES": "#node",
+        "CPUS": "#CPU",
+        "CPUS_R": "#CPU(R)",
+        "CPUS_PD": "#CPU(PD)",
+        "MIN_MEMORY": "MEM",
+        "ST": "ST",
+        "NODELIST(REASON)": "Host",
+        "PARTITION": "Partition",
     }
 
     # conversion map: custom field-names -> default field-names
@@ -134,7 +132,7 @@ def main():
 
     # rename command line options -> default field-names
     # - add key-names
-    aliasInv['STATUS'] = 'ST'
+    aliasInv["STATUS"] = "ST"
     # - apply conversion
     for key in [key for key in args]:
         if key.upper() in aliasInv:
@@ -145,151 +143,179 @@ def main():
     # - "align"   : alignment of the columns (except the header)
     # - "priority": priority of column expansing, columns marked "True" are expanded first
     columns = [
-        {'key': 'JOBID', 'width': 7, 'align': '>', 'priority': True},
-        {'key': 'USER', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'ACCOUNT', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'NAME', 'width': 11, 'align': '<', 'priority': False},
-        {'key': 'START_TIME', 'width': 6, 'align': '>', 'priority': True},
-        {'key': 'TIME_LEFT', 'width': 5, 'align': '>', 'priority': True},
-        {'key': 'NODES', 'width': 5, 'align': '>', 'priority': True},
-        {'key': 'CPUS', 'width': 4, 'align': '>', 'priority': True},
-        {'key': 'MIN_MEMORY', 'width': 3, 'align': '>', 'priority': True},
-        {'key': 'ST', 'width': 2, 'align': '<', 'priority': True},
-        {'key': 'PARTITION', 'width': 9, 'align': '<', 'priority': False},
-        {'key': 'NODELIST(REASON)', 'width': 5, 'align': '<', 'priority': False},
+        {"key": "JOBID", "width": 7, "align": ">", "priority": True},
+        {"key": "USER", "width": 7, "align": "<", "priority": True},
+        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": True},
+        {"key": "NAME", "width": 11, "align": "<", "priority": False},
+        {"key": "START_TIME", "width": 6, "align": ">", "priority": True},
+        {"key": "TIME_LEFT", "width": 5, "align": ">", "priority": True},
+        {"key": "NODES", "width": 5, "align": ">", "priority": True},
+        {"key": "CPUS", "width": 4, "align": ">", "priority": True},
+        {"key": "MIN_MEMORY", "width": 3, "align": ">", "priority": True},
+        {"key": "ST", "width": 2, "align": "<", "priority": True},
+        {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
+        {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False},
     ]
 
     # header
-    header = {column['key']: rich.String(alias[column['key']], align=column['align'])
-              for column in columns}
+    header = {
+        column["key"]: rich.String(alias[column["key"]], align=column["align"])
+        for column in columns
+    }
 
     # print settings for the summary
     columns_summary = [
-        {'key': 'USER', 'width': 7, 'align': '<', 'priority': True},
-        {'key': 'ACCOUNT', 'width': 7, 'align': '<', 'priority': False},
-        {'key': 'CPUS', 'width': 4, 'align': '>', 'priority': True},
-        {'key': 'CPUS_R', 'width': 6, 'align': '>', 'priority': True},
-        {'key': 'CPUS_PD', 'width': 6, 'align': '>', 'priority': True},
-        {'key': 'PARTITION', 'width': 9, 'align': '<', 'priority': False},
+        {"key": "USER", "width": 7, "align": "<", "priority": True},
+        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": False},
+        {"key": "CPUS", "width": 4, "align": ">", "priority": True},
+        {"key": "CPUS_R", "width": 6, "align": ">", "priority": True},
+        {"key": "CPUS_PD", "width": 6, "align": ">", "priority": True},
+        {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
     ]
 
     # header
-    header_summary = {column['key']: rich.String(alias[column['key']], align=column['align'])
-                      for column in columns_summary}
+    header_summary = {
+        column["key"]: rich.String(alias[column["key"]], align=column["align"])
+        for column in columns_summary
+    }
 
     # select color theme
-    theme = squeue.colors(args['colors'].lower())
+    theme = squeue.colors(args["colors"].lower())
 
     # -- load the output of "squeue" --
 
-    if not args['debug']:
+    if not args["debug"]:
 
         lines = squeue.read_interpret(theme=theme)
 
     else:
 
         lines = squeue.read_interpret(
-            data=open(args['debug'], 'r').read(),
-            now=os.path.getctime(args['debug']),
+            data=open(args["debug"]).read(),
+            now=os.path.getctime(args["debug"]),
             theme=theme,
         )
 
     # -- limit based on command-line options --
 
-    for key in ['USER', 'ACCOUNT', 'NAME', 'JOBID', 'ST', 'NODELIST(REASON)', 'PARTITION']:
+    for key in [
+        "USER",
+        "ACCOUNT",
+        "NAME",
+        "JOBID",
+        "ST",
+        "NODELIST(REASON)",
+        "PARTITION",
+    ]:
 
         if args[key]:
 
             # limit data
-            lines = [l for l in lines if sum([1 if re.match(n, str(l[key])) else 0
-                     for n in args[key]])]
+            lines = [
+                l
+                for l in lines
+                if sum(1 if re.match(n, str(l[key])) else 0 for n in args[key])
+            ]
 
             # color-highlight selected columns
             # - apply to all remaining lines
             for line in lines:
-                line[key].color = theme['selection']
+                line[key].color = theme["selection"]
             # - apply to the header
-            header[key].color = theme['selection']
+            header[key].color = theme["selection"]
 
     # -- sort --
 
     # default sort
-    lines.sort(key=lambda line: line['START_TIME'], reverse=not args['reverse'])
+    lines.sort(key=lambda line: line["START_TIME"], reverse=not args["reverse"])
 
     # optional: sort by key(s)
-    if args['sort']:
+    if args["sort"]:
 
-        for key in args['sort']:
+        for key in args["sort"]:
 
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+            lines.sort(
+                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
+            )
 
     # -- select columns --
 
-    if args['output']:
+    if args["output"]:
 
-        keys = [aliasInv[key.upper()] for key in args['output']]
+        keys = [aliasInv[key.upper()] for key in args["output"]]
 
-        columns = [column for column in columns if column['key'] in keys]
+        columns = [column for column in columns if column["key"] in keys]
 
     # -- print --
 
-    if not args['summary']:
+    if not args["summary"]:
 
         # optional: print all fields and quit
-        if args['long']:
+        if args["long"]:
 
             table.print_long(lines)
 
             sys.exit(0)
 
         # optional: print as list and quit
-        elif args['list']:
+        elif args["list"]:
 
             # - only one field can be selected
             if len(columns) > 1:
-                print('Only one field can be selected')
+                print("Only one field can be selected")
                 sys.exit(1)
 
             # - print and quit
-            table.print_list(lines, columns[0]['key'], args['sep'])
+            table.print_list(lines, columns[0]["key"], args["sep"])
 
             sys.exit(0)
 
         # default: print columns
         else:
 
-            table.print_columns(lines, columns, header,
-                                args['no_truncate'], args['sep'], args['width'], not args['no_header'])
+            table.print_columns(
+                lines,
+                columns,
+                header,
+                args["no_truncate"],
+                args["sep"],
+                args["width"],
+                not args["no_header"],
+            )
 
             sys.exit(0)
 
     # -- summarize information --
 
     # get names of the different users
-    users = sorted(set([str(line['USER']) for line in lines]))
+    users = sorted({str(line["USER"]) for line in lines})
 
     # start a new list of "user information", summed on the relevant users
-    users = [{'USER': rich.String(key)} for key in users]
+    users = [{"USER": rich.String(key)} for key in users]
 
     # loop over users
     for user in users:
 
         # - isolate jobs for this user
-        N = [line for line in lines if str(line['USER']) == str(user['USER'])]
+        N = [line for line in lines if str(line["USER"]) == str(user["USER"])]
 
         # - get (a list of) partition(s)/account(s)
-        user['PARTITION'] = rich.String(','.join(list(set([str(line['PARTITION']) for line in N]))))
-        user['ACCOUNT'] = rich.String(','.join(list(set([str(line['ACCOUNT']) for line in N]))))
+        user["PARTITION"] = rich.String(
+            ",".join(list({str(line["PARTITION"]) for line in N}))
+        )
+        user["ACCOUNT"] = rich.String(
+            ",".join(list({str(line["ACCOUNT"]) for line in N}))
+        )
 
         # - count used CPU (per category)
-        user['CPUS'] = rich.Integer(sum([int(line['CPUS']) for line in N]))
-        user['CPUS_R'] = rich.Integer(sum([int(line['CPUS_R']) for line in N]))
-        user['CPUS_PD'] = rich.Integer(sum([int(line['CPUS_PD']) for line in N]))
+        user["CPUS"] = rich.Integer(sum(int(line["CPUS"]) for line in N))
+        user["CPUS_R"] = rich.Integer(sum(int(line["CPUS_R"]) for line in N))
+        user["CPUS_PD"] = rich.Integer(sum(int(line["CPUS_PD"]) for line in N))
 
         # - remove zeros from output for more intuitive output
-        for key in ['CPUS_R', 'CPUS_PD']:
+        for key in ["CPUS_R", "CPUS_PD"]:
             if int(user[key]) == 0:
-                user[key] = rich.Integer('-')
+                user[key] = rich.Integer("-")
 
     # rename field
     lines = users
@@ -297,22 +323,31 @@ def main():
     # -- sort --
 
     # default sort
-    lines.sort(key=lambda line: line['USER'], reverse=args['reverse'])
+    lines.sort(key=lambda line: line["USER"], reverse=args["reverse"])
 
     # optional: sort by key(s)
-    if args['sort']:
+    if args["sort"]:
 
         # get available keys in the setting with fewer columns
-        keys = [alias[column['key']].upper() for column in columns_summary]
+        keys = [alias[column["key"]].upper() for column in columns_summary]
 
         # filter sort keys that are not available in this mode
-        args['sort'] = [key for key in args['sort'] if key.upper() in keys]
+        args["sort"] = [key for key in args["sort"] if key.upper() in keys]
 
         # apply sort
-        for key in args['sort']:
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args['reverse'])
+        for key in args["sort"]:
+            lines.sort(
+                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
+            )
 
     # -- print --
 
-    table.print_columns(lines, columns_summary, header_summary,
-                        args['no_truncate'], args['sep'], args['width'], not args['no_header'])
+    table.print_columns(
+        lines,
+        columns_summary,
+        header_summary,
+        args["no_truncate"],
+        args["sep"],
+        args["width"],
+        not args["no_header"],
+    )

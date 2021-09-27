@@ -484,6 +484,3 @@ To avoid having to specify this after every new login, this (and other commands)
    fi
 
    export PATH=$HOME/bin:$PATH
-
-
-
