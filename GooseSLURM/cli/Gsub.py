@@ -137,5 +137,6 @@ def main():
             options += [name]
             jobid = sbatch(options, verbose=args["--verbose"], dry_run=args["--dry-run"])
             log[file] += [jobid]
-            fileio.YamlDump(args["--log"], log)
+            if args["--log"]:
+                fileio.YamlDump(args["--log"], log)
             time.sleep(float(args["--delay"]))

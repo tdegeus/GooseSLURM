@@ -1,4 +1,5 @@
 from . import duration
+from . import fileio
 from . import files
 from . import memory
 from . import ps

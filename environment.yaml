@@ -1,0 +1,10 @@
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - docopt
+  - pyyaml
+  - click
+  - numpy
+  - mergedeep
+  - tqdm
