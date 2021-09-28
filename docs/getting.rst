@@ -28,7 +28,7 @@ Installing GooseSLUM proceeds easily with ``pip``:
 .. code-block:: bash
 
     cd /path/to/GooseSLURM
-    python m pip install .
+    python -m pip install . -vv
 
 This should install all the necessary runtime dependencies as well.
 
