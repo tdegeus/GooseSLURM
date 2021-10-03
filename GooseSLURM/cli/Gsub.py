@@ -25,6 +25,9 @@ Options:
     -r, --repeat = INT
         Submit using dependencies such that the job will be repeated 'n' times. [default: 1]
 
+    --serial
+        Submit using dependencies such that jobs are run after each other.
+
     -d, --dependency = ARG (sbatch option)
         Defer the start of this job until the specified dependencies have been satisfied completed.
 
@@ -126,6 +129,7 @@ def main():
     parser.add_argument("-w", "--wait", action="store_true")
     parser.add_argument("-c", "--constraint", type=str)
     parser.add_argument("-Q", "--quiet", action="store_true")
+    parser.add_argument("--serial", action="store_true")
     parser.add_argument("files", nargs="*", type=str)
     args = parser.parse_args()
     dargs = vars(args)
@@ -149,7 +153,7 @@ def main():
             for opt in ["constraint", "dependency"]:
                 if dargs[opt]:
                     options += [f"--{opt:s}", dargs[opt]]
-            if rep:
+            if rep or (args.serial and ifile):
                 options += ["--dependency", str(jobid)]
             options += [name]
             jobid = sbatch(options, verbose=args.verbose, dry_run=args.dry_run)
