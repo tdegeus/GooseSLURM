@@ -85,6 +85,36 @@ class Test_Gsub(unittest.TestCase):
         os.remove(log_sbatch)
         os.remove(myjob)
 
+    def test_serial(self):
+
+        myjobs = ["myjob_1.slurm", "myjob_2.slurm", "myjob_3.slurm"]
+
+        for filename in [log_sbatch] + myjobs:
+            if os.path.isfile(filename):
+                os.remove(filename)
+
+        for myjob in myjobs:
+            with open(myjob, "w") as file:
+                file.write(GooseSLURM.scripts.plain(myjob))
+
+        subprocess.check_output(["Gsub", "--quiet", "--serial"] + myjobs)
+
+        log = GooseSLURM.fileio.YamlRead(log_sbatch)
+
+        for i, command in enumerate(log["commands"]):
+
+            j = np.argwhere(np.array(command) == "--dependency").ravel()
+
+            if i:
+                self.assertTrue(len(j) == 1)
+                self.assertTrue(len(command) > j[0])
+                self.assertEqual(command[j[0] + 1], str(i))
+            else:
+                self.assertTrue(len(j) == 0)
+
+        os.remove(log_sbatch)
+        os.remove(myjob)
+
 
 if __name__ == "__main__":
 
