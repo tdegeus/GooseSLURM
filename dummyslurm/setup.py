@@ -14,6 +14,10 @@ setup(
     entry_points={
         "console_scripts": [
             "sbatch = dummyslurm:sbatch",
+            "sacct = dummyslurm:sacct",
         ]
+    },
+    package_data = {
+        '': ['*.txt'],
     },
 )
