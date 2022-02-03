@@ -125,9 +125,7 @@ def interpret(lines, now=None, theme=colors()):
         for key in ["START_TIME", "SUBMIT_TIME"]:
             try:
                 line[key] = rich.Duration(
-                    int(
-                        now - time.mktime(time.strptime(line[key], "%Y-%m-%dT%H:%M:%S"))
-                    )
+                    int(now - time.mktime(time.strptime(line[key], "%Y-%m-%dT%H:%M:%S")))
                 )
             except BaseException:
                 line[key] = rich.Duration(line[key])

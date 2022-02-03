@@ -110,9 +110,7 @@ def mem_score(MEMORY, FREE_MEM, CPUS_A, CPUS_T, **kwargs):
 
     MEM_USED = float(MEMORY) - float(FREE_MEM)
 
-    return rich.Float(
-        float(MEM_USED) / float(MEMORY) * float(CPUS_T) / float(CPUS_A), precision=2
-    )
+    return rich.Float(float(MEM_USED) / float(MEMORY) * float(CPUS_T) / float(CPUS_A), precision=2)
 
 
 def interpret(lines, theme=colors()):

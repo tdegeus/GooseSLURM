@@ -417,9 +417,7 @@ class Memory(Integer):
     def __init__(self, data, **kwargs):
 
         if "default_unit" in kwargs:
-            data = memory.asBytes(
-                data, default=data, default_unit=kwargs.pop("default_unit")
-            )
+            data = memory.asBytes(data, default=data, default_unit=kwargs.pop("default_unit"))
         else:
             data = memory.asBytes(data, default=data)
 

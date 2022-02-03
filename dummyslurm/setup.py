@@ -17,7 +17,7 @@ setup(
             "sacct = dummyslurm:sacct",
         ]
     },
-    package_data = {
-        '': ['*.txt'],
+    package_data={
+        "": ["*.txt"],
     },
 )

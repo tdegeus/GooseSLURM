@@ -351,9 +351,7 @@ def main():
 
         for key in args["sort"]:
 
-            lines.sort(
-                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
-            )
+            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- select columns --
 
@@ -414,11 +412,7 @@ def main():
     for partition in partitions:
 
         # - isolate nodes for this partition
-        N = [
-            line
-            for line in lines
-            if str(line["PARTITION"]) == str(partition["PARTITION"])
-        ]
+        N = [line for line in lines if str(line["PARTITION"]) == str(partition["PARTITION"])]
 
         # - get the CPU count
         partition["CPUS_T"] = rich.Integer(sum(int(line["CPUS_T"]) for line in N))
@@ -433,22 +427,14 @@ def main():
         # - average load
         if len([1 for line in N if line["CPU_RELJOB"].isnumeric()]) > 0:
             partition["CPU_RELJOB"] = rich.Float(
-                sum(
-                    float(line["CPU_RELJOB"])
-                    for line in N
-                    if line["CPU_RELJOB"].isnumeric()
-                )
+                sum(float(line["CPU_RELJOB"]) for line in N if line["CPU_RELJOB"].isnumeric())
                 / sum(1.0 for line in N if line["CPU_RELJOB"].isnumeric())
             )
 
         # - average memory consumption
         if len([1 for line in N if line["MEM_RELJOB"].isnumeric()]) > 0:
             partition["MEM_RELJOB"] = rich.Float(
-                sum(
-                    float(line["MEM_RELJOB"])
-                    for line in N
-                    if line["MEM_RELJOB"].isnumeric()
-                )
+                sum(float(line["MEM_RELJOB"]) for line in N if line["MEM_RELJOB"].isnumeric())
                 / sum(1.0 for line in N if line["MEM_RELJOB"].isnumeric())
             )
 
@@ -479,9 +465,7 @@ def main():
 
         # apply sort
         for key in args["sort"]:
-            lines.sort(
-                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
-            )
+            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- print --
 

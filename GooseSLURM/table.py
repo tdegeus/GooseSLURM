@@ -155,9 +155,7 @@ def print_columns(
         columns[0]["total"] = columns[0]["width"]
         # - all other entries
         for i in range(1, len(columns)):
-            columns[i]["total"] = (
-                columns[i - 1]["total"] + columns[i]["width"] + len(sep)
-            )
+            columns[i]["total"] = columns[i - 1]["total"] + columns[i]["width"] + len(sep)
 
         # truncate at terminal size
         columns = [column for column in columns if column["total"] <= cols]

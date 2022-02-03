@@ -173,9 +173,7 @@ def main():
 
         for key in args["sort"]:
 
-            lines.sort(
-                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
-            )
+            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- select columns --
 
