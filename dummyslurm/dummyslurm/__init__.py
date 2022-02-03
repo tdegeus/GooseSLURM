@@ -5,6 +5,8 @@ import yaml
 
 version = "1.2.3"
 
+dirname = os.path.dirname(os.path.abspath(__file__))
+
 
 def sbatch():
 
@@ -25,3 +27,13 @@ def sbatch():
 
     with open(logfile, "w") as file:
         yaml.dump(log, file)
+
+
+def sacct():
+
+    if sys.argv[1:] == ["-l", "-j", "1"]:
+        with open(os.path.join(dirname, "sacct_-l_-j_1.txt"), "r") as file:
+            print(file.read())
+        return
+
+    raise OSError("Command not implemented")
