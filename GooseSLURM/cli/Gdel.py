@@ -173,9 +173,7 @@ def main():
     print("Delete jobs : ")
 
     # print selected jobs
-    table.print_columns(
-        lines, columns, header, args["no_truncate"], args["sep"], args["width"]
-    )
+    table.print_columns(lines, columns, header, args["no_truncate"], args["sep"], args["width"])
 
     # prompt response
     if not click.confirm("Proceed?"):

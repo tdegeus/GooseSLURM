@@ -49,9 +49,7 @@ def asSeconds(data, default=None):
         for i in range(len(data)):
             t[-1 * (i + 1)] = data[-1 * (i + 1)]
         # - return seconds
-        return (
-            int(t[0]) * 24 * 60 * 60 + int(t[1]) * 60 * 60 + int(t[2]) * 60 + int(t[3])
-        )
+        return int(t[0]) * 24 * 60 * 60 + int(t[1]) * 60 * 60 + int(t[2]) * 60 + int(t[3])
 
     # convert time string in hours (e.g. "24:00:00")
     if re.match(r"^[0-9]*\:[0-9]*\:[0-9]*$", data):

@@ -45,9 +45,7 @@ def plain(
             sbatch[key] = memory.asSlurm(item)
 
     # - convert to string
-    sbatch = "\n".join(
-        [f"#SBATCH --{key:s} {str(arg):s}" for key, arg in sbatch.items()]
-    )
+    sbatch = "\n".join([f"#SBATCH --{key:s} {str(arg):s}" for key, arg in sbatch.items()])
 
     return """{shell:s}
 {sbatch:s}
@@ -111,9 +109,7 @@ def tempdir(remove=[], command=[], shell="#!/bin/bash -l", **sbatch):
     outfile = sbatch["out"]
 
     # - convert to string
-    sbatch = "\n".join(
-        [f"#SBATCH --{key:s} {str(arg):s}" for key, arg in sbatch.items()]
-    )
+    sbatch = "\n".join([f"#SBATCH --{key:s} {str(arg):s}" for key, arg in sbatch.items()])
 
     return """{shell:s}
 {sbatch:s}

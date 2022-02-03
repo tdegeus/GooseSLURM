@@ -46,9 +46,9 @@ def read(data=None):
 
     # get live info
     if data is None:
-        data = subprocess.check_output(
-            "ps -eo pid,user,rss,%cpu,command", shell=True
-        ).decode("utf-8")
+        data = subprocess.check_output("ps -eo pid,user,rss,%cpu,command", shell=True).decode(
+            "utf-8"
+        )
 
     # extract the header and the info
     header, data = data.split("\n", 1)

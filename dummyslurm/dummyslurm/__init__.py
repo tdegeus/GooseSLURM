@@ -32,7 +32,7 @@ def sbatch():
 def sacct():
 
     if sys.argv[1:] == ["-l", "-j", "1"]:
-        with open(os.path.join(dirname, "sacct_-l_-j_1.txt"), "r") as file:
+        with open(os.path.join(dirname, "sacct_-l_-j_1.txt")) as file:
             print(file.read())
         return
 

@@ -234,9 +234,7 @@ def main():
 
         for key in args["sort"]:
 
-            lines.sort(
-                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
-            )
+            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- select columns --
 
@@ -300,12 +298,8 @@ def main():
         N = [line for line in lines if str(line["USER"]) == str(user["USER"])]
 
         # - get (a list of) partition(s)/account(s)
-        user["PARTITION"] = rich.String(
-            ",".join(list({str(line["PARTITION"]) for line in N}))
-        )
-        user["ACCOUNT"] = rich.String(
-            ",".join(list({str(line["ACCOUNT"]) for line in N}))
-        )
+        user["PARTITION"] = rich.String(",".join(list({str(line["PARTITION"]) for line in N})))
+        user["ACCOUNT"] = rich.String(",".join(list({str(line["ACCOUNT"]) for line in N})))
 
         # - count used CPU (per category)
         user["CPUS"] = rich.Integer(sum(int(line["CPUS"]) for line in N))
@@ -336,9 +330,7 @@ def main():
 
         # apply sort
         for key in args["sort"]:
-            lines.sort(
-                key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"]
-            )
+            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- print --
 
