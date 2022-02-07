@@ -10,6 +10,10 @@ log_sbatch = "_sbatch.yaml"
 
 
 class Test_Gsub(unittest.TestCase):
+    """
+    Test Gsub commands.
+    """
+
     def test_basic(self):
 
         myjob = "myjob.slurm"
