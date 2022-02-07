@@ -256,9 +256,97 @@ def scontrol():
 
 def sacct():
 
-    if sys.argv[1:] == ["-l", "-j", "1"]:
-        with open(os.path.join(dirname, "sacct_-l_-j_1.txt")) as file:
-            print(file.read())
-        return 0
+    log = []
+
+    if os.path.isfile(os.path.realpath(logfile)):
+        with open(logfile) as file:
+            log = yaml.load(file.read(), Loader=yaml.FullLoader)
+
+    if re.match(r"^(-l -j )([0-9]*)", " ".join(sys.argv[1:])):
+
+        jobid = int(re.split(r"^(-l -j )([0-9]*)", " ".join(sys.argv[1:]))[2])
+
+        keys = [
+            "JobID",
+            "JobIDRaw",
+            "JobName",
+            "Partition",
+            "MaxVMSize",
+            "MaxVMSizeNode",
+            "MaxVMSizeTask",
+            "AveVMSize",
+            "MaxRSS",
+            "MaxRSSNode",
+            "MaxRSSTask",
+            "AveRSS",
+            "MaxPages",
+            "MaxPagesNode",
+            "MaxPagesTask",
+            "AvePages",
+            "MinCPU",
+            "MinCPUNode",
+            "MinCPUTask",
+            "AveCPU",
+            "NTasks",
+            "AllocCPUS",
+            "Elapsed",
+            "State",
+            "ExitCode",
+            "AveCPUFreq",
+            "ReqCPUFreqMin",
+            "ReqCPUFreqMax",
+            "ReqCPUFreqGov",
+            "ReqMem",
+            "ConsumedEnergy",
+            "MaxDiskRead",
+            "MaxDiskReadNode",
+            "MaxDiskReadTask",
+            "AveDiskRead",
+            "MaxDiskWrite",
+            "MaxDiskWriteNode",
+            "MaxDiskWriteTask",
+            "AveDiskWrite",
+            "AllocGRES",
+            "ReqGRES",
+            "ReqTRES",
+            "AllocTRES",
+            "TRESUsageInAve",
+            "TRESUsageInMax",
+            "TRESUsageInMaxNode",
+            "TRESUsageInMaxTask",
+            "TRESUsageInMin",
+            "TRESUsageInMinNode",
+            "TRESUsageInMinTask",
+            "TRESUsageInTot",
+            "TRESUsageOutMax",
+            "TRESUsageOutMaxNode",
+            "TRESUsageOutMaxTask",
+            "TRESUsageOutAve",
+            "TRESUsageOutTot",
+        ]
+
+        alias = {
+            "JobID": "jobid",
+            "JobName": "job_name",
+        }
+
+        for i in log:
+            if i["jobid"] == jobid:
+
+                base = [str(i.get(alias.get(key, "NONE"), "")) for key in keys]
+                batch = [r for r in base]
+                extern = [r for r in base]
+                batch[0] = batch[0] + ".ba+"
+                extern[0] = extern[0] + ".ex+"
+                width = [1 + max(len(key), len(r)) for key, r in zip(keys, base)]
+                width[0] += 4
+                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, keys)]))
+                print(" ".join(['-' * w for w in width]))
+                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, base)]))
+                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, batch)]))
+                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, extern)]))
+                return 0
+
+        raise OSError("JobID not found")
 
     raise OSError("Command not implemented")
