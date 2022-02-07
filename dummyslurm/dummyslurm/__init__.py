@@ -41,12 +41,14 @@ def sbatch():
     parser.add_argument("script", type=str)
     parser.add_argument("-A", "--account", type=str, default="default")
     parser.add_argument("-c", "--cpus-per-task", type=str, default="1")
+    parser.add_argument("-d", "--dependency", type=str)
     parser.add_argument("-J", "--job-name", type=str, default="sbatch")
     parser.add_argument("-N", "--nodes", type=str, default="1")
     parser.add_argument("-n", "--ntasks", type=str, default="1")
     parser.add_argument("-p", "--partition", type=str, default="serial")
     parser.add_argument("-t", "--time", type=str, default="1:00:00")
     parser.add_argument("--mem", type=str, default="5000000000")
+    parser.add_argument("--chdir", type=str)
     args = parser.parse_args()
 
     # read SBATCH options from script
@@ -62,10 +64,21 @@ def sbatch():
 
     jobid = len(log) + 1
     mylog = vars(args)
+    for key, value in dict(mylog).items():
+        if value is None:
+            del mylog[key]
+
+    mylog["state"] = "PD"
     mylog["jobid"] = jobid
     mylog["user"] = pwd.getpwuid(os.getuid())[0]
     mylog["command"] = os.path.abspath(mylog["script"])
+    if args.chdir:
+        mylog["workdir"] = args.chdir
+    else:
+        mylog["workdir"] = os.path.dirname(os.path.abspath(mylog["script"]))
+
     log += [mylog]
+
     print(f"Submitted batch job {jobid:d}")
 
     with open(logfile, "w") as file:
@@ -177,16 +190,21 @@ def squeue():
         alias = {
             "ACCOUNT": "account",
             "CPUS": "cpus_per_task",
+            "DEPENDENCY": "dependency",
+            "JOBID": "jobid",
             "MIN_MEMORY": "mem",
             "NODES": "nodes",
             "PARTITION": "partition",
+            "ST": "state",
+            "TIME": "time",
             "USER": "user",
+            "WORK_DIR": "workdir",
         }
 
         print("|".join([i.upper() for i in keys]))
 
         for i in log:
-            print("|".join([i.get(alias.get(key, "NONE"), "N/A") for key in keys]))
+            print("|".join([str(i.get(alias.get(key, "NONE"), "N/A")) for key in keys]))
 
         return 0
 
