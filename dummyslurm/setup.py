@@ -19,7 +19,4 @@ setup(
             "squeue = dummyslurm:squeue",
         ]
     },
-    package_data={
-        "": ["*.txt"],
-    },
 )
