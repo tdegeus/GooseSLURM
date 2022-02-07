@@ -3,7 +3,7 @@
 
 Usage:
     Gstat [options]
-    Gstat [options] [--jobid=N...] [--host=N...] [--user=N...] [--name=N...] [--account=N...] [--partition=N...] [--sort=N...] [--output=N...]
+    Gstat [options] [--jobid=N...] [--host=N...] [--user=N...] [--name=N...] [--workdir=N...] [--account=N...] [--partition=N...] [--sort=N...] [--output=N...]
 
 Options:
     -U
@@ -22,6 +22,9 @@ Options:
         Limit output to account(s) (may be a regex).
 
     -n, --name=<NAME>
+        Limit output to job-name(s) (may be a regex).
+
+    -w, --workdir=<NAME>
         Limit output to job-name(s) (may be a regex).
 
     --status=<NAME>
@@ -59,6 +62,15 @@ Options:
 
     -l, --list
         Print selected column as list.
+
+    -J, --joblist
+        Print selected job-id(s) as list.
+
+    --abspath
+        Print all output as absolute directories (default: automatic).
+
+    --relpath
+        Print all output as relative directories (default: automatic).
 
     --sep=<NAME>
         Set column separator. [default:  ] (space)
@@ -109,6 +121,10 @@ def main():
     if args["U"]:
         args["user"] += [pwd.getpwuid(os.getuid())[0]]
 
+    if args["joblist"]:
+        args["output"] = ["JOBID"]
+        args["list"] = True
+
     # conversion map: default field-names -> custom field-names
     alias = {
         "JOBID": "JobID",
@@ -125,6 +141,8 @@ def main():
         "ST": "ST",
         "NODELIST(REASON)": "Host",
         "PARTITION": "Partition",
+        "DEPENDENCY": "Dependency",
+        "WORK_DIR": "WorkDir",
     }
 
     # conversion map: custom field-names -> default field-names
@@ -155,6 +173,8 @@ def main():
         {"key": "ST", "width": 2, "align": "<", "priority": True},
         {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
         {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False},
+        {"key": "DEPENDENCY", "width": 5, "align": "<", "priority": False},
+        {"key": "WORK_DIR", "width": 7, "align": "<", "priority": False},
     ]
 
     # header
@@ -196,6 +216,19 @@ def main():
             theme=theme,
         )
 
+    # -- convert paths ---
+
+    if args["abspath"]:
+        for line in lines:
+            line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
+    elif args["relpath"]:
+        for line in lines:
+            line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
+    else:
+        for line in lines:
+            if len(os.path.relpath(line["WORK_DIR"].data).split("../")) < 3:
+                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
+
     # -- limit based on command-line options --
 
     for key in [
@@ -206,6 +239,7 @@ def main():
         "ST",
         "NODELIST(REASON)",
         "PARTITION",
+        "WORK_DIR",
     ]:
 
         if args[key]:
@@ -231,17 +265,13 @@ def main():
 
     # optional: sort by key(s)
     if args["sort"]:
-
         for key in args["sort"]:
-
             lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- select columns --
 
     if args["output"]:
-
         keys = [aliasInv[key.upper()] for key in args["output"]]
-
         columns = [column for column in columns if column["key"] in keys]
 
     # -- print --
@@ -250,26 +280,22 @@ def main():
 
         # optional: print all fields and quit
         if args["long"]:
-
             table.print_long(lines)
-
-            sys.exit(0)
+            return 0
 
         # optional: print as list and quit
         elif args["list"]:
-
-            # - only one field can be selected
             if len(columns) > 1:
                 print("Only one field can be selected")
                 sys.exit(1)
 
-            # - print and quit
             table.print_list(lines, columns[0]["key"], args["sep"])
-
-            sys.exit(0)
+            return 0
 
         # default: print columns
         else:
+            if all([str(i["DEPENDENCY"]).lower() in ["", "n/a", "(null)"] for i in lines]):
+                columns = [column for column in columns if column["key"] not in ["DEPENDENCY"]]
 
             table.print_columns(
                 lines,
@@ -280,8 +306,7 @@ def main():
                 args["width"],
                 not args["no_header"],
             )
-
-            sys.exit(0)
+            return 0
 
     # -- summarize information --
 

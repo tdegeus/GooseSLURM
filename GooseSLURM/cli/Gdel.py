@@ -80,6 +80,8 @@ def main():
         "ST": "ST",
         "NODELIST(REASON)": "Host",
         "PARTITION": "Partition",
+        "DEPENDENCY": "Dependency",
+        "WORK_DIR": "WorkDir",
     }
 
     # conversion map: custom field-names -> default field-names
@@ -110,6 +112,8 @@ def main():
         {"key": "ST", "width": 2, "align": "<", "priority": True},
         {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
         {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False},
+        {"key": "DEPENDENCY", "width": 5, "align": "<", "priority": False},
+        {"key": "WORK_DIR", "width": 7, "align": "<", "priority": False},
     ]
 
     # header
