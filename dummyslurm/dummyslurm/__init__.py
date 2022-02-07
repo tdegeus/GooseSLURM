@@ -72,6 +72,40 @@ def sbatch():
         yaml.dump(log, file)
 
 
+def scancel():
+    """
+    Dummy ``scancel`` command.
+    A local file '_sbatch.yaml' in the current working directory will contain the history of
+    'submitted' jobs.
+    """
+
+    log = []
+
+    if os.path.isfile(os.path.realpath(logfile)):
+        with open(logfile) as file:
+            log = yaml.load(file.read(), Loader=yaml.FullLoader)
+
+    class MyFmt(
+        argparse.RawDescriptionHelpFormatter,
+        argparse.ArgumentDefaultsHelpFormatter,
+        argparse.MetavarTypeHelpFormatter,
+    ):
+        pass
+
+    funcname = inspect.getframeinfo(inspect.currentframe()).function
+    doc = textwrap.dedent(inspect.getdoc(globals()[funcname]))
+
+    parser = argparse.ArgumentParser(formatter_class=MyFmt, description=doc)
+    parser.add_argument("jobid", type=int, nargs="*")
+    args = parser.parse_args()
+
+    log = [i for i in log if i["jobid"] not in args.jobid]
+
+    with open(logfile, "w") as file:
+        yaml.dump(log, file)
+
+
+
 def squeue():
     """
     Dummy ``squeue`` command.
