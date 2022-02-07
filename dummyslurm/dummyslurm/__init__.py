@@ -64,6 +64,7 @@ def sbatch():
     mylog = vars(args)
     mylog["jobid"] = jobid
     mylog["user"] = pwd.getpwuid(os.getuid())[0]
+    mylog["command"] = os.path.abspath(mylog["script"])
     log += [mylog]
     print(f"Submitted batch job {jobid:d}")
 
@@ -138,18 +139,117 @@ def squeue():
             "SCHEDNODES",
             "WORK_DIR",
         ]
+
         alias = {
             "ACCOUNT": "account",
-            "PARTITION": "partition",
             "CPUS": "cpus_per_task",
-            "NODES": "nodes",
             "MIN_MEMORY": "mem",
+            "NODES": "nodes",
+            "PARTITION": "partition",
             "USER": "user",
         }
+
         print("|".join([i.upper() for i in keys]))
+
         for i in log:
             print("|".join([i.get(alias.get(key, "NONE"), "N/A") for key in keys]))
+
         return 0
+
+    raise OSError("Command not implemented")
+
+
+def scontrol():
+
+    log = []
+
+    if os.path.isfile(os.path.realpath(logfile)):
+        with open(logfile) as file:
+            log = yaml.load(file.read(), Loader=yaml.FullLoader)
+
+    if re.match(r"^(show job )([0-9]*)", " ".join(sys.argv[1:])):
+
+        jobid = int(re.split(r"^(show job )([0-9]*)", " ".join(sys.argv[1:]))[2])
+
+        keys = [
+            "JobId",
+            "JobName",
+            "UserId",
+            "GroupId",
+            "MCS_label",
+            "Priority",
+            "Nice",
+            "Account",
+            "QOS",
+            "JobState",
+            "Reason",
+            "Dependency",
+            "Requeue",
+            "Restarts",
+            "BatchFlag",
+            "Reboot",
+            "ExitCode",
+            "RunTime",
+            "TimeLimit",
+            "TimeMin",
+            "SubmitTime",
+            "EligibleTime",
+            "AccrueTime",
+            "StartTime",
+            "EndTime",
+            "Deadline",
+            "SuspendTime",
+            "SecsPreSuspend",
+            "LastSchedEval",
+            "Partition",
+            "AllocNode:Sid",
+            "ReqNodeList",
+            "ExcNodeList",
+            "NodeList",
+            "BatchHost",
+            "NumNodes",
+            "NumCPUs",
+            "NumTasks",
+            "CPUs/Task",
+            "ReqB:S:C:T",
+            "TRES",
+            "Socks/Node",
+            "NtasksPerN:B:S:C",
+            "CoreSpec",
+            "MinCPUsNode",
+            "MinMemoryCPU",
+            "MinTmpDiskNode",
+            "Features",
+            "DelayBoot",
+            "OverSubscribe",
+            "Contiguous",
+            "Licenses",
+            "Network",
+            "Command",
+            "WorkDir",
+            "StdErr",
+            "StdIn",
+            "StdOut",
+            "Power",
+        ]
+
+        alias = {
+            "Account": "account",
+            "Command": "command",
+            "JobId": "jobid",
+            "JobName": "job_name",
+            "UserId": "user",
+        }
+
+        for i in log:
+            if i["jobid"] == jobid:
+                ret = [f"{key}=" + str(i.get(alias.get(key, "NONE"), "")) for key in keys]
+                ret = textwrap.wrap(" ".join(ret), subsequent_indent="    ", break_long_words=False)
+                ret = "\n".join(ret)
+                print(ret)
+                return 0
+
+        raise OSError("JobID not found")
 
     raise OSError("Command not implemented")
 
