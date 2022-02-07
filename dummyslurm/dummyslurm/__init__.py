@@ -118,7 +118,6 @@ def scancel():
         yaml.dump(log, file)
 
 
-
 def squeue():
     """
     Dummy ``squeue`` command.
@@ -393,7 +392,7 @@ def sacct():
                 width = [1 + max(len(key), len(r)) for key, r in zip(keys, base)]
                 width[0] += 4
                 print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, keys)]))
-                print(" ".join(['-' * w for w in width]))
+                print(" ".join(["-" * w for w in width]))
                 print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, base)]))
                 print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, batch)]))
                 print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, extern)]))
