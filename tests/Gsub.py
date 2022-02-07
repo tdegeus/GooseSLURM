@@ -2,8 +2,6 @@ import os
 import subprocess
 import unittest
 
-import numpy as np
-
 import GooseSLURM
 
 log_sbatch = "_sbatch.yaml"
@@ -75,16 +73,12 @@ class Test_Gsub(unittest.TestCase):
 
         log = GooseSLURM.fileio.YamlRead(log_sbatch)
 
-        for i, command in enumerate(log["commands"]):
-
-            j = np.argwhere(np.array(command) == "--dependency").ravel()
+        for i, job in enumerate(log):
 
             if i:
-                self.assertTrue(len(j) == 1)
-                self.assertTrue(len(command) > j[0])
-                self.assertEqual(command[j[0] + 1], str(i))
+                self.assertEqual(job["jobid"] - 1, job["dependency"])
             else:
-                self.assertTrue(len(j) == 0)
+                self.assertTrue("dependency" not in job)
 
         os.remove(log_sbatch)
         os.remove(myjob)
@@ -105,16 +99,12 @@ class Test_Gsub(unittest.TestCase):
 
         log = GooseSLURM.fileio.YamlRead(log_sbatch)
 
-        for i, command in enumerate(log["commands"]):
-
-            j = np.argwhere(np.array(command) == "--dependency").ravel()
+        for i, job in enumerate(log):
 
             if i:
-                self.assertTrue(len(j) == 1)
-                self.assertTrue(len(command) > j[0])
-                self.assertEqual(command[j[0] + 1], str(i))
+                self.assertEqual(job["jobid"] - 1, job["dependency"])
             else:
-                self.assertTrue(len(j) == 0)
+                self.assertTrue("dependency" not in job)
 
         os.remove(log_sbatch)
         os.remove(myjob)

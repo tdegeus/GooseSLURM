@@ -41,8 +41,8 @@ def sbatch():
     parser.add_argument("script", type=str)
     parser.add_argument("-A", "--account", type=str, default="default")
     parser.add_argument("-c", "--cpus-per-task", type=str, default="1")
-    parser.add_argument("-d", "--dependency", type=str)
-    parser.add_argument("-J", "--job-name", type=str, default="sbatch")
+    parser.add_argument("-d", "--dependency", type=int)
+    parser.add_argument("-J", "--job-name", type=str)
     parser.add_argument("-N", "--nodes", type=str, default="1")
     parser.add_argument("-n", "--ntasks", type=str, default="1")
     parser.add_argument("-p", "--partition", type=str, default="serial")
@@ -50,6 +50,9 @@ def sbatch():
     parser.add_argument("--mem", type=str, default="5000000000")
     parser.add_argument("--chdir", type=str)
     args = parser.parse_args()
+
+    if args.job_name is None:
+        args.job_name = args.script
 
     # read SBATCH options from script
     if os.path.isfile(args.script):
@@ -192,6 +195,7 @@ def squeue():
             "DEPENDENCY": "dependency",
             "JOBID": "jobid",
             "MIN_MEMORY": "mem",
+            "NAME": "job_name",
             "NODES": "nodes",
             "PARTITION": "partition",
             "ST": "state",
