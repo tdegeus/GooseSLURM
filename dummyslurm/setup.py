@@ -15,6 +15,7 @@ setup(
         "console_scripts": [
             "sacct = dummyslurm:sacct",
             "sbatch = dummyslurm:sbatch",
+            "scontrol = dummyslurm:scontrol",
             "squeue = dummyslurm:squeue",
         ]
     },
