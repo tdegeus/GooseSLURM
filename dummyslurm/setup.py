@@ -13,8 +13,9 @@ setup(
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "sbatch = dummyslurm:sbatch",
             "sacct = dummyslurm:sacct",
+            "sbatch = dummyslurm:sbatch",
+            "squeue = dummyslurm:squeue",
         ]
     },
     package_data={
