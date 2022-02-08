@@ -1,9 +1,28 @@
 """Gstat
-    Summarize the status of the jobs (wrapper around "squeue").
+    Summarize the status of the jobs (wrapper around "squeue") using (some of) the following fields:
+
+        +--------------+------------------------------------------------+
+        | Header       | Description                                    |
+        +--------------+------------------------------------------------+
+        | "JobID"      | Job-id                                         |
+        | "User"       | Username                                       |
+        | "Account"    | Account name                                   |
+        | "Name"       | Job name                                       |
+        | "Tstart"     | Time as which the job will start / has started |
+        | "Tleft"      | Maximum duration left                          |
+        | "#node"      | Number of nodes claimed                        |
+        | "#CPU"       | Number of CPUs claimed                         |
+        | "MEM"        | Memory claimed                                 |
+        | "ST"         | Status                                         |
+        | "Partition"  | Partition                                      |
+        | "Host"       | Hostname                                       |
+        | "Dependency" | Dependency / dependencies                      |
+        | "WorkDir"    | Working directory                              |
+        +--------------+------------------------------------------------+
 
 Usage:
     Gstat [options]
-    Gstat [options] [--jobid=N...] [--host=N...] [--user=N...] [--name=N...] [--workdir=N...] [--account=N...] [--partition=N...] [--sort=N...] [--output=N...]
+    Gstat [options] [--jobid=N...] [--host=N...] [--user=N...] [--name=N...] [--workdir=N...] [--account=N...] [--partition=N...] [--sort=N...] [--output=N...] [--extra=N...]
 
 Options:
     -U
@@ -26,6 +45,7 @@ Options:
 
     -w, --workdir=<NAME>
         Limit output to job-name(s) (may be a regex).
+        Consider using ``--abspath`` or ``--relpath``.
 
     --status=<NAME>
         Limit output to status (may be a regex).
@@ -40,7 +60,10 @@ Options:
         Reverse sort.
 
     -o, --output=<NAME>
-        Select output columns (selected by the header name).
+        Select output columns (see description).
+
+    -e, --extra=<NAME>
+        Add columns (see description).
 
     --full-name
         Show full user names.
@@ -55,7 +78,7 @@ Options:
         Print full columns, do not truncate based on screen width.
 
     --width=<N>
-        Set print with.
+        Set line-width (otherwise equal to the terminal width).
 
     --colors=<NAME>
         Select color scheme from: none, dark. [default: dark]
@@ -64,16 +87,16 @@ Options:
         Print selected column as list.
 
     -J, --joblist
-        Print selected job-id(s) as list.
+        Print selected job-id(s) as list. Sort for ``Gstat -o jobid -l``.
 
     --abspath
-        Print all output as absolute directories (default: automatic).
+        Print directories as absolute directories (default: automatic, based on distance).
 
     --relpath
-        Print all output as relative directories (default: automatic).
+        Print directories as relative directories (default: automatic, based on distance).
 
     --sep=<NAME>
-        Set column separator. [default:  ] (space)
+        Set column separator. [default:  ] (space) # argparse
 
     --long
         Print full information (each column is printed as a line).
@@ -161,20 +184,20 @@ def main():
     # - "align"   : alignment of the columns (except the header)
     # - "priority": priority of column expansing, columns marked "True" are expanded first
     columns = [
-        {"key": "JOBID", "width": 7, "align": ">", "priority": True},
-        {"key": "USER", "width": 7, "align": "<", "priority": True},
-        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": True},
-        {"key": "NAME", "width": 11, "align": "<", "priority": False},
-        {"key": "START_TIME", "width": 6, "align": ">", "priority": True},
-        {"key": "TIME_LEFT", "width": 5, "align": ">", "priority": True},
-        {"key": "NODES", "width": 5, "align": ">", "priority": True},
-        {"key": "CPUS", "width": 4, "align": ">", "priority": True},
-        {"key": "MIN_MEMORY", "width": 3, "align": ">", "priority": True},
-        {"key": "ST", "width": 2, "align": "<", "priority": True},
-        {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
-        {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False},
-        {"key": "DEPENDENCY", "width": 5, "align": "<", "priority": False},
-        {"key": "WORK_DIR", "width": 7, "align": "<", "priority": False},
+        {"key": "JOBID", "width": 7, "align": ">", "priority": True, "default": True},
+        {"key": "USER", "width": 7, "align": "<", "priority": True, "default": True},
+        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": True, "default": True},
+        {"key": "NAME", "width": 11, "align": "<", "priority": False, "default": True},
+        {"key": "START_TIME", "width": 6, "align": ">", "priority": True, "default": True},
+        {"key": "TIME_LEFT", "width": 5, "align": ">", "priority": True, "default": True},
+        {"key": "NODES", "width": 5, "align": ">", "priority": True, "default": True},
+        {"key": "CPUS", "width": 4, "align": ">", "priority": True, "default": True},
+        {"key": "MIN_MEMORY", "width": 3, "align": ">", "priority": True, "default": True},
+        {"key": "ST", "width": 2, "align": "<", "priority": True, "default": True},
+        {"key": "PARTITION", "width": 9, "align": "<", "priority": False, "default": True},
+        {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False, "default": True},
+        {"key": "DEPENDENCY", "width": 5, "align": "<", "priority": False, "default": False},
+        {"key": "WORK_DIR", "width": 7, "align": "<", "priority": False, "default": False},
     ]
 
     # header
@@ -270,9 +293,19 @@ def main():
 
     # -- select columns --
 
+    if args["extra"]:
+        keys = [aliasInv[key.upper()] for key in args["extra"]]
+        extra = [column for column in columns if column["key"] in keys]
+    else:
+        extra = []
+
     if args["output"]:
         keys = [aliasInv[key.upper()] for key in args["output"]]
         columns = [column for column in columns if column["key"] in keys]
+    else:
+        columns = [column for column in columns if column["default"]]
+
+    columns += extra
 
     # -- print --
 
@@ -294,16 +327,13 @@ def main():
 
         # default: print columns
         else:
-            if all([str(i["DEPENDENCY"]).lower() in ["", "n/a", "(null)"] for i in lines]):
-                columns = [column for column in columns if column["key"] not in ["DEPENDENCY"]]
-
             table.print_columns(
                 lines,
                 columns,
                 header,
                 args["no_truncate"],
                 args["sep"],
-                args["width"],
+                int(args["width"]) if args["width"] else args["width"],  # remove int for argparse
                 not args["no_header"],
             )
             return 0
