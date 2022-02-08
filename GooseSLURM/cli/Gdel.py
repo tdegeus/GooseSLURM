@@ -50,9 +50,9 @@ def main():
     if not click.confirm("Delete above listed jobs?"):
         return 1
 
-    cmd = "scancel " + " ".join([str(line["JOBID"]) for line in gstat.lines])
+    cmd = ["scancel"] + [str(line["JOBID"]) for line in gstat.lines]
 
     if not gstat.args["debug"]:
-        print(subprocess.check_output(cmd, shell=True).decode("utf-8"), end="")
+        print(subprocess.run(cmd, capture_output=True, text=True).stdout, end="")
     else:
         print(cmd)
