@@ -13,35 +13,41 @@
 
 Usage:
     Ginfo [options]
-    Ginfo [options] [--jobid=N...] [--host=N...] [--user=N...] [--cfree=N...] [--partition=N...] [--sort=N...] [--output=N...] [--debug=N...]
 
 Options:
     -U
         Limit output to the current user.
 
     -u, --user=<NAME>
-        Limit output to user(s) (may be a regex).
+        Limit output to user(s).
+        Option may be repeated. Search by regex.
 
     -j, --jobid=<NAME>
-        Limit output to job-id(s) (may be a regex).
+        Limit output to job-id(s).
+        Option may be repeated. Search by regex.
 
-    -h, --host=<NAME>
-        Limit output to host(s) (may be a regex).
+    --host=<NAME>
+        Limit output to host(s).
+        Option may be repeated. Search by regex.
 
     -f, --cfree=<NAME>
-        Limit output to free CPU(s) (may be a regex).
+        Limit output to free CPU(s).
+        Option may be repeated. Search by regex.
 
     -p, --partition=<NAME>
-        Limit output to partition(s) (may be a regex).
+        Limit output to partition(s).
+        Option may be repeated. Search by regex.
 
     -s, --sort=<NAME>
-        Sort by field (selected by the header name).
+        Sort by field.
+        Option may be repeated. Use header names.
 
     -r, --reverse
         Reverse sort.
 
     -o, --output=<NAME>
-        Select output columns (selected by the header name).
+        Select output columns.
+        Option may be repeated. Use header names.
 
     -S, --summary
         Print only summary.
@@ -50,27 +56,27 @@ Options:
         Suppress header.
 
     --no-truncate
-        Print full columns, do not truncate based on screen width.
+        Print full columns, do not truncate based on terminal width.
 
     --width=<N>
-        Set print with.
+        Set line-width (otherwise taken as terminal width).
 
     --colors=<NAME>
-        Select color scheme from: none, dark. [default: dark]
+        Select color scheme from: "none", "dark". [default: "dark"]
 
     -l, --list
         Print selected column as list.
 
     --sep=<NAME>
-        Set column separator. [default:  ] (space)
+        Set column separator. [default: " "]
 
     --long
         Print full information (each column is printed as a line).
 
-    --debug=<FILE>
-        Debug: read 'sinfo -o "%all"' (and then squeue) from file.
+    --debug=<FILE> <FILE>
+        Debug: read ``sinfo -o "%all"`` and  ``squeue -o "%all"`` from file.
 
-    --help
+    -h, --help
         Show help.
 
     --version
@@ -79,12 +85,11 @@ Options:
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 """
+import argparse
 import os
 import pwd
 import re
 import sys
-
-import docopt
 
 from .. import rich
 from .. import sinfo
@@ -97,14 +102,31 @@ def main():
 
     # -- parse command line arguments --
 
-    # parse command-line options
-    args = docopt.docopt(__doc__, version=version)
+    class Parser(argparse.ArgumentParser):
+        def print_help(self):
+            print(__doc__)
 
-    # change keys to simplify implementation:
-    # - remove leading "-" and "--" from options
-    args = {re.sub(r"([\-]{1,2})(.*)", r"\2", key): args[key] for key in args}
-    # - change "-" to "_" to facilitate direct use in print format
-    args = {key.replace("-", "_"): args[key] for key in args}
+    parser = Parser()
+    parser.add_argument("-U", action="store_true")
+    parser.add_argument("-u", "--user", type=str, action="append", default=[])
+    parser.add_argument("-j", "--jobid", type=str, action="append")
+    parser.add_argument("--host", type=str, action="append")
+    parser.add_argument("-c", "--cfree", type=str, action="append")
+    parser.add_argument("-p", "--partition", type=str, action="append")
+    parser.add_argument("-s", "--sort", type=str, action="append")
+    parser.add_argument("-r", "--reverse", action="store_true")
+    parser.add_argument("-o", "--output", type=str, action="append")
+    parser.add_argument("-S", "--summary", action="store_true")
+    parser.add_argument("--no-header", action="store_true")
+    parser.add_argument("--no-truncate", action="store_true")
+    parser.add_argument("--width", type=int)
+    parser.add_argument("--colors", type=str, default="dark")
+    parser.add_argument("-l", "--list", action="store_true")
+    parser.add_argument("--sep", type=str, default=" ")
+    parser.add_argument("--long", action="store_true")
+    parser.add_argument("--debug", type=str, nargs=2)
+    parser.add_argument("--version", action="version", version=version)
+    args = vars(parser.parse_args())
 
     # -------------------------------- field-names and print settings --------
 
