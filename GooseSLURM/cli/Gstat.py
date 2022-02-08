@@ -22,48 +22,58 @@
 
 Usage:
     Gstat [options]
-    Gstat [options] [--jobid=N...] [--host=N...] [--user=N...] [--name=N...] [--workdir=N...] [--account=N...] [--partition=N...] [--sort=N...] [--output=N...] [--extra=N...]
+    Gstat [options] <JobId>...
 
 Options:
     -U
         Limit output to the current user.
 
     -u, --user=<NAME>
-        Limit output to user(s) (may be a regex).
+        Limit output to user(s).
+        Option may be repeated. Search by regex.
 
     -j, --jobid=<NAME>
-        Limit output to job-id(s) (may be a regex).
+        Limit output to job-id(s).
+        Option may be repeated. Search by regex.
 
-    -h, --host=<NAME>
-        Limit output to host(s) (may be a regex).
+    --host=<NAME>
+        Limit output to host(s).
+        Option may be repeated. Search by regex.
 
     -a, --account=<NAME>
-        Limit output to account(s) (may be a regex).
+        Limit output to account(s).
+        Option may be repeated. Search by regex.
 
     -n, --name=<NAME>
-        Limit output to job-name(s) (may be a regex).
+        Limit output to job-name(s).
+        Option may be repeated. Search by regex.
 
     -w, --workdir=<NAME>
-        Limit output to job-name(s) (may be a regex).
-        Consider using ``--abspath`` or ``--relpath``.
+        Limit output to job-name(s).
+        Option may be repeated. Search by regex.
 
     --status=<NAME>
-        Limit output to status (may be a regex).
+        Limit output to status.
+        Option may be repeated. Search by regex.
 
     -p, --partition=<NAME>
-        Limit output to partition(s) (may be a regex).
+        Limit output to partition(s).
+        Option may be repeated. Search by regex.
 
     -s, --sort=<NAME>
-        Sort by field (selected by the header name).
+        Sort by field.
+        Option may be repeated. See description for header names.
 
     -r, --reverse
         Reverse sort.
 
     -o, --output=<NAME>
-        Select output columns (see description).
+        Select output columns.
+        Option may be repeated. See description for header names.
 
     -e, --extra=<NAME>
-        Add columns (see description).
+        Add columns.
+        Option may be repeated. See description for header names.
 
     --full-name
         Show full user names.
@@ -75,13 +85,13 @@ Options:
         Suppress header.
 
     --no-truncate
-        Print full columns, do not truncate based on screen width.
+        Print full columns, do not truncate based on terminal width.
 
     --width=<N>
-        Set line-width (otherwise equal to the terminal width).
+        Set line-width (otherwise taken as terminal width).
 
     --colors=<NAME>
-        Select color scheme from: none, dark. [default: dark]
+        Select color scheme from: "none", "dark". [default: "dark"]
 
     -l, --list
         Print selected column as list.
@@ -96,7 +106,7 @@ Options:
         Print directories as relative directories (default: automatic, based on distance).
 
     --sep=<NAME>
-        Set column separator. [default:  ] (space) # argparse
+        Set column separator. [default: " "]
 
     --long
         Print full information (each column is printed as a line).
@@ -104,7 +114,7 @@ Options:
     --debug=<FILE>
         Debug: read ``squeue -o "%all"`` from file.
 
-    --help
+    -h, --help
         Show help.
 
     --version
@@ -112,12 +122,12 @@ Options:
 
 (c - MIT) T.W.J. de Geus | tom@geus.me | www.geus.me | github.com/tdegeus/GooseSLURM
 """
+import argparse
 import os
 import pwd
 import re
-import sys
-
-import docopt
+import typing
+from collections import namedtuple
 
 from .. import rich
 from .. import squeue
@@ -125,28 +135,75 @@ from .. import table
 from .. import version
 
 
-def main():
+def cli(
+    cli_args: list[str] = None, parse_only: bool = False
+) -> typing.NamedTuple("Gstat", [("args", dict), ("exit", int), ("jobs", list[str])]):
+    """
+    :param cli_args: Specify command-line arguments to assume. Default: ``sys.argv[1:]``.
+    :param parse_only: If true, the function quits directly after parsing command-line arguments.
+
+    :return:
+        namedtuple with fields:
+        -   ``exit``: the exit code.
+        -   ``args``: the parsed command-line arguments.
+        -   ``jobs``: list of jobs ``list[str]``.
+    """
 
     # -- parse command line arguments --
 
-    # parse command-line options
-    args = docopt.docopt(__doc__, version=version)
+    class Parser(argparse.ArgumentParser):
+        def print_help(self):
+            print(__doc__)
 
-    # change keys to simplify implementation:
-    # - remove leading "-" and "--" from options
-    args = {re.sub(r"([\-]{1,2})(.*)", r"\2", key): args[key] for key in args}
-    # - change "-" to "_" to facilitate direct use in print format
-    args = {key.replace("-", "_"): args[key] for key in args}
+    parser = Parser()
+    parser.add_argument("-U", action="store_true")
+    parser.add_argument("-u", "--user", type=str, action="append", default=[])
+    parser.add_argument("-j", "--jobid", type=str, action="append", default=[])
+    parser.add_argument("--host", type=str, action="append")
+    parser.add_argument("-a", "--account", type=str, action="append")
+    parser.add_argument("-n", "--name", type=str, action="append")
+    parser.add_argument("-w", "--workdir", type=str, action="append")
+    parser.add_argument("--status", type=str, action="append")
+    parser.add_argument("-p", "--partition", type=str, action="append")
+    parser.add_argument("-s", "--sort", type=str, action="append")
+    parser.add_argument("-r", "--reverse", action="store_true")
+    parser.add_argument("-o", "--output", type=str, action="append")
+    parser.add_argument("-e", "--extra", type=str, action="append")
+    parser.add_argument("--full-name", action="store_true")
+    parser.add_argument("-S", "--summary", action="store_true")
+    parser.add_argument("--no-header", action="store_true")
+    parser.add_argument("--no-truncate", action="store_true")
+    parser.add_argument("--width", type=int)
+    parser.add_argument("--colors", type=str, default="dark")
+    parser.add_argument("-l", "--list", action="store_true")
+    parser.add_argument("-J", "--joblist", action="store_true")
+    parser.add_argument("--abspath", action="store_true")
+    parser.add_argument("--relpath", action="store_true")
+    parser.add_argument("--sep", type=str, default=" ")
+    parser.add_argument("--long", action="store_true")
+    parser.add_argument("--debug", type=str)
+    parser.add_argument("--version", action="version", version=version)
+    parser.add_argument("jobs", type=int, nargs="*")
 
-    # -- field-names and print settings --
+    if cli_args is None:
+        args = vars(parser.parse_args())
+    else:
+        args = vars(parser.parse_args(cli_args))
 
-    # handle 'alias' options
+    ret = namedtuple("Gstat", ["args", "jobs"])
+    ret.args = args
+    ret.exit = 0
+
     if args["U"]:
         args["user"] += [pwd.getpwuid(os.getuid())[0]]
 
     if args["joblist"]:
         args["output"] = ["JOBID"]
         args["list"] = True
+
+    args["jobid"] += [f"^{i:d}$" for i in args["jobs"]]
+
+    # -- field-names and print settings --
 
     # conversion map: default field-names -> custom field-names
     alias = {
@@ -265,21 +322,22 @@ def main():
         "WORK_DIR",
     ]:
 
-        if args[key]:
+        if not args[key]:
+            continue
 
-            # limit data
-            lines = [
-                line
-                for line in lines
-                if sum(1 if re.match(n, str(line[key])) else 0 for n in args[key])
-            ]
+        # limit data
+        lines = [
+            line
+            for line in lines
+            if sum(1 if re.match(n, str(line[key])) else 0 for n in args[key])
+        ]
 
-            # color-highlight selected columns
-            # - apply to all remaining lines
-            for line in lines:
-                line[key].color = theme["selection"]
-            # - apply to the header
-            header[key].color = theme["selection"]
+        # color-highlight selected columns
+        # - apply to all remaining lines
+        for line in lines:
+            line[key].color = theme["selection"]
+        # - apply to the header
+        header[key].color = theme["selection"]
 
     # -- sort --
 
@@ -309,21 +367,25 @@ def main():
 
     # -- print --
 
+    ret.jobs = [str(line["JOBID"]) for line in lines]
+
+    if parse_only:
+        return ret
+
     if not args["summary"]:
 
         # optional: print all fields and quit
         if args["long"]:
             table.print_long(lines)
-            return 0
+            return ret
 
         # optional: print as list and quit
         elif args["list"]:
             if len(columns) > 1:
-                print("Only one field can be selected")
-                sys.exit(1)
+                raise OSError("Error: Only one field can be selected")
 
             table.print_list(lines, columns[0]["key"], args["sep"])
-            return 0
+            return ret
 
         # default: print columns
         else:
@@ -333,10 +395,10 @@ def main():
                 header,
                 args["no_truncate"],
                 args["sep"],
-                int(args["width"]) if args["width"] else args["width"],  # remove int for argparse
+                args["width"],
                 not args["no_header"],
             )
-            return 0
+            return ret
 
     # -- summarize information --
 
@@ -398,3 +460,11 @@ def main():
         args["width"],
         not args["no_header"],
     )
+
+
+def main():
+    try:
+        return cli().exit
+    except Exception as e:
+        print(e)
+        return 1
