@@ -126,8 +126,6 @@ import argparse
 import os
 import pwd
 import re
-import typing
-from collections import namedtuple
 
 from .. import rich
 from .. import squeue
@@ -135,336 +133,365 @@ from .. import table
 from .. import version
 
 
-def cli(
-    cli_args: list[str] = None, parse_only: bool = False
-) -> typing.NamedTuple("Gstat", [("args", dict), ("exit", int), ("jobs", list[str])]):
-    """
-    :param cli_args: Specify command-line arguments to assume. Default: ``sys.argv[1:]``.
-    :param parse_only: If true, the function quits directly after parsing command-line arguments.
+class Gstat:
+    def __init__(self):
+        pass
 
-    :return:
-        namedtuple with fields:
-        -   ``exit``: the exit code.
-        -   ``args``: the parsed command-line arguments.
-        -   ``jobs``: list of jobs ``list[str]``.
-    """
+    def parse_cli_args(self, cli_args: list[str] = None):
+        """
+        Parse command-line arguments.
+        Stores the arguments as ``self.args``
 
-    # -- parse command line arguments --
+        :param cli_args: Specify command-line arguments. Default: ``sys.argv[1:]``.
+        """
 
-    class Parser(argparse.ArgumentParser):
-        def print_help(self):
-            print(__doc__)
+        class Parser(argparse.ArgumentParser):
+            def print_help(self):
+                print(__doc__)
 
-    parser = Parser()
-    parser.add_argument("-U", action="store_true")
-    parser.add_argument("-u", "--user", type=str, action="append", default=[])
-    parser.add_argument("-j", "--jobid", type=str, action="append", default=[])
-    parser.add_argument("--host", type=str, action="append")
-    parser.add_argument("-a", "--account", type=str, action="append")
-    parser.add_argument("-n", "--name", type=str, action="append")
-    parser.add_argument("-w", "--workdir", type=str, action="append")
-    parser.add_argument("--status", type=str, action="append")
-    parser.add_argument("-p", "--partition", type=str, action="append")
-    parser.add_argument("-s", "--sort", type=str, action="append")
-    parser.add_argument("-r", "--reverse", action="store_true")
-    parser.add_argument("-o", "--output", type=str, action="append")
-    parser.add_argument("-e", "--extra", type=str, action="append")
-    parser.add_argument("--full-name", action="store_true")
-    parser.add_argument("-S", "--summary", action="store_true")
-    parser.add_argument("--no-header", action="store_true")
-    parser.add_argument("--no-truncate", action="store_true")
-    parser.add_argument("--width", type=int)
-    parser.add_argument("--colors", type=str, default="dark")
-    parser.add_argument("-l", "--list", action="store_true")
-    parser.add_argument("-J", "--joblist", action="store_true")
-    parser.add_argument("--abspath", action="store_true")
-    parser.add_argument("--relpath", action="store_true")
-    parser.add_argument("--sep", type=str, default=" ")
-    parser.add_argument("--long", action="store_true")
-    parser.add_argument("--debug", type=str)
-    parser.add_argument("--version", action="version", version=version)
-    parser.add_argument("jobs", type=int, nargs="*")
+        parser = Parser()
+        parser.add_argument("-U", action="store_true")
+        parser.add_argument("-u", "--user", type=str, action="append", default=[])
+        parser.add_argument("-j", "--jobid", type=str, action="append", default=[])
+        parser.add_argument("--host", type=str, action="append")
+        parser.add_argument("-a", "--account", type=str, action="append")
+        parser.add_argument("-n", "--name", type=str, action="append")
+        parser.add_argument("-w", "--workdir", type=str, action="append")
+        parser.add_argument("--status", type=str, action="append")
+        parser.add_argument("-p", "--partition", type=str, action="append")
+        parser.add_argument("-s", "--sort", type=str, action="append")
+        parser.add_argument("-r", "--reverse", action="store_true")
+        parser.add_argument("-o", "--output", type=str, action="append")
+        parser.add_argument("-e", "--extra", type=str, action="append")
+        parser.add_argument("--full-name", action="store_true")
+        parser.add_argument("-S", "--summary", action="store_true")
+        parser.add_argument("--no-header", action="store_true")
+        parser.add_argument("--no-truncate", action="store_true")
+        parser.add_argument("--width", type=int)
+        parser.add_argument("--colors", type=str, default="dark")
+        parser.add_argument("-l", "--list", action="store_true")
+        parser.add_argument("-J", "--joblist", action="store_true")
+        parser.add_argument("--abspath", action="store_true")
+        parser.add_argument("--relpath", action="store_true")
+        parser.add_argument("--sep", type=str, default=" ")
+        parser.add_argument("--long", action="store_true")
+        parser.add_argument("--debug", type=str)
+        parser.add_argument("--version", action="version", version=version)
+        parser.add_argument("jobs", type=int, nargs="*")
 
-    if cli_args is None:
-        args = vars(parser.parse_args())
-    else:
-        args = vars(parser.parse_args(cli_args))
+        if cli_args is None:
+            args = vars(parser.parse_args())
+        else:
+            args = vars(parser.parse_args(cli_args))
 
-    ret = namedtuple("Gstat", ["args", "jobs"])
-    ret.args = args
-    ret.exit = 0
+        if args["U"]:
+            args["user"] += [pwd.getpwuid(os.getuid())[0]]
 
-    if args["U"]:
-        args["user"] += [pwd.getpwuid(os.getuid())[0]]
+        if args["joblist"]:
+            args["output"] = ["JOBID"]
+            args["list"] = True
 
-    if args["joblist"]:
-        args["output"] = ["JOBID"]
-        args["list"] = True
+        args["jobid"] += [f"^{i:d}$" for i in args["jobs"]]
 
-    args["jobid"] += [f"^{i:d}$" for i in args["jobs"]]
+        # store for later use
+        self.args = args
 
-    # -- field-names and print settings --
+    def read(self):
+        """
+        Read from queuing system.
+        Stores data on ``self.lines``
+        Store print info as``self.columns``, ``self.header``, ``self.alias``, ``self.aliasInv``.
+        """
 
-    # conversion map: default field-names -> custom field-names
-    alias = {
-        "JOBID": "JobID",
-        "USER": "User",
-        "ACCOUNT": "Account",
-        "NAME": "Name",
-        "START_TIME": "Tstart",
-        "TIME_LEFT": "Tleft",
-        "NODES": "#node",
-        "CPUS": "#CPU",
-        "CPUS_R": "#CPU(R)",
-        "CPUS_PD": "#CPU(PD)",
-        "MIN_MEMORY": "MEM",
-        "ST": "ST",
-        "NODELIST(REASON)": "Host",
-        "PARTITION": "Partition",
-        "DEPENDENCY": "Dependency",
-        "WORK_DIR": "WorkDir",
-    }
+        # -- field-names and print settings --
 
-    # conversion map: custom field-names -> default field-names
-    aliasInv = {alias[key].upper(): key for key in alias}
+        # conversion map: default field-names -> custom field-names
+        alias = {
+            "JOBID": "JobID",
+            "USER": "User",
+            "ACCOUNT": "Account",
+            "NAME": "Name",
+            "START_TIME": "Tstart",
+            "TIME_LEFT": "Tleft",
+            "NODES": "#node",
+            "CPUS": "#CPU",
+            "CPUS_R": "#CPU(R)",
+            "CPUS_PD": "#CPU(PD)",
+            "MIN_MEMORY": "MEM",
+            "ST": "ST",
+            "NODELIST(REASON)": "Host",
+            "PARTITION": "Partition",
+            "DEPENDENCY": "Dependency",
+            "WORK_DIR": "WorkDir",
+        }
 
-    # rename command line options -> default field-names
-    # - add key-names
-    aliasInv["STATUS"] = "ST"
-    # - apply conversion
-    for key in [key for key in args]:
-        if key.upper() in aliasInv:
-            args[aliasInv[key.upper()]] = args.pop(key)
+        # conversion map: custom field-names -> default field-names
+        aliasInv = {alias[key].upper(): key for key in alias}
 
-    # print settings of all columns
-    # - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
-    # - "align"   : alignment of the columns (except the header)
-    # - "priority": priority of column expansing, columns marked "True" are expanded first
-    columns = [
-        {"key": "JOBID", "width": 7, "align": ">", "priority": True, "default": True},
-        {"key": "USER", "width": 7, "align": "<", "priority": True, "default": True},
-        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": True, "default": True},
-        {"key": "NAME", "width": 11, "align": "<", "priority": False, "default": True},
-        {"key": "START_TIME", "width": 6, "align": ">", "priority": True, "default": True},
-        {"key": "TIME_LEFT", "width": 5, "align": ">", "priority": True, "default": True},
-        {"key": "NODES", "width": 5, "align": ">", "priority": True, "default": True},
-        {"key": "CPUS", "width": 4, "align": ">", "priority": True, "default": True},
-        {"key": "MIN_MEMORY", "width": 3, "align": ">", "priority": True, "default": True},
-        {"key": "ST", "width": 2, "align": "<", "priority": True, "default": True},
-        {"key": "PARTITION", "width": 9, "align": "<", "priority": False, "default": True},
-        {"key": "NODELIST(REASON)", "width": 5, "align": "<", "priority": False, "default": True},
-        {"key": "DEPENDENCY", "width": 5, "align": "<", "priority": False, "default": False},
-        {"key": "WORK_DIR", "width": 7, "align": "<", "priority": False, "default": False},
-    ]
+        # rename command line options -> default field-names
+        # - add key-names
+        aliasInv["STATUS"] = "ST"
+        # - apply conversion
+        for key in [key for key in self.args]:
+            if key.upper() in aliasInv:
+                self.args[aliasInv[key.upper()]] = self.args.pop(key)
 
-    # header
-    header = {
-        column["key"]: rich.String(alias[column["key"]], align=column["align"])
-        for column in columns
-    }
-
-    # print settings for the summary
-    columns_summary = [
-        {"key": "USER", "width": 7, "align": "<", "priority": True},
-        {"key": "ACCOUNT", "width": 7, "align": "<", "priority": False},
-        {"key": "CPUS", "width": 4, "align": ">", "priority": True},
-        {"key": "CPUS_R", "width": 6, "align": ">", "priority": True},
-        {"key": "CPUS_PD", "width": 6, "align": ">", "priority": True},
-        {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
-    ]
-
-    # header
-    header_summary = {
-        column["key"]: rich.String(alias[column["key"]], align=column["align"])
-        for column in columns_summary
-    }
-
-    # select color theme
-    theme = squeue.colors(args["colors"].lower())
-
-    # -- load the output of "squeue" --
-
-    if not args["debug"]:
-
-        lines = squeue.read_interpret(theme=theme)
-
-    else:
-
-        lines = squeue.read_interpret(
-            data=open(args["debug"]).read(),
-            now=os.path.getctime(args["debug"]),
-            theme=theme,
-        )
-
-    # -- convert paths ---
-
-    if args["abspath"]:
-        for line in lines:
-            line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
-    elif args["relpath"]:
-        for line in lines:
-            line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
-    else:
-        for line in lines:
-            if len(os.path.relpath(line["WORK_DIR"].data).split("../")) < 3:
-                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
-
-    # -- limit based on command-line options --
-
-    for key in [
-        "USER",
-        "ACCOUNT",
-        "NAME",
-        "JOBID",
-        "ST",
-        "NODELIST(REASON)",
-        "PARTITION",
-        "WORK_DIR",
-    ]:
-
-        if not args[key]:
-            continue
-
-        # limit data
-        lines = [
-            line
-            for line in lines
-            if sum(1 if re.match(n, str(line[key])) else 0 for n in args[key])
+        # print settings of all columns
+        # - "width"   : minimum width, adapted to print width (min_width <= width <= real_width)
+        # - "align"   : alignment of the columns (except the header)
+        # - "priority": priority of column expansing, columns marked "True" are expanded first
+        prio = {"priority": True, "default": True}
+        noprio = {"priority": False, "default": True}
+        nodefault = {"priority": True, "default": False}
+        columns = [
+            {"key": "JOBID", "width": 7, "align": ">", **prio},
+            {"key": "USER", "width": 7, "align": "<", **prio},
+            {"key": "ACCOUNT", "width": 7, "align": "<", **prio},
+            {"key": "NAME", "width": 11, "align": "<", **noprio},
+            {"key": "START_TIME", "width": 6, "align": ">", **prio},
+            {"key": "TIME_LEFT", "width": 5, "align": ">", **prio},
+            {"key": "NODES", "width": 5, "align": ">", **prio},
+            {"key": "CPUS", "width": 4, "align": ">", **prio},
+            {"key": "MIN_MEMORY", "width": 3, "align": ">", **prio},
+            {"key": "ST", "width": 2, "align": "<", **prio},
+            {"key": "PARTITION", "width": 9, "align": "<", **noprio},
+            {"key": "NODELIST(REASON)", "width": 5, "align": "<", **noprio},
+            {"key": "DEPENDENCY", "width": 5, "align": "<", **nodefault},
+            {"key": "WORK_DIR", "width": 7, "align": "<", **nodefault},
         ]
 
-        # color-highlight selected columns
-        # - apply to all remaining lines
-        for line in lines:
-            line[key].color = theme["selection"]
-        # - apply to the header
-        header[key].color = theme["selection"]
+        # header
+        header = {
+            column["key"]: rich.String(alias[column["key"]], align=column["align"])
+            for column in columns
+        }
 
-    # -- sort --
+        # select color theme
+        theme = squeue.colors(self.args["colors"].lower())
 
-    # default sort
-    lines.sort(key=lambda line: line["START_TIME"], reverse=not args["reverse"])
+        # -- load the output of "squeue" --
 
-    # optional: sort by key(s)
-    if args["sort"]:
-        for key in args["sort"]:
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
+        if not self.args["debug"]:
 
-    # -- select columns --
+            lines = squeue.read_interpret(theme=theme)
 
-    if args["extra"]:
-        keys = [aliasInv[key.upper()] for key in args["extra"]]
-        extra = [column for column in columns if column["key"] in keys]
-    else:
-        extra = []
+        else:
 
-    if args["output"]:
-        keys = [aliasInv[key.upper()] for key in args["output"]]
-        columns = [column for column in columns if column["key"] in keys]
-    else:
-        columns = [column for column in columns if column["default"]]
+            lines = squeue.read_interpret(
+                data=open(self.args["debug"]).read(),
+                now=os.path.getctime(self.args["debug"]),
+                theme=theme,
+            )
 
-    columns += extra
+        # -- convert paths ---
 
-    # -- print --
+        if self.args["abspath"]:
+            for line in lines:
+                line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
+        elif self.args["relpath"]:
+            for line in lines:
+                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
+        else:
+            for line in lines:
+                if len(os.path.relpath(line["WORK_DIR"].data).split("../")) < 3:
+                    line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
 
-    ret.jobs = [str(line["JOBID"]) for line in lines]
+        # -- limit based on command-line options --
 
-    if parse_only:
-        return ret
+        for key in [
+            "USER",
+            "ACCOUNT",
+            "NAME",
+            "JOBID",
+            "ST",
+            "NODELIST(REASON)",
+            "PARTITION",
+            "WORK_DIR",
+        ]:
 
-    if not args["summary"]:
+            if not self.args[key]:
+                continue
 
-        # optional: print all fields and quit
-        if args["long"]:
-            table.print_long(lines)
-            return ret
+            # limit data
+            lines = [
+                line
+                for line in lines
+                if sum(1 if re.match(n, str(line[key])) else 0 for n in self.args[key])
+            ]
 
-        # optional: print as list and quit
-        elif args["list"]:
-            if len(columns) > 1:
+            # color-highlight selected columns
+            # - apply to all remaining lines
+            for line in lines:
+                line[key].color = theme["selection"]
+            # - apply to the header
+            header[key].color = theme["selection"]
+
+        # -- sort --
+
+        # default sort
+        lines.sort(key=lambda line: line["START_TIME"], reverse=not self.args["reverse"])
+
+        # optional: sort by key(s)
+        if self.args["sort"]:
+            for key in self.args["sort"]:
+                lines.sort(
+                    key=lambda line: line[aliasInv[key.upper()]], reverse=self.args["reverse"]
+                )
+
+        # -- select columns --
+
+        if self.args["extra"]:
+            keys = [aliasInv[key.upper()] for key in self.args["extra"]]
+            extra = [column for column in columns if column["key"] in keys]
+        else:
+            extra = []
+
+        if self.args["output"]:
+            keys = [aliasInv[key.upper()] for key in self.args["output"]]
+            columns = [column for column in columns if column["key"] in keys]
+        else:
+            columns = [column for column in columns if column["default"]]
+
+        columns += extra
+
+        # store for later use
+        self.lines = lines
+        self.columns = columns
+        self.header = header
+        self.alias = alias
+        self.aliasInv = aliasInv
+
+    def print_all(self):
+        """
+        Normal print
+        """
+
+        # print all fields and quit
+        if self.args["long"]:
+
+            table.print_long(self.lines)
+            return
+
+        # print as list and quit
+        if self.args["list"]:
+
+            if len(self.columns) > 1:
                 raise OSError("Error: Only one field can be selected")
 
-            table.print_list(lines, columns[0]["key"], args["sep"])
-            return ret
+            table.print_list(self.lines, self.columns[0]["key"], self.args["sep"])
 
-        # default: print columns
+        # print columns
+        table.print_columns(
+            self.lines,
+            self.columns,
+            self.header,
+            self.args["no_truncate"],
+            self.args["sep"],
+            self.args["width"],
+            not self.args["no_header"],
+        )
+
+    def print_summary(self):
+        """
+        Print summary.
+        """
+
+        # print settings for the summary
+        columns_summary = [
+            {"key": "USER", "width": 7, "align": "<", "priority": True},
+            {"key": "ACCOUNT", "width": 7, "align": "<", "priority": False},
+            {"key": "CPUS", "width": 4, "align": ">", "priority": True},
+            {"key": "CPUS_R", "width": 6, "align": ">", "priority": True},
+            {"key": "CPUS_PD", "width": 6, "align": ">", "priority": True},
+            {"key": "PARTITION", "width": 9, "align": "<", "priority": False},
+        ]
+
+        # header
+        header_summary = {
+            column["key"]: rich.String(self.alias[column["key"]], align=column["align"])
+            for column in columns_summary
+        }
+
+        # -- summarize information --
+
+        # get names of the different users
+        users = sorted({str(line["USER"]) for line in self.lines})
+
+        # start a new list of "user information", summed on the relevant users
+        users = [{"USER": rich.String(key)} for key in users]
+
+        # loop over users
+        for user in users:
+
+            # - isolate jobs for this user
+            N = [line for line in self.lines if str(line["USER"]) == str(user["USER"])]
+
+            # - get (a list of) partition(s)/account(s)
+            user["PARTITION"] = rich.String(",".join(list({str(line["PARTITION"]) for line in N})))
+            user["ACCOUNT"] = rich.String(",".join(list({str(line["ACCOUNT"]) for line in N})))
+
+            # - count used CPU (per category)
+            user["CPUS"] = rich.Integer(sum(int(line["CPUS"]) for line in N))
+            user["CPUS_R"] = rich.Integer(sum(int(line["CPUS_R"]) for line in N))
+            user["CPUS_PD"] = rich.Integer(sum(int(line["CPUS_PD"]) for line in N))
+
+            # - remove zeros from output for more intuitive output
+            for key in ["CPUS_R", "CPUS_PD"]:
+                if int(user[key]) == 0:
+                    user[key] = rich.Integer("-")
+
+        # rename field
+        lines = users
+
+        # -- sort --
+
+        # default sort
+        lines.sort(key=lambda line: line["USER"], reverse=self.args["reverse"])
+
+        # optional: sort by key(s)
+        if self.args["sort"]:
+
+            # get available keys in the setting with fewer columns
+            keys = [self.alias[column["key"]].upper() for column in columns_summary]
+
+            # filter sort keys that are not available in this mode
+            self.args["sort"] = [key for key in self.args["sort"] if key.upper() in keys]
+
+            # apply sort
+            for key in self.args["sort"]:
+                lines.sort(
+                    key=lambda line: line[self.aliasInv[key.upper()]], reverse=self.args["reverse"]
+                )
+
+        # -- print --
+
+        table.print_columns(
+            lines,
+            columns_summary,
+            header_summary,
+            self.args["no_truncate"],
+            self.args["sep"],
+            self.args["width"],
+            not self.args["no_header"],
+        )
+
+    def print(self):
+        """
+        Print.
+        """
+
+        if not self.args["summary"]:
+            self.print_all()
         else:
-            table.print_columns(
-                lines,
-                columns,
-                header,
-                args["no_truncate"],
-                args["sep"],
-                args["width"],
-                not args["no_header"],
-            )
-            return ret
-
-    # -- summarize information --
-
-    # get names of the different users
-    users = sorted({str(line["USER"]) for line in lines})
-
-    # start a new list of "user information", summed on the relevant users
-    users = [{"USER": rich.String(key)} for key in users]
-
-    # loop over users
-    for user in users:
-
-        # - isolate jobs for this user
-        N = [line for line in lines if str(line["USER"]) == str(user["USER"])]
-
-        # - get (a list of) partition(s)/account(s)
-        user["PARTITION"] = rich.String(",".join(list({str(line["PARTITION"]) for line in N})))
-        user["ACCOUNT"] = rich.String(",".join(list({str(line["ACCOUNT"]) for line in N})))
-
-        # - count used CPU (per category)
-        user["CPUS"] = rich.Integer(sum(int(line["CPUS"]) for line in N))
-        user["CPUS_R"] = rich.Integer(sum(int(line["CPUS_R"]) for line in N))
-        user["CPUS_PD"] = rich.Integer(sum(int(line["CPUS_PD"]) for line in N))
-
-        # - remove zeros from output for more intuitive output
-        for key in ["CPUS_R", "CPUS_PD"]:
-            if int(user[key]) == 0:
-                user[key] = rich.Integer("-")
-
-    # rename field
-    lines = users
-
-    # -- sort --
-
-    # default sort
-    lines.sort(key=lambda line: line["USER"], reverse=args["reverse"])
-
-    # optional: sort by key(s)
-    if args["sort"]:
-
-        # get available keys in the setting with fewer columns
-        keys = [alias[column["key"]].upper() for column in columns_summary]
-
-        # filter sort keys that are not available in this mode
-        args["sort"] = [key for key in args["sort"] if key.upper() in keys]
-
-        # apply sort
-        for key in args["sort"]:
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
-
-    # -- print --
-
-    table.print_columns(
-        lines,
-        columns_summary,
-        header_summary,
-        args["no_truncate"],
-        args["sep"],
-        args["width"],
-        not args["no_header"],
-    )
+            self.print_summary()
 
 
 def main():
     try:
-        return cli().exit
+        p = Gstat()
+        p.parse_cli_args()
+        p.read()
+        p.print()
     except Exception as e:
         print(e)
         return 1

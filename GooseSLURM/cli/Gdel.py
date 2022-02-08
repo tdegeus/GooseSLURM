@@ -32,25 +32,27 @@ from . import Gstat
 def main():
 
     cli_args = sys.argv[1:]
-    data = Gstat.cli(cli_args, parse_only=True)
+    gstat = Gstat.Gstat()
+    gstat.parse_cli_args(cli_args)
 
-    if len(data.args["jobs"]) == 0:
+    if len(gstat.args["jobs"]) == 0:
         cli_args += ["-U", "--status", "R", "--status", "PD"]
+        gstat.parse_cli_args(cli_args)
 
-    data = Gstat.cli(cli_args, parse_only=True)
+    gstat.read()
 
-    if len(data.jobs) == 0:
+    if len(gstat.lines) == 0:
         print("Nothing to do")
         return 0
 
-    data = Gstat.cli(cli_args, parse_only=False)
+    gstat.print()
 
     if not click.confirm("Delete above listed jobs?"):
         return 1
 
-    cmd = "scancel " + " ".join(data.jobs)
+    cmd = "scancel " + " ".join([str(line["JOBID"]) for line in gstat.lines])
 
-    if not data.args["debug"]:
+    if not gstat.args["debug"]:
         print(subprocess.check_output(cmd, shell=True).decode("utf-8"), end="")
     else:
         print(cmd)
