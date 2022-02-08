@@ -13,7 +13,7 @@ setup(
     packages=find_packages(),
     use_scm_version={"write_to": "GooseSLURM/_version.py"},
     setup_requires=["setuptools_scm"],
-    install_requires=["docopt", "click"],
+    install_requires=["click", "tqdm", "PyYAML"],
     entry_points={
         "console_scripts": [
             "Gdel = GooseSLURM.cli.Gdel:main",

@@ -2,9 +2,6 @@ channels:
 - conda-forge
 dependencies:
 - click
-- docopt
-- mergedeep
-- numpy
 - python
 - pyyaml
 - tqdm

@@ -11,6 +11,7 @@ setup(
     keywords="SLURM",
     url="https://github.com/tdegeus/GooseSLURM",
     packages=find_packages(),
+    install_requires=["PyYAML"],
     entry_points={
         "console_scripts": [
             "sacct = dummyslurm:sacct",
