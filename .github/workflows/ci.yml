@@ -42,4 +42,6 @@ jobs:
 
     - name: Run tests
       working-directory: tests
-      run: python Gsub.py
+      run:
+      - python Gsub.py
+      - python Gdel.py
