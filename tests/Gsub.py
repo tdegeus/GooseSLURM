@@ -2,9 +2,8 @@ import os
 import subprocess
 import unittest
 
+import dummyslurm
 import GooseSLURM
-
-log_sbatch = "_sbatch.yaml"
 
 
 class Test_Gsub(unittest.TestCase):
@@ -16,7 +15,7 @@ class Test_Gsub(unittest.TestCase):
 
         myjob = "myjob.slurm"
 
-        for filename in [log_sbatch, myjob]:
+        for filename in [myjob]:
             if os.path.isfile(filename):
                 os.remove(filename)
 
@@ -25,7 +24,6 @@ class Test_Gsub(unittest.TestCase):
 
         subprocess.check_output(["Gsub", "--quiet", myjob])
 
-        os.remove(log_sbatch)
         os.remove(myjob)
 
     def test_logfile(self):
@@ -33,7 +31,7 @@ class Test_Gsub(unittest.TestCase):
         myjob = "myjob.slurm"
         mylog = "mylog.yaml"
 
-        for filename in [log_sbatch, myjob, mylog]:
+        for filename in [dummyslurm.logfile, myjob, mylog]:
             if os.path.isfile(filename):
                 os.remove(filename)
 
@@ -54,7 +52,7 @@ class Test_Gsub(unittest.TestCase):
         self.assertIn(myjob, log)
         self.assertEqual(log[myjob], [1, 2])
 
-        os.remove(log_sbatch)
+        os.remove(dummyslurm.logfile)
         os.remove(myjob)
         os.remove(mylog)
 
@@ -62,7 +60,7 @@ class Test_Gsub(unittest.TestCase):
 
         myjob = "myjob.slurm"
 
-        for filename in [log_sbatch, myjob]:
+        for filename in [dummyslurm.logfile, myjob]:
             if os.path.isfile(filename):
                 os.remove(filename)
 
@@ -71,7 +69,7 @@ class Test_Gsub(unittest.TestCase):
 
         subprocess.check_output(["Gsub", "--quiet", "--repeat", "4", myjob])
 
-        log = GooseSLURM.fileio.YamlRead(log_sbatch)
+        log = GooseSLURM.fileio.YamlRead(dummyslurm.logfile)
 
         for i, job in enumerate(log):
 
@@ -80,14 +78,14 @@ class Test_Gsub(unittest.TestCase):
             else:
                 self.assertTrue("dependency" not in job)
 
-        os.remove(log_sbatch)
+        os.remove(dummyslurm.logfile)
         os.remove(myjob)
 
     def test_serial(self):
 
         myjobs = ["myjob_1.slurm", "myjob_2.slurm", "myjob_3.slurm"]
 
-        for filename in [log_sbatch] + myjobs:
+        for filename in [dummyslurm.logfile] + myjobs:
             if os.path.isfile(filename):
                 os.remove(filename)
 
@@ -97,7 +95,7 @@ class Test_Gsub(unittest.TestCase):
 
         subprocess.check_output(["Gsub", "--quiet", "--serial"] + myjobs)
 
-        log = GooseSLURM.fileio.YamlRead(log_sbatch)
+        log = GooseSLURM.fileio.YamlRead(dummyslurm.logfile)
 
         for i, job in enumerate(log):
 
@@ -106,8 +104,10 @@ class Test_Gsub(unittest.TestCase):
             else:
                 self.assertTrue("dependency" not in job)
 
-        os.remove(log_sbatch)
-        os.remove(myjob)
+        os.remove(dummyslurm.logfile)
+
+        for myjob in myjobs:
+            os.remove(myjob)
 
 
 if __name__ == "__main__":
