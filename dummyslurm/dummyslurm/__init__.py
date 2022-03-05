@@ -66,7 +66,7 @@ def sbatch():
             args = parser.parse_args(extra + sys.argv[1:])
 
     jobid = len(log) + 1
-    mylog = vars(args)
+    mylog = vars(args).copy()
     for key, value in dict(mylog).items():
         if value is None:
             del mylog[key]
