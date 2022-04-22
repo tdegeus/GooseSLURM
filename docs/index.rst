@@ -62,6 +62,7 @@ GooseSLURM
    :caption: TIPS & EXAMPLES
    :maxdepth: 1
 
+   buffer.rst
    copy.rst
    conda.rst
    examples/parallel/readme.rst
