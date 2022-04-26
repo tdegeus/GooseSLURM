@@ -1,26 +1,34 @@
+from pathlib import Path
+
 from setuptools import find_packages
 from setuptools import setup
 
+project_name = "GooseSLURM"
+
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
+
 setup(
-    name="GooseSLURM",
+    name=project_name,
     license="MIT",
     author="Tom de Geus",
     author_email="tom@geus.me",
     description="Support functions for SLURM",
-    long_description="Support functions for SLURM",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     keywords="SLURM",
-    url="https://github.com/tdegeus/GooseSLURM",
+    url=f"https://github.com/tdegeus/{project_name:s}",
     packages=find_packages(),
-    use_scm_version={"write_to": "GooseSLURM/_version.py"},
+    use_scm_version={"write_to": f"{project_name}/_version.py"},
     setup_requires=["setuptools_scm"],
     install_requires=["click", "tqdm", "PyYAML"],
     entry_points={
         "console_scripts": [
-            "Gdel = GooseSLURM.cli.Gdel:main",
-            "Ginfo = GooseSLURM.cli.Ginfo:main",
-            "Gps = GooseSLURM.cli.Gps:main",
-            "Gstat = GooseSLURM.cli.Gstat:main",
-            "Gsub = GooseSLURM.cli.Gsub:main",
+            f"Gdel = {project_name}.cli.Gdel:main",
+            f"Ginfo = {project_name}.cli.Ginfo:main",
+            f"Gps = {project_name}.cli.Gps:main",
+            f"Gstat = {project_name}.cli.Gstat:main",
+            f"Gsub = {project_name}.cli.Gsub:main",
         ]
     },
 )
