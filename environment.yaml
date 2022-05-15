@@ -4,4 +4,6 @@ dependencies:
 - click
 - python
 - pyyaml
+- sphinx
+- sphinx_rtd_theme
 - tqdm
