@@ -2,6 +2,12 @@
 Changelog
 *********
 
+v0.9.0
+======
+
+*   [docs] Switching styles (to furo), and making minor layout fixes.
+*   Adding `Gacct`: very simple wrapper around  `sacct`. The output formatting might change in the future.
+
 v0.7.0
 ======
 
