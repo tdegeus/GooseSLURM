@@ -6,4 +6,5 @@ dependencies:
 - pyyaml
 - sphinx
 - sphinx_rtd_theme
+- sphinx-argparse
 - tqdm

@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 
 
 def read(jobid: int | str) -> list[dict]:
@@ -39,32 +40,33 @@ def read(jobid: int | str) -> list[dict]:
     return lines
 
 
-def cli_parser(cli_args: list[str] = None):
+def cli_parser() -> argparse.ArgumentParser:
     """
-    Parse command-line arguments.
-    :param cli_args: Specify command-line arguments. Default: ``sys.argv[1:]``.
-    :return: The result of parsing.
+    Return parser of command-line arguments.
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("jobs", type=int, nargs="*")
+    parser.add_argument("jobid", type=int, nargs="*", help="JobID(s) to read.")
+    return parser
 
-    if cli_args is None:
-        return parser.parse_args()
-
-    return parser.parse_args(cli_args)
-
-
-def cli_main(cli_args: list[str] = None):
+def Gacct(args: list[str]):
     """
-    Main function for the command-line interface.
-    :param cli_args: Specify command-line arguments. Default: ``sys.argv[1:]``.
+    Command-line tool to print datasets from a file, see ``--help``.
+    :param args: Command-line arguments (should be all strings).
     """
 
-    args = cli_parser(cli_args)
+    parser = cli_parser()
+    args = parser.parse_args(args)
 
     for jobid in args.jobs:
         for line in read(jobid):
             line = {k: v for k, v in line.items() if len(v) > 0}
             json_object = json.dumps(line, indent=4)
             print(json_object)
+
+def _Gacct_catch():
+    try:
+        Gacct(sys.argv[1:])
+    except Exception as e:
+        print(e)
+        return 1
