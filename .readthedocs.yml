@@ -1,13 +1,7 @@
 sphinx:
   configuration: docs/conf.py
 
-version: 2
+version: 3
 
 conda:
   environment: environment.yaml
-
-python:
-  install:
-  - method: pip
-    path: .
-  system_packages: true
