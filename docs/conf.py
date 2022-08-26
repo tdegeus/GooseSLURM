@@ -7,7 +7,7 @@ author = "Tom de Geus"
 # General configuration
 
 extensions = [
-    "sphinx.ext.mathjax ",
+    "sphinx.ext.mathjax",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinxarg.ext",
