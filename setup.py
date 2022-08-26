@@ -29,6 +29,7 @@ setup(
             f"Gps = {project_name}.cli.Gps:main",
             f"Gstat = {project_name}.cli.Gstat:main",
             f"Gsub = {project_name}.cli.Gsub:main",
+            f"Gacct = {project_name}.sacct:cli_main",
         ]
     },
 )
