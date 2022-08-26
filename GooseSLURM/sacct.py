@@ -47,7 +47,9 @@ def cli_parser() -> argparse.ArgumentParser:
     Return parser of command-line arguments.
     """
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Display available information from ``sacct -j jobid`` (in JSON format)."
+    )
     parser.add_argument("-v", "--version", action="version", version=version)
     parser.add_argument("jobid", type=int, nargs="*", help="JobID(s) to read.")
     return parser
