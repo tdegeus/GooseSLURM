@@ -2,6 +2,8 @@ import argparse
 import json
 import sys
 
+from ._version import version
+
 
 def read(jobid: int | str) -> list[dict]:
     r"""
@@ -46,6 +48,7 @@ def cli_parser() -> argparse.ArgumentParser:
     """
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("-v", "--version", action="version", version=version)
     parser.add_argument("jobid", type=int, nargs="*", help="JobID(s) to read.")
     return parser
 
@@ -59,7 +62,7 @@ def Gacct(args: list[str]):
     parser = cli_parser()
     args = parser.parse_args(args)
 
-    for jobid in args.jobs:
+    for jobid in args.jobid:
         for line in read(jobid):
             line = {k: v for k, v in line.items() if len(v) > 0}
             json_object = json.dumps(line, indent=4)
