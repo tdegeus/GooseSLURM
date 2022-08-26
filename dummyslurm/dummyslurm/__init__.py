@@ -317,9 +317,9 @@ def sacct():
         with open(logfile) as file:
             log = yaml.load(file.read(), Loader=yaml.FullLoader)
 
-    if re.match(r"^(-l -j )([0-9]*)", " ".join(sys.argv[1:])):
+    if re.match(r"^(-p -l -j )([0-9]*)", " ".join(sys.argv[1:])):
 
-        jobid = int(re.split(r"^(-l -j )([0-9]*)", " ".join(sys.argv[1:]))[2])
+        jobid = int(re.split(r"^(-p -l -j )([0-9]*)", " ".join(sys.argv[1:]))[2])
 
         keys = [
             "JobID",
@@ -393,13 +393,10 @@ def sacct():
                 extern = [r for r in base]
                 batch[0] = batch[0] + ".ba+"
                 extern[0] = extern[0] + ".ex+"
-                width = [1 + max(len(key), len(r)) for key, r in zip(keys, base)]
-                width[0] += 4
-                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, keys)]))
-                print(" ".join(["-" * w for w in width]))
-                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, base)]))
-                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, batch)]))
-                print(" ".join([("{:>" + str(w) + "s}").format(r) for w, r, in zip(width, extern)]))
+                print("|".join(keys) + "|")
+                print("|".join(base) + "|")
+                print("|".join(batch) + "|")
+                print("|".join(extern) + "|")
                 return 0
 
         raise OSError("JobID not found")
