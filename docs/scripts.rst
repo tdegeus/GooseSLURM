@@ -31,3 +31,11 @@ Gdel
 ----
 
 .. automodule:: GooseSLURM.cli.Gdel
+
+Gacct
+-----
+
+.. argparse::
+    :module: GooseSLURM.sacct
+    :func: cli_parser
+    :prog: Gacct

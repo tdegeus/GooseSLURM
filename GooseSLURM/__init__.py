@@ -7,6 +7,7 @@ from . import files
 from . import memory
 from . import ps
 from . import rich
+from . import sacct
 from . import scripts
 from . import sinfo
 from . import squeue
