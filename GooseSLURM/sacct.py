@@ -49,6 +49,7 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("jobid", type=int, nargs="*", help="JobID(s) to read.")
     return parser
 
+
 def Gacct(args: list[str]):
     """
     Command-line tool to print datasets from a file, see ``--help``.
@@ -63,6 +64,7 @@ def Gacct(args: list[str]):
             line = {k: v for k, v in line.items() if len(v) > 0}
             json_object = json.dumps(line, indent=4)
             print(json_object)
+
 
 def _Gacct_catch():
     try:
