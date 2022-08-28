@@ -2,8 +2,8 @@ import argparse
 import json
 import sys
 
-from . import table
 from . import rich
+from . import table
 from ._version import version
 
 
@@ -95,19 +95,28 @@ def Gacct(args: list[str]):
         "AveCPU",
         "AveDiskRead",
         "AveDiskWrite",
+        "MaxVMSizeNode",
+        "MaxVMSize",
         "WorkDir",
     ]
 
     columns = [{"key": key, "width": len(key), "align": ">", "priority": True} for key in default]
     header = {key: key for key in default}
+    columns[default.index("AveCPU")]["priority"] = False
+    columns[default.index("AveDiskRead")]["priority"] = False
+    columns[default.index("AveDiskWrite")]["priority"] = False
+    columns[default.index("MaxVMSize")]["priority"] = False
+    columns[default.index("MaxVMSizeNode")]["priority"] = False
 
     for i in range(len(lines)):
-        for key in ["Elapsed", "CPUTime"]:
-            lines[i][key] = rich.Duration(lines[i][key])
+        for key in ["Elapsed", "CPUTime", "AveCPU"]:
+            if key in lines[i]:
+                lines[i][key] = rich.Duration(lines[i][key])
+        for key in ["AveDiskRead", "AveDiskWrite", "MaxVMSize"]:
+            if key in lines[i]:
+                lines[i][key] = rich.Memory(lines[i][key])
 
     table.print_columns(lines, columns, header, sep=args.sep)
-
-
 
 
 def _Gacct_catch():
