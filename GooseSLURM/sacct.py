@@ -2,6 +2,8 @@ import argparse
 import json
 import sys
 
+from . import table
+from . import rich
 from ._version import version
 
 
@@ -50,6 +52,8 @@ def cli_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Display available information from ``sacct -j jobid`` (in JSON format)."
     )
+    parser.add_argument("--sep", type=str, default=" ", help="Column spearator.")
+    parser.add_argument("-j", "--json", action="store_true", help="Print in JSON format.")
     parser.add_argument("-v", "--version", action="version", version=version)
     parser.add_argument("jobid", type=int, nargs="*", help="JobID(s) to read.")
     return parser
@@ -64,11 +68,46 @@ def Gacct(args: list[str]):
     parser = cli_parser()
     args = parser.parse_args(args)
 
+    lines = []
     for jobid in args.jobid:
         for line in read(jobid):
+            lines += [line]
+
+    if args.json:
+        for line in lines:
             line = {k: v for k, v in line.items() if len(v) > 0}
             json_object = json.dumps(line, indent=4)
             print(json_object)
+        return
+
+    default = [
+        "JobID",
+        "User",
+        "Account",
+        "JobName",
+        "State",
+        "Partition",
+        "Elapsed",
+        "ExitCode",
+        "Reason",
+        "Priority",
+        "CPUTime",
+        "AveCPU",
+        "AveDiskRead",
+        "AveDiskWrite",
+        "WorkDir",
+    ]
+
+    columns = [{"key": key, "width": len(key), "align": ">", "priority": True} for key in default]
+    header = {key: key for key in default}
+
+    for i in range(len(lines)):
+        for key in ["Elapsed", "CPUTime"]:
+            lines[i][key] = rich.Duration(lines[i][key])
+
+    table.print_columns(lines, columns, header, sep=args.sep)
+
+
 
 
 def _Gacct_catch():
