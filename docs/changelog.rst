@@ -2,28 +2,33 @@
 Changelog
 *********
 
+v0.9.1
+======
+
+*   Adding rich print ``Gacct``
+
 v0.9.0
 ======
 
 *   [docs] Switching styles (to furo), and making minor layout fixes.
-*   Adding `Gacct`: very simple wrapper around  `sacct`. The output formatting might change in the future.
+*   Adding ``Gacct``: very simple wrapper around  ``sacct``. The output formatting might change in the future.
 
 v0.7.0
 ======
 
 *   Gps: switching to argparse
 *   Ginfo: switching to argparse
-*   Gdel: using `subprocess.run`
+*   Gdel: using ``subprocess.run``
 *   Gstat: using class to make reuse more efficient
 *   Gdel: internally calling Gstat to print (removes a lot of duplicate code, and adds features)
 *   Gstat: switching to argparse
-*   Gstat: Adding "WorkDir" and "Dependency" to `--extra` option
-*   `dummyslurm.sbatch`: Adding `--dependency` and `--chdir`
-*   Adding `dummyslurm.scancel`
-*   Adding `dummyslurm.sacct`: replacing text file with 'real' dummy command
-*   Adding `dummyslurm.scontrol`
-*   Adding `dummyslurm.squeue`
-*   Adding `dummyslurm.sacct`
+*   Gstat: Adding "WorkDir" and "Dependency" to ``--extra`` option
+*   ``dummyslurm.sbatch``: Adding ``--dependency`` and ``--chdir``
+*   Adding ``dummyslurm.scancel``
+*   Adding ``dummyslurm.sacct``: replacing text file with 'real' dummy command
+*   Adding ``dummyslurm.scontrol``
+*   Adding ``dummyslurm.squeue``
+*   Adding ``dummyslurm.sacct``
 *   CI: extension of checks
 *   Readme: adding badges
 *   Fixing setup requirements
