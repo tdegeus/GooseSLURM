@@ -302,7 +302,6 @@ def Gacct(args: list[str]):
         "AveDiskWrite",
         "MaxVMSizeNode",
         "MaxVMSize",
-        "WorkDir",
     ] + args.extra
     default = sorted(set(default), key=lambda x: default.index(x))
 
@@ -313,6 +312,11 @@ def Gacct(args: list[str]):
     columns[default.index("AveDiskWrite")]["priority"] = False
     columns[default.index("MaxVMSize")]["priority"] = False
     columns[default.index("MaxVMSizeNode")]["priority"] = False
+    columns[default.index("JobName")]["align"] = "<"
+    columns[default.index("State")]["align"] = "<"
+    columns[default.index("Partition")]["align"] = "<"
+    if "WorkDir" in args.extra:
+        columns[default.index("WorkDir")]["align"] = "<"
 
     for i in range(len(lines)):
         for key in ["Elapsed", "CPUTime", "AveCPU"]:
