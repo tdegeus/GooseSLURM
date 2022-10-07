@@ -84,6 +84,10 @@ def cli_parser() -> argparse.ArgumentParser:
 
     *   Extra columns can be added (``--extra``), see ``sacct --helpformat``.
         Commonly used are ``--extra="WorkDir"``.
+
+    *   The following column abbreviations are used (depending on the output):
+        -  ``State``: ``ST``
+        -  ``ExitCode``: ``exit``
     """
 
     parser = argparse.ArgumentParser(
@@ -271,6 +275,17 @@ def Gacct(args: list[str]):
             if sum(1 if re.match(n, str(line[key]), re.IGNORECASE) else 0 for n in fields)
         ]
 
+    # shorten state
+    shorten = {"COMPLETED": "C", "RUNNING": "R", "FAILED": "F"}
+    shorten_state = True
+    for i in list({i["State"] for i in lines}):
+        if i not in shorten:
+            shorten_state = False
+            break
+    if shorten_state:
+        for line in lines:
+            line["State"] = shorten[line["State"]]
+
     if args.sort:
         lookup = {i.lower(): i for i in lines[0].keys()}
         for key in args.sort:
@@ -336,6 +351,13 @@ def Gacct(args: list[str]):
                     keep[i] = True
                     continue
         columns = [c for c, k in zip(columns, keep) if k]
+        default = [c for c, k in zip(default, keep) if k]
+
+    if shorten_state:
+        header["State"] = "ST"
+        columns[default.index("State")]["width"] = 2
+        header["ExitCode"] = "exit"
+        columns[default.index("ExitCode")]["width"] = 4
 
     table.print_columns(lines, columns, header, sep=args.sep)
 
