@@ -82,6 +82,10 @@ class String:
 
         return str(self.data)
 
+    def __len__(self):
+
+        return len(str(self))
+
     def __int__(self):
 
         return int(self.dummy)
