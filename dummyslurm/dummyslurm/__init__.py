@@ -311,15 +311,21 @@ def scontrol():
 
 def sacct():
 
+    args = sys.argv[1:]
     log = []
 
     if os.path.isfile(os.path.realpath(logfile)):
         with open(logfile) as file:
             log = yaml.load(file.read(), Loader=yaml.FullLoader)
 
-    if re.match(r"^(-p -l -j )([0-9]*)", " ".join(sys.argv[1:])):
+    allocations = False
+    if "-X" in sys.argv[1:]:
+        allocations = True
+        args.remove("-X")
 
-        jobid = int(re.split(r"^(-p -l -j )([0-9]*)", " ".join(sys.argv[1:]))[2])
+    if re.match(r"^(-p -l -j )([0-9\,]*)", " ".join(args)):
+
+        jobids = map(int, re.split(r"^(-p -l -j )([0-9\,]*)", " ".join(args))[2].split(","))
 
         keys = [
             "JobID",
@@ -385,19 +391,25 @@ def sacct():
             "JobName": "job_name",
         }
 
+        lines = []
+
         for i in log:
-            if i["jobid"] == jobid:
+            if i["jobid"] in jobids:
 
                 base = [str(i.get(alias.get(key, "NONE"), "")) for key in keys]
                 batch = [r for r in base]
                 extern = [r for r in base]
                 batch[0] = batch[0] + ".ba+"
                 extern[0] = extern[0] + ".ex+"
-                print("|".join(keys) + "|")
-                print("|".join(base) + "|")
-                print("|".join(batch) + "|")
-                print("|".join(extern) + "|")
-                return 0
+                lines.append("|".join(base) + "|")
+                if not allocations:
+                    lines.append("|".join(batch) + "|")
+                    lines.append("|".join(extern) + "|")
+
+        if len(lines) > 0:
+            print("|".join(keys) + "|")
+            print("\n".join(lines))
+            return 0
 
         raise OSError("JobID not found")
 
