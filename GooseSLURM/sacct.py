@@ -99,6 +99,12 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--infer", type=str, help="Read extra data from ``JOBID.infer``.")
     parser.add_argument("-e", "--extra", help="Extra columns.", **append)
     parser.add_argument(
+        "--abspath", action="store_true", help="Print directories as absolute (default: automatic)."
+    )
+    parser.add_argument(
+        "--relpath", action="store_true", help="Print directories as relative (default: automatic)."
+    )
+    parser.add_argument(
         "-L", "--allclusters", action="store_true", help="Display jobs ran on all clusters."
     )
     parser.add_argument(
@@ -203,6 +209,18 @@ def Gacct(args: list[str]):
         extra = _read(" ".join(["sacct"] + op))
         for i in range(len(lines)):
             lines[i] = {**lines[i], **extra[i]}
+
+    if "WorkDir" in args.extra:
+        if args.abspath:
+            for line in lines:
+                line["WorkDir"] = os.path.abspath(line["WorkDir"])
+        elif args.relpath:
+            for line in lines:
+                line["WorkDir"] = os.path.relpath(line["WorkDir"])
+        else:
+            for line in lines:
+                if len(os.path.relpath(line["WorkDir"]).split("../")) < 3:
+                    line["WorkDir"] = os.path.relpath(line["WorkDir"])
 
     if args.infer:
         if not args.allocations:
