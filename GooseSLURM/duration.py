@@ -88,6 +88,12 @@ def asSeconds(data, default=None):
             return int(float(data[:-1]) * float(60))
         elif data[-1] == "s":
             return int(float(data[:-1]) * float(1))
+        elif data[-1] == "w":
+            return int(float(data[:-1]) * float(60 * 60 * 24 * 7))
+        elif data[-1] == "M":
+            return int(float(data[:-1]) * float(60 * 60 * 24 * 7 * 31))
+        elif data[-1] == "y":
+            return int(float(data[:-1]) * float(60 * 60 * 24 * 7 * 365))
 
     # one last try (implicitly assume that the input is in seconds)
     try:
