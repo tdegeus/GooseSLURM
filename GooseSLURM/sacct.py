@@ -273,6 +273,17 @@ def Gacct(args: list[str]):
             if key in lines[i]:
                 lines[i][key] = rich.Memory(lines[i][key])
 
+    if len(lines) > 0:
+        keep = [False for _ in default]
+        for i, key in enumerate(default):
+            for line in lines:
+                if key not in line:
+                    continue
+                if len(line[key]) > 0:
+                    keep[i] = True
+                    continue
+        columns = [c for c, k in zip(columns, keep) if k]
+
     table.print_columns(lines, columns, header, sep=args.sep)
 
 
