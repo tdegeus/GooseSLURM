@@ -1,21 +1,13 @@
-# Project information
-
 project = "GooseSLURM"
 copyright = "2018-2022, Tom de Geus"
 author = "Tom de Geus"
 
-# General configuration
-
 extensions = [
-    "sphinx.ext.mathjax",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinx.ext.mathjax",
     "sphinxarg.ext",
 ]
 
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-
-# Options for HTML output
-
-# html_theme = "sphinx_rtd_theme"
 html_theme = "furo"
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
