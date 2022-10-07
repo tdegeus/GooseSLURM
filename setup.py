@@ -18,7 +18,7 @@ setup(
     long_description_content_type="text/markdown",
     keywords="SLURM",
     url=f"https://github.com/tdegeus/{project_name:s}",
-    packages=find_packages(),
+    packages=find_packages(exclude=["tests"]),
     use_scm_version={"write_to": f"{project_name}/_version.py"},
     setup_requires=["setuptools_scm"],
     install_requires=["click", "tqdm", "PyYAML"],
