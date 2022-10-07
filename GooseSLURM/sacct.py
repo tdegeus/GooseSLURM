@@ -8,6 +8,7 @@ import pwd
 import re
 import subprocess
 import sys
+from collections import defaultdict
 
 from . import duration
 from . import rich
@@ -92,6 +93,7 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sep", type=str, default=" ", help="Column separator.")
     parser.add_argument("--sort", help="Sort based on column.", **append)
     parser.add_argument("--reverse", action="store_true", help="Reverse order.")
+    parser.add_argument("--noauto", action="store_true", help="Do not infer data from subjobs.")
     parser.add_argument(
         "-L", "--allclusters", action="store_true", help="Display jobs ran on all clusters."
     )
@@ -190,6 +192,25 @@ def Gacct(args: list[str]):
         opts += ["-u", ",".join(args.gid)]
 
     lines = _read(" ".join(["sacct"] + opts))
+
+    if args.allocations and not args.noauto:
+        opts.remove("-X")
+        extra = _read(" ".join(["sacct"] + opts))
+        data = defaultdict(dict)
+        for line in extra:
+            if "." not in line["JobID"]:
+                continue
+            jobid, key = line["JobID"].split(".")
+            data[key][jobid] = line
+        for line in lines:
+            for key in line:
+                if len(line[key]) == 0:
+                    for source in ["batch", "extern"] + [i for i in data]:
+                        if source in data:
+                            if line["JobID"] in data[source]:
+                                line[key] = data[source][line["JobID"]][key]
+                                if len(line[key]) > 0:
+                                    break
 
     if args.state:
         alias = {
