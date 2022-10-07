@@ -399,8 +399,8 @@ def sacct():
                 base = [str(i.get(alias.get(key, "NONE"), "")) for key in keys]
                 batch = [r for r in base]
                 extern = [r for r in base]
-                batch[0] = batch[0] + ".ba+"
-                extern[0] = extern[0] + ".ex+"
+                batch[0] = batch[0] + ".batch"
+                extern[0] = extern[0] + ".extern"
                 lines.append("|".join(base) + "|")
                 if not allocations:
                     lines.append("|".join(batch) + "|")
