@@ -81,6 +81,9 @@ def cli_parser() -> argparse.ArgumentParser:
         resizing / rs, deadline / dl, node_fail / nf.
 
     *   The output can be returned in JSON format (``--json``).
+
+    *   Extra columns can be added (``--extra``), see ``sacct --helpformat``.
+        Commonly used are ``--extra="WorkDir"``.
     """
 
     parser = argparse.ArgumentParser(
@@ -93,7 +96,8 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sep", type=str, default=" ", help="Column separator.")
     parser.add_argument("--sort", help="Sort based on column.", **append)
     parser.add_argument("--reverse", action="store_true", help="Reverse order.")
-    parser.add_argument("--noauto", action="store_true", help="Do not infer data from subjobs.")
+    parser.add_argument("--infer", type=str, help="Read extra data from ``JOBID.infer``.")
+    parser.add_argument("-e", "--extra", help="Extra columns.", **append)
     parser.add_argument(
         "-L", "--allclusters", action="store_true", help="Display jobs ran on all clusters."
     )
@@ -193,7 +197,16 @@ def Gacct(args: list[str]):
 
     lines = _read(" ".join(["sacct"] + opts))
 
-    if args.allocations and not args.noauto:
+    if args.extra:
+        op = [i for i in opts] + ["--format", ",".join(args.extra)]
+        op.remove("-l")
+        extra = _read(" ".join(["sacct"] + op))
+        for i in range(len(lines)):
+            lines[i] = {**lines[i], **extra[i]}
+
+    if args.infer:
+        if not args.allocations:
+            raise ValueError("Cannot infer extra data without --allocations.")
         opts.remove("-X")
         extra = _read(" ".join(["sacct"] + opts))
         data = defaultdict(dict)
@@ -205,12 +218,8 @@ def Gacct(args: list[str]):
         for line in lines:
             for key in line:
                 if len(line[key]) == 0:
-                    for source in ["batch", "extern"] + [i for i in data]:
-                        if source in data:
-                            if line["JobID"] in data[source]:
-                                line[key] = data[source][line["JobID"]][key]
-                                if len(line[key]) > 0:
-                                    break
+                    if line["JobID"] in data[args.infer]:
+                        line[key] = data[args.infer][line["JobID"]][key]
 
     if args.state:
         alias = {
@@ -276,7 +285,8 @@ def Gacct(args: list[str]):
         "MaxVMSizeNode",
         "MaxVMSize",
         "WorkDir",
-    ]
+    ] + args.extra
+    default = sorted(set(default), key=lambda x: default.index(x))
 
     columns = [{"key": key, "width": len(key), "align": ">", "priority": True} for key in default]
     header = {key: key for key in default}
