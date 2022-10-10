@@ -337,7 +337,7 @@ def Gacct(args: list[str]):
         for key in ["Elapsed", "CPUTime", "AveCPU"]:
             if key in lines[i]:
                 lines[i][key] = rich.Duration(lines[i][key])
-        for key in ["AveDiskRead", "AveDiskWrite", "MaxVMSize"]:
+        for key in ["AveDiskRead", "AveDiskWrite", "MaxVMSize", "MaxRSS"]:
             if key in lines[i]:
                 lines[i][key] = rich.Memory(lines[i][key])
 
