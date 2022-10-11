@@ -287,7 +287,7 @@ def Gacct(args: list[str]):
             line["State"] = shorten[line["State"]]
 
     if args.sort:
-        lookup = {i.lower(): i for i in lines[0].keys()}
+        lookup = {**{i.lower(): i for i in lines[0].keys()}, **{i: i for i in lines[0].keys()}}
         for key in args.sort:
             lines.sort(key=lambda line: line[lookup[key]], reverse=args.reverse)
     elif args.reverse:
