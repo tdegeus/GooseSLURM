@@ -140,6 +140,8 @@ import os
 import pwd
 import re
 
+import numpy as np
+
 from .. import rich
 from .. import squeue
 from .. import table
@@ -346,10 +348,10 @@ class Gstat:
 
         # optional: sort by key(s)
         if self.args["sort"]:
-            for key in self.args["sort"]:
-                lines.sort(
-                    key=lambda line: line[aliasInv[key.upper()]], reverse=self.args["reverse"]
-                )
+            idx = np.lexsort([[i[aliasInv[k.upper()]] for i in lines] for k in self.args["sort"]])
+            if self.args["reverse"]:
+                idx = idx[::-1]
+            lines = [lines[i] for i in idx]
 
         # -- select columns --
 

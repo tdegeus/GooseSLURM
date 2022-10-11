@@ -8,8 +8,9 @@ import pwd
 import re
 import subprocess
 import sys
-import numpy as np
 from collections import defaultdict
+
+import numpy as np
 
 from . import duration
 from . import rich
@@ -288,8 +289,8 @@ def Gacct(args: list[str]):
             line["State"] = shorten[line["State"]]
 
     if args.sort:
-        lookup = {**{i.lower(): i for i in lines[0].keys()}, **{i: i for i in lines[0].keys()}}
-        idx = np.lexsort([[line[lookup[key]] for line in lines] for key in args.sort])
+        lookup = {i.upper(): i for i in lines[0].keys()}
+        idx = np.lexsort([[line[lookup[key.upper()]] for line in lines] for key in args.sort])
         if args.reverse:
             idx = idx[::-1]
         lines = [lines[i] for i in idx]

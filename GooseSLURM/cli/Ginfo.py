@@ -90,6 +90,8 @@ import pwd
 import re
 import sys
 
+import numpy as np
+
 from .. import rich
 from .. import sinfo
 from .. import squeue
@@ -364,15 +366,15 @@ def main():
     # -- sort --
 
     # default sort
-    lines.sort(key=lambda line: line["HOSTNAMES"])
-    lines.sort(key=lambda line: line["PARTITION"])
+    lines.sort(key=lambda line: line["HOSTNAMES"], reverse=args["reverse"])
+    lines.sort(key=lambda line: line["PARTITION"], reverse=args["reverse"])
 
     # optional: sort by key(s)
     if args["sort"]:
-
-        for key in args["sort"]:
-
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
+        idx = np.lexsort([[i[aliasInv[k.upper()]] for i in lines] for k in args["sort"]])
+        if args["reverse"]:
+            idx = idx[::-1]
+        lines = [lines[i] for i in idx]
 
     # -- select columns --
 
@@ -477,16 +479,13 @@ def main():
 
     # optional: sort by key(s)
     if args["sort"]:
-
-        # get available keys in the setting with fewer columns
         keys = [alias[column["key"]].upper() for column in columns_summary]
-
-        # filter sort keys that are not available in this mode
         args["sort"] = [key for key in args["sort"] if key.upper() in keys]
 
-        # apply sort
-        for key in args["sort"]:
-            lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
+        idx = np.lexsort([[i[aliasInv[k.upper()]] for i in lines] for k in args["sort"]])
+        if args["reverse"]:
+            idx = idx[::-1]
+        lines = [lines[i] for i in idx]
 
     # -- print --
 
