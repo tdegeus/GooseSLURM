@@ -351,7 +351,7 @@ class Gstat:
             reversed = False
 
         if self.args["reverse"]:
-            reversed = ~reversed
+            reversed = not reversed
 
         idx = np.lexsort([[i[key] for i in lines] for key in sortkeys])
         if reversed:
