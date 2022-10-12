@@ -202,6 +202,8 @@ def squeue():
             "TIME": "time",
             "USER": "user",
             "WORK_DIR": "workdir",
+            "HOST": "host",
+            "TIME_START": "time_start",
         }
 
         print("|".join([i.upper() for i in keys]))

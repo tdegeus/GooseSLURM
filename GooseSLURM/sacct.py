@@ -10,6 +10,8 @@ import subprocess
 import sys
 from collections import defaultdict
 
+import numpy as np
+
 from . import duration
 from . import rich
 from . import table
@@ -287,9 +289,11 @@ def Gacct(args: list[str]):
             line["State"] = shorten[line["State"]]
 
     if args.sort:
-        lookup = {**{i.lower(): i for i in lines[0].keys()}, **{i: i for i in lines[0].keys()}}
-        for key in args.sort:
-            lines.sort(key=lambda line: line[lookup[key]], reverse=args.reverse)
+        lookup = {i.upper(): i for i in lines[0].keys()}
+        idx = np.lexsort([[line[lookup[key.upper()]] for line in lines] for key in args.sort])
+        if args.reverse:
+            idx = idx[::-1]
+        lines = [lines[i] for i in idx]
     elif args.reverse:
         lines = [i for i in lines[::-1]]
 

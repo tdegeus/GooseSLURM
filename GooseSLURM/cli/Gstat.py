@@ -140,6 +140,8 @@ import os
 import pwd
 import re
 
+import numpy as np
+
 from .. import rich
 from .. import squeue
 from .. import table
@@ -341,15 +343,20 @@ class Gstat:
 
         # -- sort --
 
-        # default sort
-        lines.sort(key=lambda line: line["START_TIME"], reverse=not self.args["reverse"])
-
-        # optional: sort by key(s)
         if self.args["sort"]:
-            for key in self.args["sort"]:
-                lines.sort(
-                    key=lambda line: line[aliasInv[key.upper()]], reverse=self.args["reverse"]
-                )
+            sortkeys = [aliasInv[key.upper()] for key in self.args["sort"]]
+            reversed = False
+        else:
+            sortkeys = ["JOBID", "PARTITION"]
+            reversed = False
+
+        if self.args["reverse"]:
+            reversed = not reversed
+
+        idx = np.lexsort([[i[key] for i in lines] for key in sortkeys])
+        if reversed:
+            idx = idx[::-1]
+        lines = [lines[i] for i in idx]
 
         # -- select columns --
 

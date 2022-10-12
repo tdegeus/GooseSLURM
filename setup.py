@@ -21,7 +21,7 @@ setup(
     packages=find_packages(exclude=["tests"]),
     use_scm_version={"write_to": f"{project_name}/_version.py"},
     setup_requires=["setuptools_scm"],
-    install_requires=["click", "tqdm", "PyYAML"],
+    install_requires=["click", "tqdm", "PyYAML", "numpy"],
     entry_points={
         "console_scripts": [
             f"Gdel = {project_name}.cli.Gdel:main",
