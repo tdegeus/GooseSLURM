@@ -343,15 +343,15 @@ class Gstat:
 
         # -- sort --
 
-        # default sort
-        lines.sort(key=lambda line: line["START_TIME"], reverse=not self.args["reverse"])
-
-        # optional: sort by key(s)
         if self.args["sort"]:
-            idx = np.lexsort([[i[aliasInv[k.upper()]] for i in lines] for k in self.args["sort"]])
-            if self.args["reverse"]:
-                idx = idx[::-1]
-            lines = [lines[i] for i in idx]
+            sortkeys = [aliasInv[key.upper()] for key in self.args["sort"]]
+        else:
+            sortkeys = ["START_TIME"]
+
+        idx = np.lexsort([[i[key] for i in lines] for key in sortkeys])
+        if self.args["reverse"]:
+            idx = idx[::-1]
+        lines = [lines[i] for i in idx]
 
         # -- select columns --
 

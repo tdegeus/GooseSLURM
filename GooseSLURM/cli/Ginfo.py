@@ -365,16 +365,15 @@ def main():
 
     # -- sort --
 
-    # default sort
-    lines.sort(key=lambda line: line["HOSTNAMES"], reverse=args["reverse"])
-    lines.sort(key=lambda line: line["PARTITION"], reverse=args["reverse"])
-
-    # optional: sort by key(s)
     if args["sort"]:
-        idx = np.lexsort([[i[aliasInv[k.upper()]] for i in lines] for k in args["sort"]])
-        if args["reverse"]:
-            idx = idx[::-1]
-        lines = [lines[i] for i in idx]
+        sortkeys = [aliasInv[key.upper()] for key in args["sort"]]
+    else:
+        sortkeys = ["HOSTNAMES", "PARTITION"]
+
+    idx = np.lexsort([[i[key] for i in lines] for key in sortkeys])
+    if args["reverse"]:
+        idx = idx[::-1]
+    lines = [lines[i] for i in idx]
 
     # -- select columns --
 
