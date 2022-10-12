@@ -346,7 +346,7 @@ class Gstat:
         if self.args["sort"]:
             sortkeys = [aliasInv[key.upper()] for key in self.args["sort"]]
         else:
-            sortkeys = ["START_TIME"]
+            sortkeys = ["START_TIME", "NAME"]
 
         idx = np.lexsort([[i[key] for i in lines] for key in sortkeys])
         if self.args["reverse"]:
