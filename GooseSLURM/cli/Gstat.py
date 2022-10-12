@@ -345,7 +345,7 @@ class Gstat:
 
         if self.args["sort"]:
             sortkeys = [aliasInv[key.upper()] for key in self.args["sort"]]
-            reversed = False
+            reversed = True
         else:
             sortkeys = ["JOBID", "START_TIME"]
             reversed = False
