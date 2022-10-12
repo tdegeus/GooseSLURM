@@ -345,11 +345,16 @@ class Gstat:
 
         if self.args["sort"]:
             sortkeys = [aliasInv[key.upper()] for key in self.args["sort"]]
+            reversed = True
         else:
             sortkeys = ["NAME", "START_TIME"]
+            reversed = False
+
+        if self.args["reverse"]:
+            reversed = ~reversed
 
         idx = np.lexsort([[i[key] for i in lines] for key in sortkeys])
-        if self.args["reverse"]:
+        if reversed:
             idx = idx[::-1]
         lines = [lines[i] for i in idx]
 
