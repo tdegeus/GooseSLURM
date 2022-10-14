@@ -506,7 +506,8 @@ class Gstat:
         """
 
         if self.args["print_dependency"]:
-            print("-d " + " -d ".join([str(line["JOBID"]) for line in self.lines]))
+            if len(self.lines) > 0:
+                print("-d " + " -d ".join([str(line["JOBID"]) for line in self.lines]))
         elif not self.args["summary"]:
             self.print_all()
         else:
