@@ -127,6 +127,10 @@ Options:
     --debug=<FILE>
         Debug: read ``squeue -o "%all"`` from file.
 
+    -d, --print-dependency
+        Print the selected jobs as ``-d <jobid> -d <jobid> ...``.
+        Use to for example ``Gsub *slurm `Gstat -d -U --partition "serial"```.
+
     -h, --help
         Show help.
 
@@ -191,6 +195,7 @@ class Gstat:
         parser.add_argument("--sep", type=str, default=" ")
         parser.add_argument("--long", action="store_true")
         parser.add_argument("--debug", type=str)
+        parser.add_argument("-d", "--print-dependency", action="store_true")
         parser.add_argument("--version", action="version", version=version)
         parser.add_argument("jobs", type=int, nargs="*")
 
@@ -500,7 +505,9 @@ class Gstat:
         Print.
         """
 
-        if not self.args["summary"]:
+        if self.args["print_dependency"]:
+            print("-d " + " -d ".join([str(line["JOBID"]) for line in self.lines]))
+        elif not self.args["summary"]:
             self.print_all()
         else:
             self.print_summary()
