@@ -114,6 +114,7 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--relpath", action="store_true", help="Print directories as relative (default: automatic)."
     )
+    parser.add_argument("--root", type=str, help="Filter jobs whose workdir has this root.")
     parser.add_argument(
         "-L", "--allclusters", action="store_true", help="Display jobs ran on all clusters."
     )
@@ -156,6 +157,10 @@ def Gacct(args: list[str]):
 
     parser = cli_parser()
     args = parser.parse_args(args)
+
+    if args.root is not None:
+        if "workdir" not in args.extra:
+            args.extra.append("workdir")
 
     opts = ["-p", "-l"]
     if args.allocations:
@@ -219,6 +224,9 @@ def Gacct(args: list[str]):
         extra = _read(" ".join(["sacct"] + op))
         for i in range(len(lines)):
             lines[i] = {**lines[i], **extra[i]}
+
+    if args.root:
+        lines = [i for i in lines if not os.path.relpath(i["WorkDir"], args.root).startswith("..")]
 
     if "WorkDir" in args.extra:
         if args.abspath:

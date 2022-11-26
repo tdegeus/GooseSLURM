@@ -49,6 +49,9 @@ Options:
         Limit output to job-id(s).
         Option may be repeated. Search by regex.
 
+    --root=<NAME>
+        Filter jobs whose workdir has this root.
+
     --host=<NAME>
         Limit output to host(s).
         Option may be repeated. Search by regex.
@@ -173,6 +176,7 @@ class Gstat:
         parser.add_argument("-u", "--user", type=str, action="append", default=[])
         parser.add_argument("-j", "--jobid", type=str, action="append", default=[])
         parser.add_argument("--host", type=str, action="append")
+        parser.add_argument("--root", type=str)
         parser.add_argument("-a", "--account", type=str, action="append")
         parser.add_argument("-n", "--name", type=str, action="append")
         parser.add_argument("-w", "--workdir", type=str, action="append")
@@ -212,6 +216,12 @@ class Gstat:
             args["list"] = True
 
         args["jobid"] += [f"^{i:d}$" for i in args["jobs"]]
+
+        if args["root"]:
+            if args["extra"] is None:
+                args["extra"] = ["WorkDir"]
+            elif "WorkDir" not in args["extra"]:
+                args["extra"] += ["WorkDir"]
 
         # store for later use
         self.args = args
@@ -304,6 +314,12 @@ class Gstat:
             )
 
         # -- convert paths ---
+
+        if self.args["root"]:
+            root = self.args["root"]
+            lines = [
+                i for i in lines if not os.path.relpath(i["WorkDir"].data, root).startswith("..")
+            ]
 
         if self.args["abspath"]:
             for line in lines:
