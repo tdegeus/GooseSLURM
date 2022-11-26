@@ -90,6 +90,10 @@ def cli_parser() -> argparse.ArgumentParser:
     *   The following column abbreviations are used (depending on the output):
         -  ``State``: ``ST``
         -  ``ExitCode``: ``exit``
+
+    .. tip::
+
+        Use ``seff jobid`` to get more information, such as memory usage.
     """
 
     parser = argparse.ArgumentParser(
