@@ -159,8 +159,8 @@ def Gacct(args: list[str]):
     args = parser.parse_args(args)
 
     if args.root is not None:
-        if "workdir" not in args.extra:
-            args.extra.append("workdir")
+        if "WorkDir" not in args.extra:
+            args.extra.append("WorkDir")
 
     opts = ["-p", "-l"]
     if args.allocations:
