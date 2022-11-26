@@ -160,7 +160,7 @@ def Gacct(args: list[str]):
 
     if args.root is not None:
         if "WorkDir" not in args.extra:
-            args.extra.append("WorkDir")
+            args.extra += ["WorkDir"]
 
     opts = ["-p", "-l"]
     if args.allocations:
