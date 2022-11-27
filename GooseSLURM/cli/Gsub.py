@@ -1,6 +1,7 @@
 r"""Gsub
     Submit job-scripts and add the "--chdir" option
     to run the scripts from the directory in with the sbatch-file is stored.
+    See https://slurm.schedmd.com/sbatch.html
 
 Usage:
     Gsub [options] <files>...
@@ -15,6 +16,9 @@ Options:
     --verbose
         Verbose all commands and their output.
 
+    -Q, --quiet
+        Do no show progress-bar.
+
     --log = FILENAME
         Log the JobIDs to a YAML-file (updated after each submit).
         Existing log files are appended.
@@ -28,17 +32,33 @@ Options:
     --serial
         Submit using dependencies such that jobs are run after each other.
 
-    -d, --dependency = ARG (sbatch option)
-        Defer the start of this job until the specified dependencies have been satisfied completed.
+    -A, --account = ARG (sbatch option)
+        Account name.
 
-    -w, --wait (sbatch option)
-        Do not exit until the submitted job terminates.
+    -b, --begin = ARG (sbatch option)
+        Allocate at the later time.
+        E.g. ``--begin=now+1hour``.
+
+    --comment = ARG (sbatch option)
+        Arbitrary comment.
 
     -c, --constraint = ARG (sbatch option)
         Nodes can have features assigned to them by the Slurm administrator.
 
-    -Q, --quiet
-        Do no show progress-bar.
+    -d, --dependency = ARG (sbatch option)
+        Defer the start of this job until the specified dependencies have been satisfied completed.
+
+    -X, --exclude = ARG (sbatch option)
+        Exclude nodes.
+
+    --export = ARG (sbatch option)
+        Export environment variables.
+
+    --mem = ARG (sbatch option)
+        Memory allocation.
+
+    -w, --wait (sbatch option)
+        Do not exit until the submitted job terminates.
 
     -h, --help
         Show help.
@@ -122,17 +142,25 @@ def main():
     parser.add_argument("-v", "--version", action="version", version=version)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("-Q", "--quiet", action="store_true")
     parser.add_argument("-l", "--log", type=str)
     parser.add_argument("--delay", type=float, default=0.1)
     parser.add_argument("-r", "--repeat", type=int, default=1)
-    parser.add_argument("-d", "--dependency", type=str)
-    parser.add_argument("-w", "--wait", action="store_true")
-    parser.add_argument("-c", "--constraint", type=str)
-    parser.add_argument("-Q", "--quiet", action="store_true")
     parser.add_argument("--serial", action="store_true")
+    parser.add_argument("-A", "--account", type=str)
+    parser.add_argument("-b", "--begin", type=str)
+    parser.add_argument("--comment", type=str)
+    parser.add_argument("-c", "--constraint", type=str)
+    parser.add_argument("-d", "--dependency", type=str)
+    parser.add_argument("-X", "--exclude", type=str)
+    parser.add_argument("--export", type=str)
+    parser.add_argument("--mem", type=str)
+    parser.add_argument("-w", "--wait", action="store_true")
+
     parser.add_argument("files", nargs="*", type=str)
     args = parser.parse_args()
     dargs = vars(args)
+    down = ["account", "begin", "comment", "constraint", "dependency", "exclude", "export", "mem"]
 
     log = read_log(args.files, args.log)
     jobid = ""
@@ -150,7 +178,7 @@ def main():
             options = ["--chdir", os.path.abspath(path)]
             if args.wait:
                 options += ["--wait"]
-            for opt in ["constraint", "dependency"]:
+            for opt in down:
                 if dargs[opt]:
                     options += [f"--{opt:s}", dargs[opt]]
             if rep or (args.serial and ifile):
