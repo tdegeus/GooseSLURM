@@ -36,7 +36,10 @@ def main():
     gstat.parse_cli_args(cli_args)
 
     if len(gstat.args["jobs"]) == 0:
-        cli_args += ["-U", "--status", "R", "--status", "PD"]
+        if len(gstat.args["user"]) == 0:
+            cli_args += ["-U"]
+        if gstat.args["status"] is None:
+            cli_args += ["--status", "R", "--status", "PD"]
         gstat.parse_cli_args(cli_args)
 
     gstat.read()
