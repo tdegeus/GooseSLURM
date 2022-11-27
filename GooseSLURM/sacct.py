@@ -104,7 +104,7 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("-X", "--allocations", action="store_true", help="Include only main job.")
     parser.add_argument("-j", "--json", action="store_true", help="Print in JSON format.")
     parser.add_argument("--sep", type=str, default=" ", help="Column separator.")
-    parser.add_argument("--wide", action="store_true", help="Print without fitting screen.")
+    parser.add_argument("--no-truncate", action="store_true", help="Print without fitting screen.")
     parser.add_argument("--sort", help="Sort based on column.", **append)
     parser.add_argument("--reverse", action="store_true", help="Reverse order.")
     parser.add_argument("--infer", type=str, help="Read extra data from ``JOBID.infer``.")
@@ -382,7 +382,7 @@ def Gacct(args: list[str]):
         header["ExitCode"] = "exit"
         columns[default.index("ExitCode")]["width"] = 4
 
-    table.print_columns(lines, columns, header, sep=args.sep, no_truncate=args.wide)
+    table.print_columns(lines, columns, header, sep=args.sep, no_truncate=args.no_truncate)
 
 
 def _Gacct_catch():
