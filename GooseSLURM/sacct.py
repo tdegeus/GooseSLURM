@@ -104,6 +104,7 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument("-X", "--allocations", action="store_true", help="Include only main job.")
     parser.add_argument("-j", "--json", action="store_true", help="Print in JSON format.")
     parser.add_argument("--sep", type=str, default=" ", help="Column separator.")
+    parser.add_argument("--wide", action="store_true", help="Print without fitting screen.")
     parser.add_argument("--sort", help="Sort based on column.", **append)
     parser.add_argument("--reverse", action="store_true", help="Reverse order.")
     parser.add_argument("--infer", type=str, help="Read extra data from ``JOBID.infer``.")
@@ -114,7 +115,11 @@ def cli_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--relpath", action="store_true", help="Print directories as relative (default: automatic)."
     )
-    parser.add_argument("--root", type=str, help="Filter jobs whose workdir has this root.")
+    parser.add_argument(
+        "--root",
+        type=str,
+        help="Filter jobs whose WorkDir has this root (WorkDir printed relative to this root).",
+    )
     parser.add_argument(
         "-L", "--allclusters", action="store_true", help="Display jobs ran on all clusters."
     )
@@ -157,10 +162,11 @@ def Gacct(args: list[str]):
 
     parser = cli_parser()
     args = parser.parse_args(args)
+    extra = [i for i in args.extra]
 
     if args.root is not None:
-        if "WorkDir" not in args.extra:
-            args.extra += ["WorkDir"]
+        if "WorkDir" not in extra:
+            extra += ["WorkDir"]
 
     opts = ["-p", "-l"]
     if args.allocations:
@@ -218,17 +224,18 @@ def Gacct(args: list[str]):
 
     lines = _read(" ".join(["sacct"] + opts))
 
-    if args.extra:
-        op = [i for i in opts] + ["--format", ",".join(args.extra)]
+    if extra:
+        op = [i for i in opts] + ["--format", ",".join(extra)]
         op.remove("-l")
-        extra = _read(" ".join(["sacct"] + op))
+        ex = _read(" ".join(["sacct"] + op))
         for i in range(len(lines)):
-            lines[i] = {**lines[i], **extra[i]}
+            lines[i] = {**lines[i], **ex[i]}
 
     if args.root:
         lines = [i for i in lines if not os.path.relpath(i["WorkDir"], args.root).startswith("..")]
-
-    if "WorkDir" in args.extra:
+        for line in lines:
+            line["WorkDir"] = os.path.relpath(line["WorkDir"], args.root)
+    elif "WorkDir" in extra:
         if args.abspath:
             for line in lines:
                 line["WorkDir"] = os.path.abspath(line["WorkDir"])
@@ -244,9 +251,9 @@ def Gacct(args: list[str]):
         if not args.allocations:
             raise ValueError("Cannot infer extra data without --allocations.")
         opts.remove("-X")
-        extra = _read(" ".join(["sacct"] + opts))
+        ex = _read(" ".join(["sacct"] + opts))
         data = defaultdict(dict)
-        for line in extra:
+        for line in ex:
             if "." not in line["JobID"]:
                 continue
             jobid, key = line["JobID"].split(".")
@@ -333,7 +340,7 @@ def Gacct(args: list[str]):
         "AveDiskWrite",
         "MaxVMSizeNode",
         "MaxVMSize",
-    ] + args.extra
+    ] + extra
     default = sorted(set(default), key=lambda x: default.index(x))
 
     columns = [{"key": key, "width": len(key), "align": ">", "priority": True} for key in default]
@@ -346,7 +353,7 @@ def Gacct(args: list[str]):
     columns[default.index("JobName")]["align"] = "<"
     columns[default.index("State")]["align"] = "<"
     columns[default.index("Partition")]["align"] = "<"
-    if "WorkDir" in args.extra:
+    if "WorkDir" in extra:
         columns[default.index("WorkDir")]["align"] = "<"
 
     for i in range(len(lines)):
@@ -375,7 +382,7 @@ def Gacct(args: list[str]):
         header["ExitCode"] = "exit"
         columns[default.index("ExitCode")]["width"] = 4
 
-    table.print_columns(lines, columns, header, sep=args.sep)
+    table.print_columns(lines, columns, header, sep=args.sep, no_truncate=args.wide)
 
 
 def _Gacct_catch():

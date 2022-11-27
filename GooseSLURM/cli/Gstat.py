@@ -296,6 +296,9 @@ class Gstat:
             for column in columns
         }
 
+        if self.args["root"]:
+            header["WORK_DIR"] = rich.String(header["WORK_DIR"].data + " " + self.args["root"])
+
         # select color theme
         theme = squeue.colors(self.args["colors"].lower())
 
@@ -318,10 +321,11 @@ class Gstat:
         if self.args["root"]:
             root = self.args["root"]
             lines = [
-                i for i in lines if not os.path.relpath(i["WorkDir"].data, root).startswith("..")
+                i for i in lines if not os.path.relpath(i["WORK_DIR"].data, root).startswith("..")
             ]
-
-        if self.args["abspath"]:
+            for line in lines:
+                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data, root)
+        elif self.args["abspath"]:
             for line in lines:
                 line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
         elif self.args["relpath"]:
@@ -360,6 +364,14 @@ class Gstat:
             for line in lines:
                 line[key].color = theme["selection"]
             # - apply to the header
+            header[key].color = theme["selection"]
+
+        if self.args["root"]:
+            key = "WORK_DIR"
+
+            for line in lines:
+                line[key].color = theme["selection"]
+
             header[key].color = theme["selection"]
 
         # -- sort --
