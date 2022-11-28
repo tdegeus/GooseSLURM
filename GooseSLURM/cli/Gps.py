@@ -15,6 +15,14 @@
         | "COMMAND"    | Command                                        |
         +--------------+------------------------------------------------+
 
+    .. tip::
+
+        A nice use is to kill a command filtered on its name::
+
+            kill `Gps -9 -c ".*mycommand.*"`
+
+        Of course you should probably verify the selected pid(s) before killing them.
+
 Usage:
     Gps [options]
 
@@ -33,6 +41,9 @@ Options:
     -c, --command=<NAME>
         Limit processes to command.
         Option may be repeated. Search by regex.
+
+    --include-me
+        Include the current process.
 
     -s, --sort=<NAME>
         Sort by field (selected by the header name).
@@ -111,6 +122,8 @@ def main():
     parser.add_argument("-l", "--list", action="store_true")
     parser.add_argument("--sep", type=str, default=" ")
     parser.add_argument("--long", action="store_true")
+    parser.add_argument("--include-me", action="store_true")
+    parser.add_argument("-9", action="store_true")
     parser.add_argument("--debug", type=str)
     parser.add_argument("--version", action="version", version=version)
     args = vars(parser.parse_args())
@@ -165,6 +178,10 @@ def main():
 
         lines = ps.read_interpret(theme=theme)
 
+        if not args["include_me"]:
+            pid = os.getpid()
+            lines = [line for line in lines if int(line["PID"].data) != pid]
+
     else:
 
         lines = ps.read_interpret(
@@ -203,6 +220,16 @@ def main():
         for key in args["sort"]:
 
             lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
+
+    # -- print PID only --
+
+    if args["9"]:
+
+        if len(lines) == 0:
+            return
+
+        print("-9 " + " ".join([str(line["PID"]) for line in lines]))
+        return
 
     # -- select columns --
 
