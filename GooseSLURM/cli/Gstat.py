@@ -404,8 +404,7 @@ class Gstat:
             columns = [column for column in columns if column["key"] in keys]
         else:
             columns = [column for column in columns if column["default"]]
-
-        columns += extra
+            columns += extra
 
         # store for later use
         self.lines = lines
