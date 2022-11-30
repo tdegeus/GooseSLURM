@@ -431,6 +431,7 @@ class Gstat:
                 raise OSError("Error: Only one field can be selected")
 
             table.print_list(self.lines, self.columns[0]["key"], self.args["sep"])
+            return
 
         # print columns
         table.print_columns(
