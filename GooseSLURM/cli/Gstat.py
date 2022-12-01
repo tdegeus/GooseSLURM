@@ -253,6 +253,7 @@ class Gstat:
             "PARTITION": "Partition",
             "DEPENDENCY": "Dependency",
             "WORK_DIR": "WorkDir",
+            "COMMAND": "Command",
         }
 
         # conversion map: custom field-names -> default field-names
@@ -288,6 +289,7 @@ class Gstat:
             {"key": "NODELIST(REASON)", "width": 5, "align": "<", **noprio},
             {"key": "DEPENDENCY", "width": 5, "align": "<", **nodefault},
             {"key": "WORK_DIR", "width": 7, "align": "<", **nodefault},
+            {"key": "COMMAND", "width": 7, "align": "<", **nodefault},
         ]
 
         # header
@@ -325,16 +327,20 @@ class Gstat:
             ]
             for line in lines:
                 line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data, root)
+                line["COMMAND"].data = os.path.relpath(line["COMMAND"].data, root)
         elif self.args["abspath"]:
             for line in lines:
                 line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
+                line["COMMAND"].data = os.path.abspath(line["COMMAND"].data)
         elif self.args["relpath"]:
             for line in lines:
                 line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
+                line["COMMAND"].data = os.path.relpath(line["COMMAND"].data)
         else:
             for line in lines:
                 if len(os.path.relpath(line["WORK_DIR"].data).split("../")) < 3:
                     line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
+                    line["COMMAND"].data = os.path.relpath(line["COMMAND"].data)
 
         # -- limit based on command-line options --
 
@@ -543,11 +549,7 @@ class Gstat:
 
 
 def main():
-    try:
-        p = Gstat()
-        p.parse_cli_args()
-        p.read()
-        p.print()
-    except Exception as e:
-        print(e)
-        return 1
+    p = Gstat()
+    p.parse_cli_args()
+    p.read()
+    p.print()
