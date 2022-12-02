@@ -1,3 +1,5 @@
+from sys import platform
+
 from . import rich
 
 
@@ -46,7 +48,7 @@ def read(data=None):
 
     # get live info
     if data is None:
-        data = subprocess.check_output("ps -eo pid,user,rss,%cpu,command", shell=True).decode(
+        data = subprocess.check_output("ps -eo pid,user,rss,%cpu,time,command", shell=True).decode(
             "utf-8"
         )
 
@@ -70,7 +72,9 @@ def read(data=None):
         d[2], line = line.split(" ", 1)
         line = line.strip()
         d[3], line = line.split(" ", 1)
-        d[4] = line.strip()
+        line = line.strip()
+        d[4], line = line.split(" ", 1)
+        d[5] = line.strip()
         # -- initialize empty dictionary
         info = {}
         # -- fill dictionary
@@ -81,6 +85,17 @@ def read(data=None):
 
     # return output
     return lines
+
+
+def convert_duration(duration):
+
+    if platform == "darwin":
+        h, s = duration.split(".")
+        h, m = h.split(":")
+        return float(h) * 60 * 60 + float(m) * 60 + float(s) * 60
+
+    h, m, s = duration.split(":")
+    return float(h) * 60 * 60 + float(m) * 60 + float(s)
 
 
 def interpret(lines, theme=colors()):
@@ -115,6 +130,10 @@ def interpret(lines, theme=colors()):
         # custom conversion
         for key in ["%CPU"]:
             line[key] = rich.Float(line[key], precision=2)
+
+        # custom conversion
+        for key in ["TIME"]:
+            line[key] = rich.Duration(convert_duration(line[key]), precision=1)
 
         # custom conversion
         for key in ["RSS"]:

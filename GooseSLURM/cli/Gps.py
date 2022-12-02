@@ -12,6 +12,8 @@
         +--------------+------------------------------------------------+
         | "%CPU"       | Fraction of CPU capacity used                  |
         +--------------+------------------------------------------------+
+        | "TIME"       | Duration of the command                        |
+        +--------------+------------------------------------------------+
         | "COMMAND"    | Command                                        |
         +--------------+------------------------------------------------+
 
@@ -140,6 +142,7 @@ def main():
         "PID": "PID",
         "RSS": "MEM",
         "%CPU": "%CPU",
+        "TIME": "TIME",
         "COMMAND": "COMMAND",
     }
 
@@ -160,6 +163,7 @@ def main():
         {"key": "USER", "width": 7, "align": "<", "priority": True},
         {"key": "RSS", "width": 4, "align": ">", "priority": True},
         {"key": "%CPU", "width": 4, "align": ">", "priority": True},
+        {"key": "TIME", "width": 4, "align": ">", "priority": True},
         {"key": "COMMAND", "width": 10, "align": "<", "priority": True},
     ]
 
