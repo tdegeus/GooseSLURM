@@ -1,4 +1,5 @@
-from sys import platform
+import re
+import sys
 
 from . import rich
 
@@ -89,13 +90,17 @@ def read(data=None):
 
 def convert_duration(duration):
 
-    if platform == "darwin":
-        h, s = duration.split(".")
-        h, m = h.split(":")
-        return float(h) * 60 * 60 + float(m) * 60 + float(s) * 60
+    _, d, _, h, _, m, _, s, _ = re.split("([0-9]*)(-?)([0-9]*)(:)([0-9]*)([:.])([0-9]*)", duration)
 
-    h, m, s = duration.split(":")
-    return float(h) * 60 * 60 + float(m) * 60 + float(s)
+    if sys.platform == "darwin":
+        fac = 60
+    else:
+        fac = 1
+
+    if len(h) == 0:
+        return float(d) * 3600 + float(m) * 60 + float(s) * fac
+
+    return float(d) * 86400 + float(h) * 3600 + float(m) * 60 + float(s) * fac
 
 
 def interpret(lines, theme=colors()):
