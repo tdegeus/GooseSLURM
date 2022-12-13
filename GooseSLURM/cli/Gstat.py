@@ -52,6 +52,9 @@ Options:
     --root=<NAME>
         Filter jobs whose workdir has this root.
 
+    -C, --cwd
+        Same as ``--root .``.
+
     --host=<NAME>
         Limit output to host(s).
         Option may be repeated. Search by regex.
@@ -177,6 +180,7 @@ class Gstat:
         parser.add_argument("-j", "--jobid", type=str, action="append", default=[])
         parser.add_argument("--host", type=str, action="append")
         parser.add_argument("--root", type=str)
+        parser.add_argument("-C", "--cwd", action="store_true")
         parser.add_argument("-a", "--account", type=str, action="append")
         parser.add_argument("-n", "--name", type=str, action="append")
         parser.add_argument("-w", "--workdir", type=str, action="append")
@@ -210,6 +214,10 @@ class Gstat:
 
         if args["U"]:
             args["user"] += [pwd.getpwuid(os.getuid())[0]]
+
+        if args["cwd"]:
+            assert not args["root"]
+            args["root"] = "."
 
         if args["joblist"]:
             args["output"] = ["JOBID"]
