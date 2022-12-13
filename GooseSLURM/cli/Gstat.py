@@ -55,6 +55,9 @@ Options:
     -C, --cwd
         Same as ``--root .``.
 
+    -D, --max-depth=<N>
+        Filter jobs whose workdir has maximally this depth compared to ``--root``.
+
     --host=<NAME>
         Limit output to host(s).
         Option may be repeated. Search by regex.
@@ -181,6 +184,7 @@ class Gstat:
         parser.add_argument("--host", type=str, action="append")
         parser.add_argument("--root", type=str)
         parser.add_argument("-C", "--cwd", action="store_true")
+        parser.add_argument("-D", "--max-depth", type=int)
         parser.add_argument("-a", "--account", type=str, action="append")
         parser.add_argument("-n", "--name", type=str, action="append")
         parser.add_argument("-w", "--workdir", type=str, action="append")
@@ -333,6 +337,12 @@ class Gstat:
             lines = [
                 i for i in lines if not os.path.relpath(i["WORK_DIR"].data, root).startswith("..")
             ]
+            if self.args["max_depth"] is not None:
+                lines = [
+                    line
+                    for line in lines
+                    if len(line["WORK_DIR"].data.split(os.path.sep)) <= self.args["max_depth"]
+                ]
             for line in lines:
                 line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data, root)
                 line["COMMAND"].data = os.path.relpath(line["COMMAND"].data, root)
