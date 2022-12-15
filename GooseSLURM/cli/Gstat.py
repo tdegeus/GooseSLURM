@@ -229,7 +229,7 @@ class Gstat:
 
         args["jobid"] += [f"^{i:d}$" for i in args["jobs"]]
 
-        if args["root"]:
+        if args["root"] or args["max_depth"]:
             if args["extra"] is None:
                 args["extra"] = ["WorkDir"]
             elif "WorkDir" not in args["extra"]:
@@ -337,28 +337,36 @@ class Gstat:
             lines = [
                 i for i in lines if not os.path.relpath(i["WORK_DIR"].data, root).startswith("..")
             ]
-            if self.args["max_depth"] is not None:
+            for line in lines:
+                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data, root)
+                line["COMMAND"].data = os.path.relpath(line["COMMAND"].data, root)
+            if self.args["max_depth"]:
                 lines = [
                     line
                     for line in lines
                     if len(line["WORK_DIR"].data.split(os.path.sep)) <= self.args["max_depth"]
                 ]
-            for line in lines:
-                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data, root)
-                line["COMMAND"].data = os.path.relpath(line["COMMAND"].data, root)
-        elif self.args["abspath"]:
-            for line in lines:
-                line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
-                line["COMMAND"].data = os.path.abspath(line["COMMAND"].data)
-        elif self.args["relpath"]:
-            for line in lines:
-                line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
-                line["COMMAND"].data = os.path.relpath(line["COMMAND"].data)
-        else:
-            for line in lines:
-                if len(os.path.relpath(line["WORK_DIR"].data).split("../")) < 3:
+        elif self.args["max_depth"]:
+            lines = [
+                line
+                for line in lines
+                if len(line["WORK_DIR"].data.split(os.path.sep)) <= self.args["max_depth"] + 1
+            ]
+
+        if not self.args["root"]:
+            if self.args["abspath"]:
+                for line in lines:
+                    line["WORK_DIR"].data = os.path.abspath(line["WORK_DIR"].data)
+                    line["COMMAND"].data = os.path.abspath(line["COMMAND"].data)
+            elif self.args["relpath"]:
+                for line in lines:
                     line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
                     line["COMMAND"].data = os.path.relpath(line["COMMAND"].data)
+            else:
+                for line in lines:
+                    if len(os.path.relpath(line["WORK_DIR"].data).split("../")) < 3:
+                        line["WORK_DIR"].data = os.path.relpath(line["WORK_DIR"].data)
+                        line["COMMAND"].data = os.path.relpath(line["COMMAND"].data)
 
         # -- limit based on command-line options --
 
@@ -390,7 +398,7 @@ class Gstat:
             # - apply to the header
             header[key].color = theme["selection"]
 
-        if self.args["root"]:
+        if self.args["root"] or self.args["max_depth"]:
             key = "WORK_DIR"
 
             for line in lines:
