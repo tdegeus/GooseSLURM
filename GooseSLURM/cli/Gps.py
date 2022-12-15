@@ -148,6 +148,7 @@ def main():
 
     # conversion map: custom field-names -> default field-names
     aliasInv = {alias[key].upper(): key for key in alias}
+    aliasInv["CPU"] = "%CPU"
 
     # rename command line options -> default field-names
     for key in [key for key in args]:
