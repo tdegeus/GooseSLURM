@@ -133,7 +133,7 @@ def read_log(files, logfile=None):
     return log
 
 
-def main():
+def main(cli_args: list[str] = None):
     class Parser(argparse.ArgumentParser):
         def print_help(self):
             print(__doc__)
@@ -156,9 +156,13 @@ def main():
     parser.add_argument("--export", type=str)
     parser.add_argument("--mem", type=str)
     parser.add_argument("-w", "--wait", action="store_true")
-
     parser.add_argument("files", nargs="*", type=str)
-    args = parser.parse_args()
+
+    if cli_args is None:
+        args = parser.parse_args()
+    else:
+        args = parser.parse_args(cli_args)
+
     dargs = vars(args)
     down = ["account", "begin", "comment", "constraint", "dependency", "exclude", "export", "mem"]
 

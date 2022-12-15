@@ -14,6 +14,8 @@ from . import squeue
 from . import table
 from ._version import version
 from ._version import version_tuple
+from .cli.Gstat import main as Gstat
+from .cli.Gsub import main as Gsub
 
 
 def sbatch(options, verbose=False, dry_run=False):

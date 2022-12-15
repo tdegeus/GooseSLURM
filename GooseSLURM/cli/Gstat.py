@@ -574,8 +574,8 @@ class Gstat:
             self.print_summary()
 
 
-def main():
+def main(cli_args: list[str] = None):
     p = Gstat()
-    p.parse_cli_args()
+    p.parse_cli_args(cli_args)
     p.read()
     p.print()
