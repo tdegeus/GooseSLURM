@@ -21,7 +21,7 @@
 
         A nice use is to kill a command filtered on its name::
 
-            kill `Gps -9 -c ".*mycommand.*"`
+            Gps --kill -c ".*mycommand.*"
 
         Of course you should probably verify the selected pid(s) before killing them.
 
@@ -56,6 +56,13 @@ Options:
     -o, --output=<NAME>
         Select output columns.
         Option may be repeated. See description for header names.
+
+    -9
+        Output list of PID separated by ``-9``, such that you can kill them all at once, by
+        ``kill -9 $(Gps -9 ...)``.
+
+    --kill
+        Kill selected processes.
 
     --no-header
         Suppress header.
@@ -93,6 +100,7 @@ import argparse
 import os
 import pwd
 import re
+import subprocess
 import sys
 
 from .. import ps
@@ -126,6 +134,7 @@ def main():
     parser.add_argument("--long", action="store_true")
     parser.add_argument("--include-me", action="store_true")
     parser.add_argument("-9", action="store_true")
+    parser.add_argument("--kill", action="store_true")
     parser.add_argument("--debug", type=str)
     parser.add_argument("--version", action="version", version=version)
     args = vars(parser.parse_args())
@@ -227,6 +236,13 @@ def main():
             lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- print PID only --
+
+    if args["kill"]:
+
+        subprocess.check_output(
+            "kill -9 " + " ".join([str(line["PID"]) for line in lines]), shell=True
+        )
+        return
 
     if args["9"]:
 
