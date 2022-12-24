@@ -296,17 +296,6 @@ def Gacct(args: list[str]):
             if sum(1 if re.match(n, str(line[key]), re.IGNORECASE) else 0 for n in fields)
         ]
 
-    # shorten state
-    shorten = {"COMPLETED": "C", "RUNNING": "R", "FAILED": "F"}
-    shorten_state = True
-    for i in list({i["State"] for i in lines}):
-        if i not in shorten:
-            shorten_state = False
-            break
-    if shorten_state:
-        for line in lines:
-            line["State"] = shorten[line["State"]]
-
     if args.sort:
         lookup = {i.upper(): i for i in lines[0].keys()}
         idx = np.lexsort([[line[lookup[key.upper()]] for line in lines] for key in args.sort])
