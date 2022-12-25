@@ -369,7 +369,8 @@ def Gacct(args: list[str]):
         default = [c for c, k in zip(default, keep) if k]
 
     if args.output:
-        keys = [key.upper() for key in args.output]
+        alias = {c["key"].upper(): c["key"] for c in columns}
+        keys = [alias[key.upper()] for key in args.output]
         columns = [column for column in columns if column["key"] in keys]
 
     table.print_columns(
