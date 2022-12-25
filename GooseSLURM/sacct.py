@@ -123,6 +123,7 @@ def cli_parser() -> argparse.ArgumentParser:
         type=str,
         help="Filter jobs whose WorkDir has this root (WorkDir printed relative to this root).",
     )
+    parser.add_argument("-C", "--cwd", action="store_true", help="Same as ``--root .``.")
     parser.add_argument(
         "-L", "--allclusters", action="store_true", help="Display jobs ran on all clusters."
     )
@@ -166,6 +167,10 @@ def Gacct(args: list[str]):
     parser = cli_parser()
     args = parser.parse_args(args)
     extra = [i for i in args.extra]
+
+    if args.cwd:
+        assert not args.root
+        args.root = "."
 
     if args.root is not None:
         if "WorkDir" not in extra:
