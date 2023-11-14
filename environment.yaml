@@ -3,6 +3,7 @@ channels:
 dependencies:
 - click
 - furo
+- numpy
 - python
 - pyyaml
 - sphinx
