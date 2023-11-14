@@ -41,7 +41,7 @@ This example assumes a file structure where (almost) everything that a simulatio
 
     :ref:`Gsub <scripts_Gsub>` can be called from everywhere but guarantees this behaviour.
 
-If the job terminates (the simulation is finished, or it is cut by the queuing system) all files that are in the `simulation` on the compute node are copied back to the directory in the home folder (on the head node). After that the folder looks like
+If the job terminates (the simulation is finished, or it is cut by the queuing system) all files that are in the ``simulation`` on the compute node are copied back to the directory in the home folder (on the head node). After that the folder looks like
 
 .. code-block:: none
 

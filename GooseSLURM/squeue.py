@@ -116,7 +116,6 @@ def interpret(lines, now=None, theme=colors()):
 
     # loop over all lines
     for line in lines:
-
         # convert to integer
         for key in ["CPUS", "NODES"]:
             line[key] = rich.Integer(line[key])

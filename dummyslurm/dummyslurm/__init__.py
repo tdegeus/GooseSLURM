@@ -215,7 +215,6 @@ def squeue():
 
 
 def scontrol():
-
     log = []
 
     if os.path.isfile(os.path.realpath(logfile)):
@@ -223,7 +222,6 @@ def scontrol():
             log = yaml.load(file.read(), Loader=yaml.FullLoader)
 
     if re.match(r"^(show job )([0-9]*)", " ".join(sys.argv[1:])):
-
         jobid = int(re.split(r"^(show job )([0-9]*)", " ".join(sys.argv[1:]))[2])
 
         keys = [
@@ -310,7 +308,6 @@ def scontrol():
 
 
 def sacct():
-
     args = sys.argv[1:]
     log = []
 
@@ -324,7 +321,6 @@ def sacct():
         args.remove("-X")
 
     if re.match(r"^(-p -l -j )([0-9\,]*)", " ".join(args)):
-
         jobids = map(int, re.split(r"^(-p -l -j )([0-9\,]*)", " ".join(args))[2].split(","))
 
         keys = [
@@ -395,7 +391,6 @@ def sacct():
 
         for i in log:
             if i["jobid"] in jobids:
-
                 base = [str(i.get(alias.get(key, "NONE"), "")) for key in keys]
                 batch = [r for r in base]
                 extern = [r for r in base]

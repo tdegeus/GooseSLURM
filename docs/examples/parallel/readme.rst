@@ -47,7 +47,7 @@ Allocation of resources. These lines are interpreted by the ``sbatch`` command, 
    :language: bash
    :lines: 9
 
-Run your executable in parallel. In this case the executable is mimicked using the `echo` command, which provided with two arguments. As an example a nested loop is run with the first argument an index in the range 1-12 and the second argument a name which gets the values 'summer' or 'winter'.
+Run your executable in parallel. In this case the executable is mimicked using the ``echo`` command, which provided with two arguments. As an example a nested loop is run with the first argument an index in the range 1-12 and the second argument a name which gets the values 'summer' or 'winter'.
 
 Behaviour
 =========

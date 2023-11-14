@@ -100,7 +100,6 @@ from .. import version
 
 
 def main():
-
     # -- parse command line arguments --
 
     class Parser(argparse.ArgumentParser):
@@ -201,11 +200,9 @@ def main():
     # -- load the output of "sinfo" --
 
     if not args["debug"]:
-
         lines = sinfo.read_interpret(theme=theme)
 
     else:
-
         lines = sinfo.read_interpret(
             data=open(args["debug"][0]).read(),
             theme=theme,
@@ -214,9 +211,7 @@ def main():
     # ----------------------------- limit based on command-line options ------
 
     for key in ["HOSTNAMES", "PARTITION", "CPUS_I"]:
-
         if args[key]:
-
             # limit data
             lines = [
                 line
@@ -235,7 +230,6 @@ def main():
 
     # if needed, convert 'name[10-14,16]' to 'list(name10, name11, name12, name13, name14, name16)'
     def expand_nodelist(text):
-
         # try to split 'name', '[10-14]'
         match = list(filter(None, re.split(r"(\[[^\]]*\])", text)))
 
@@ -257,16 +251,13 @@ def main():
 
         # expand if needed
         for number in numbers:
-
             # '16' -> 'name16'
             if len(number.split("-")) == 1:
-
                 # copy to list
                 nodes += [name + number]
 
             # '10-14' -> list('name10', 'name11', 'name12', 'name13', 'name14')
             else:
-
                 # get start and end numbers
                 start, end = number.split("-")
 
@@ -287,17 +278,14 @@ def main():
 
     # apply filter
     if args["user"] or args["jobid"]:
-
         # get list of jobs
         # ----------------
 
         # read
         if not args["debug"]:
-
             jobs = squeue.read_interpret()
 
         else:
-
             jobs = squeue.read_interpret(
                 data=open(args["debug"][1]).read(),
                 now=os.path.getctime(args["debug"][1]),
@@ -330,7 +318,6 @@ def main():
 
         # loop over jobs
         for job in jobs:
-
             # simple name (e.g. 'f123') -> add to list
             if len(job.split(",")) == 1:
                 nodes += expand_nodelist(job)
@@ -342,7 +329,6 @@ def main():
 
             # loop over arrays
             for name, numbers in zip(match[0::2], match[1::2]):
-
                 # strip plain jobs that are still prepending the array
                 name = name.split(",")
                 # add plain jobs to node-list
@@ -378,7 +364,6 @@ def main():
     # -- select columns --
 
     if args["output"]:
-
         keys = [aliasInv[key.upper()] for key in args["output"]]
 
         columns = [column for column in columns if column["key"] in keys]
@@ -386,17 +371,14 @@ def main():
     # -- print --
 
     if not args["summary"]:
-
         # optional: print all fields and quit
         if args["long"]:
-
             table.print_long(lines)
 
             sys.exit(0)
 
         # optional: print as list and quit
         elif args["list"]:
-
             # - only one field can be selected
             if len(columns) > 1:
                 print("Only one field can be selected")
@@ -409,7 +391,6 @@ def main():
 
         # default: print columns
         else:
-
             table.print_columns(
                 lines,
                 columns,
@@ -432,7 +413,6 @@ def main():
 
     # loop over partitions
     for partition in partitions:
-
         # - isolate nodes for this partition
         N = [line for line in lines if str(line["PARTITION"]) == str(partition["PARTITION"])]
 

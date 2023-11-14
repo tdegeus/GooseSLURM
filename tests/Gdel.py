@@ -12,7 +12,6 @@ class Test_Gdel(unittest.TestCase):
     """
 
     def test_basic(self):
-
         myjob = "myjob.slurm"
 
         for filename in [dummyslurm.logfile, myjob]:
@@ -33,7 +32,6 @@ class Test_Gdel(unittest.TestCase):
         os.remove(myjob)
 
     def test_name(self):
-
         myjobs = ["myjob1.slurm", "myjob2.slurm"]
 
         for filename in [dummyslurm.logfile] + myjobs:
@@ -61,5 +59,4 @@ class Test_Gdel(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

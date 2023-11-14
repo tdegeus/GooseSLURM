@@ -12,7 +12,6 @@ class Test_Gsub(unittest.TestCase):
     """
 
     def test_basic(self):
-
         myjob = "myjob.slurm"
 
         for filename in [myjob]:
@@ -27,7 +26,6 @@ class Test_Gsub(unittest.TestCase):
         os.remove(myjob)
 
     def test_logfile(self):
-
         myjob = "myjob.slurm"
         mylog = "mylog.yaml"
 
@@ -57,7 +55,6 @@ class Test_Gsub(unittest.TestCase):
         os.remove(mylog)
 
     def test_repeat(self):
-
         myjob = "myjob.slurm"
 
         for filename in [dummyslurm.logfile, myjob]:
@@ -72,7 +69,6 @@ class Test_Gsub(unittest.TestCase):
         log = GooseSLURM.fileio.YamlRead(dummyslurm.logfile)
 
         for i, job in enumerate(log):
-
             if i:
                 self.assertEqual(job["jobid"] - 1, job["dependency"])
             else:
@@ -82,7 +78,6 @@ class Test_Gsub(unittest.TestCase):
         os.remove(myjob)
 
     def test_serial(self):
-
         myjobs = ["myjob_1.slurm", "myjob_2.slurm", "myjob_3.slurm"]
 
         for filename in [dummyslurm.logfile] + myjobs:
@@ -98,7 +93,6 @@ class Test_Gsub(unittest.TestCase):
         log = GooseSLURM.fileio.YamlRead(dummyslurm.logfile)
 
         for i, job in enumerate(log):
-
             if i:
                 self.assertEqual(job["jobid"] - 1, job["dependency"])
             else:
@@ -111,5 +105,4 @@ class Test_Gsub(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
     unittest.main()

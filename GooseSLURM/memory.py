@@ -37,7 +37,6 @@ def asBytes(data, default=None, default_unit=1):
 
     # convert humanly readable time (e.g. "1G")
     if re.match(r"^[0-9]*\.?[0-9]*[a-zA-Z]$", data):
-
         if data[-1] == "T":
             return int(float(data[:-1]) * 1.0e12)
         if data[-1] == "G":

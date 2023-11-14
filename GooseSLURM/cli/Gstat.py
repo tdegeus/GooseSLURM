@@ -319,11 +319,9 @@ class Gstat:
         # -- load the output of "squeue" --
 
         if not self.args["debug"]:
-
             lines = squeue.read_interpret(theme=theme)
 
         else:
-
             lines = squeue.read_interpret(
                 data=open(self.args["debug"]).read(),
                 now=os.path.getctime(self.args["debug"]),
@@ -380,7 +378,6 @@ class Gstat:
             "PARTITION",
             "WORK_DIR",
         ]:
-
             if not self.args[key]:
                 continue
 
@@ -452,13 +449,11 @@ class Gstat:
 
         # print all fields and quit
         if self.args["long"]:
-
             table.print_long(self.lines)
             return
 
         # print as list and quit
         if self.args["list"]:
-
             if len(self.columns) > 1:
                 raise OSError("Error: Only one field can be selected")
 
@@ -507,7 +502,6 @@ class Gstat:
 
         # loop over users
         for user in users:
-
             # - isolate jobs for this user
             N = [line for line in self.lines if str(line["USER"]) == str(user["USER"])]
 
@@ -535,7 +529,6 @@ class Gstat:
 
         # optional: sort by key(s)
         if self.args["sort"]:
-
             # get available keys in the setting with fewer columns
             keys = [self.alias[column["key"]].upper() for column in columns_summary]
 

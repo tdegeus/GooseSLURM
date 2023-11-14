@@ -110,7 +110,6 @@ from .. import version
 
 
 def main():
-
     # -- parse command line arguments --
 
     class Parser(argparse.ArgumentParser):
@@ -189,7 +188,6 @@ def main():
     # -- load the output of "ps" --
 
     if not args["debug"]:
-
         lines = ps.read_interpret(theme=theme)
 
         if not args["include_me"]:
@@ -197,7 +195,6 @@ def main():
             lines = [line for line in lines if int(line["PID"].data) != pid]
 
     else:
-
         lines = ps.read_interpret(
             data=open(args["debug"]).read(),
             theme=theme,
@@ -206,9 +203,7 @@ def main():
     # ----------------------------- limit based on command-line options ------
 
     for key in ["USER", "PID", "COMMAND"]:
-
         if args[key]:
-
             # limit data
             lines = [
                 line
@@ -230,22 +225,18 @@ def main():
 
     # optional: sort by key(s)
     if args["sort"]:
-
         for key in args["sort"]:
-
             lines.sort(key=lambda line: line[aliasInv[key.upper()]], reverse=args["reverse"])
 
     # -- print PID only --
 
     if args["kill"]:
-
         subprocess.check_output(
             "kill -9 " + " ".join([str(line["PID"]) for line in lines]), shell=True
         )
         return
 
     if args["9"]:
-
         if len(lines) == 0:
             return
 
@@ -255,7 +246,6 @@ def main():
     # -- select columns --
 
     if args["output"]:
-
         keys = [aliasInv[key.upper()] for key in args["output"]]
 
         columns = [column for column in columns if column["key"] in keys]
@@ -263,17 +253,14 @@ def main():
     # -- print --
 
     if True:
-
         # optional: print all fields and quit
         if args["long"]:
-
             table.print_long(lines)
 
             sys.exit(0)
 
         # optional: print as list and quit
         elif args["list"]:
-
             # - only one field can be selected
             if len(columns) > 1:
                 print("Only one field can be selected")
@@ -286,7 +273,6 @@ def main():
 
         # default: print columns
         else:
-
             table.print_columns(
                 lines,
                 columns,
