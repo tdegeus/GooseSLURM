@@ -33,6 +33,9 @@ def asSeconds(data: str | float | int, default: int = None) -> int | float:
     if isinstance(data, int) or isinstance(data, float):
         return data
 
+    if data is None:
+        return default
+
     # convert SLURM time string (e.g. "1-00:00:00")
     if re.match(r"^[0-9]*\-[0-9]*\:[0-9]*\:[0-9]*$", data):
         # - initialize number of days, hours, minutes, seconds
@@ -95,7 +98,6 @@ def asSeconds(data: str | float | int, default: int = None) -> int | float:
     except BaseException:
         pass
 
-    # all conversions failed: return default value
     return default
 
 
