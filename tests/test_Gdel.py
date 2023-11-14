@@ -23,7 +23,6 @@ class Test_Gdel(unittest.TestCase):
 
         subprocess.check_output(["Gsub", "--quiet", "--repeat", "4", myjob])
         subprocess.run(["Gdel"], capture_output=True, text=True, input="Y")
-
         log = GooseSLURM.fileio.YamlRead(dummyslurm.logfile)
 
         self.assertEqual(len(log), 0)
