@@ -1,7 +1,7 @@
 import re
 
 
-def asSeconds(data, default=None):
+def asSeconds(data: str | float | int, default: int = None) -> int | float:
     r"""
     Convert string to seconds. The following input is accepted:
 
@@ -27,13 +27,9 @@ def asSeconds(data, default=None):
             Number of seconds as integer (or default value if the conversion fails).
     """
 
-    # convert int -> int (implicitly assume that the input is in seconds)
-    if isinstance(data, int):
+    # number: implicitly assume that the input is in seconds
+    if isinstance(data, int) or isinstance(data, float):
         return data
-
-    # convert float -> float (implicitly assume that the input is in seconds)
-    if isinstance(data, float):
-        return int(data)
 
     # convert SLURM time string (e.g. "1-00:00:00")
     if re.match(r"^[0-9]*\-[0-9]*\:[0-9]*\:[0-9]*$", data):
