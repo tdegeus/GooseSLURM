@@ -382,7 +382,7 @@ def Gacct(args: list[str]):
         header=header,
         sep=args.sep,
         no_truncate=args.no_truncate,
-        cols=args.width,
+        width=args.width,
         print_header=not args.no_header,
     )
 

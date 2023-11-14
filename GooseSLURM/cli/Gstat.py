@@ -462,13 +462,13 @@ class Gstat:
 
         # print columns
         table.print_columns(
-            self.lines,
-            self.columns,
-            self.header,
-            self.args["no_truncate"],
-            self.args["sep"],
-            self.args["width"],
-            not self.args["no_header"],
+            lines=self.lines,
+            columns=self.columns,
+            header=self.header,
+            no_truncate=self.args["no_truncate"],
+            sep=self.args["sep"],
+            width=self.args["width"],
+            print_header=not self.args["no_header"],
         )
 
     def print_summary(self):
@@ -544,13 +544,13 @@ class Gstat:
         # -- print --
 
         table.print_columns(
-            lines,
-            columns_summary,
-            header_summary,
-            self.args["no_truncate"],
-            self.args["sep"],
-            self.args["width"],
-            not self.args["no_header"],
+            lines=lines,
+            columns=columns_summary,
+            header=header_summary,
+            sep=self.args["no_truncate"],
+            no_truncate=self.args["sep"],
+            width=self.args["width"],
+            print_header=not self.args["no_header"],
         )
 
     def print(self):

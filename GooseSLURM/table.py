@@ -1,3 +1,6 @@
+import io
+
+from . import output
 from . import rich
 
 
@@ -48,43 +51,41 @@ def print_long(lines):
 
 
 def print_columns(
-    lines, columns, header, no_truncate=False, sep=", ", cols=None, print_header=True
+    lines,
+    columns,
+    header,
+    no_truncate=False,
+    sep=", ",
+    width=None,
+    print_header=True,
+    display: bool = True,
 ):
     r"""
     Print table to fit the screen. This function can show data truncated, or even suppress columns
     if there is insufficient room.
 
-    :arguments:
-
-      **lines** (``[ {'JOBID': '1234', ...}, ...]``)
+    :param lines:
         List of lines, with each line stored as a dictionary.
         Note that all data has to be stored as one of the GooseSLURM.rich classes
         (to customize the color, precision, ...) or as string.
+        For example: ``[ {'JOBID': '1234', ...}, ...]``.
 
-      **columns** (``[ {'key': 'JOBID', 'width': 7, 'align': '>', 'priority': True}, ...]``)
+    :param columns
         List with print settings of each column:
         - 'key'     : the key-name used to store each line (see ``lines`` below)
         - 'width'   : minimum print width (expanded as much as possible to fit the data)
         - 'align'   : alignment of the column
         - 'priority': priority of column expansion, columns marked ``True`` are expanded first
+        For example: ``[ {'key': 'JOBID', 'width': 7, 'align': '>', 'priority': True}, ...]``.
 
-      **header** (``{'JOBID': 'JobID', ...}``)
-        Header name for each column.
-
-    :options:
-
-      **no_truncate** ([``False``] | ``True``)
-        Disable truncation of columns. In this case each column is expanded to fit the data.
-
-      **sep** ([``', '``] | ``<str>``)
-        Separator between columns.
-
-      **cols** ([``None``] | ``<int>``)
-        Number of characters on one line. If ``None`` the current terminal's width is used.
-
-      **print_header** ([``True``] | ``False``)
-        Optionally skip printing of header.
+    :param header: Header name for each column. For example: ``{'JOBID': 'JobID', ...}``.
+    :param no_truncate: Disable truncation of columns: expand each column to fit the data.
+    :param sep: Separator between columns.
+    :param width: Number of characters on one line. ``None``: use current terminal's width.
+    :param print_header: Optionally skip printing of header.
+    :param display: Display output (``False``: return as string).
     """
+    sio = io.StringIO()
 
     # check available data
     # --------------------
@@ -143,10 +144,10 @@ def print_columns(
 
     else:
         # get the terminal size
-        if cols is None:
+        if width is None:
             import shutil
 
-            cols, _ = shutil.get_terminal_size()
+            width, _ = shutil.get_terminal_size()
 
         # get the cumulative minimum size of the columns (+ spacing between the columns)
         # - first entry
@@ -156,10 +157,10 @@ def print_columns(
             columns[i]["total"] = columns[i - 1]["total"] + columns[i]["width"] + len(sep)
 
         # truncate at terminal size
-        columns = [column for column in columns if column["total"] <= cols]
+        columns = [column for column in columns if column["total"] <= width]
 
         # get the available size to expand
-        room = cols - columns[-1]["total"]
+        room = width - columns[-1]["total"]
 
         # expand minimum width, as long there is room
         # - distinguish priorities for expanding
@@ -203,12 +204,17 @@ def print_columns(
 
     # header
     if print_header:
-        print(sep.join(hline[column["key"]].format() for column in columns))
-        print(sep.join(header[column["key"]].format() for column in columns))
-        print(sep.join(hline[column["key"]].format() for column in columns))
+        print(sep.join(hline[column["key"]].format() for column in columns), file=sio)
+        print(sep.join(header[column["key"]].format() for column in columns), file=sio)
+        print(sep.join(hline[column["key"]].format() for column in columns), file=sio)
     # data
     for line in lines:
-        print(sep.join(line[column["key"]].format() for column in columns))
+        print(sep.join(line[column["key"]].format() for column in columns), file=sio)
+
+    if not display:
+        return sio.getvalue()
+
+    output.autoprint(sio.getvalue())
 
 
 def print_list(lines, key, sep=" "):

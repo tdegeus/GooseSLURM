@@ -274,13 +274,13 @@ def main():
         # default: print columns
         else:
             table.print_columns(
-                lines,
-                columns,
-                header,
-                args["no_truncate"],
-                args["sep"],
-                args["width"],
-                not args["no_header"],
+                lines=lines,
+                columns=columns,
+                header=header,
+                sep=args["no_truncate"],
+                no_truncate=args["sep"],
+                width=args["width"],
+                print_header=not args["no_header"],
             )
 
             sys.exit(0)
