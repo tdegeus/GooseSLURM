@@ -6,6 +6,7 @@ dependencies:
 - numpy
 - python
 - pyyaml
+- setuptools_scm
 - sphinx
 - sphinx-argparse
 - tqdm
