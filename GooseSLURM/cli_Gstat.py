@@ -155,10 +155,10 @@ import re
 
 import numpy as np
 
-from .. import rich
-from .. import squeue
-from .. import table
-from .. import version
+from . import rich
+from . import squeue
+from . import table
+from . import version
 
 
 class Gstat:

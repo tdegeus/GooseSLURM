@@ -76,8 +76,8 @@ import time
 
 import tqdm
 
-from .. import fileio
-from .. import version
+from . import fileio
+from . import version
 
 
 def sbatch(options, verbose=False, dry_run=False):
