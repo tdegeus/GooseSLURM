@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+
+[project]
+authors = [{name = "Tom de Geus", email = "tom@geus.me"}]
+classifiers = ["License :: OSI Approved :: MIT License"]
+dependencies = ["PyYAML"]
+description = "Dummy slurm installation"
+dynamic = ["version"]
+name = "dummyslurm"
+requires-python = ">=3.6"
+
+[project.scripts]
+sacct = "dummyslurm:sacct"
+sbatch = "dummyslurm:sbatch"
+scancel = "dummyslurm:scancel"
+scontrol = "dummyslurm:scontrol"
+squeue = "dummyslurm:squeue"
+
+[project.urls]
+Source = "https://github.com/tdegeus/GooseSLURM"
+
+[tool.setuptools_scm]
+write_to = "dummyslurm/_version.py"
