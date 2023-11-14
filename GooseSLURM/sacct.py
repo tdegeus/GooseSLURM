@@ -14,6 +14,7 @@ from collections import defaultdict
 import numpy as np
 
 from . import duration
+from . import output
 from . import rich
 from . import table
 from ._version import version

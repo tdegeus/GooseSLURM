@@ -277,8 +277,8 @@ def main():
                 lines=lines,
                 columns=columns,
                 header=header,
-                sep=args["sep"],
                 no_truncate=args["no_truncate"],
+                sep=args["sep"],
                 width=args["width"],
                 print_header=not args["no_header"],
             )
