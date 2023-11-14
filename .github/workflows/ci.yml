@@ -51,9 +51,3 @@ jobs:
 
     - name: Run tests
       run: python -m unittest discover tests -v
-
-    - name: Run tests
-      working-directory: tests
-      run: |
-        python Gsub.py
-        python Gdel.py
