@@ -8,8 +8,6 @@ import textwrap
 
 import yaml
 
-version = "1.2.3"
-
 dirname = os.path.dirname(os.path.abspath(__file__))
 logfile = "_sbatch.yaml"
 
