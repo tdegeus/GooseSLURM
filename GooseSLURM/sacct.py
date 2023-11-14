@@ -304,6 +304,9 @@ def Gacct(args: list[str]):
             if sum(1 if re.match(n, str(line[key]), re.IGNORECASE) else 0 for n in fields)
         ]
 
+    if len(lines) == 0:
+        return
+
     if args.sort:
         lookup = {i.upper(): i for i in lines[0].keys()}
         idx = np.lexsort([[line[lookup[key.upper()]] for line in lines] for key in args.sort])
