@@ -26,12 +26,12 @@ import sys
 
 import click
 
-from . import Gstat
+from .cli_Gstat import Gstat
 
 
 def main():
     cli_args = sys.argv[1:]
-    gstat = Gstat.Gstat()
+    gstat = Gstat()
     gstat.parse_cli_args(cli_args)
 
     if len(gstat.args["jobs"]) == 0:

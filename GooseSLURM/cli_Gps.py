@@ -103,10 +103,10 @@ import re
 import subprocess
 import sys
 
-from .. import ps
-from .. import rich
-from .. import table
-from .. import version
+from . import ps
+from . import rich
+from . import table
+from . import version
 
 
 def main():
