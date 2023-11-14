@@ -24,3 +24,6 @@ Source = "https://github.com/tdegeus/GooseSLURM"
 
 [tool.setuptools_scm]
 write_to = "GooseSLURM/_version.py"
+
+[tool.setuptools.packages.find]
+include = ["GooseSLURM"]
