@@ -27,6 +27,7 @@ def print_long(lines):
         Note that all data has to be stored as one as string,
         or as one the GooseSLURM.rich classes (no rich printing is used though).
     """
+    sio = io.StringIO()
 
     # width of the field-names
     # - initialize
@@ -41,13 +42,15 @@ def print_long(lines):
     fmt = "{{key:<{width:d}.{width:d}s}}: {{data:s}}".format(width=width + 1)
 
     # print header
-    print(head.format(key="-" * 100, data=""))
+    print(head.format(key="-" * 100, data=""), file=sio)
 
-    # print data
+    # print dat, file=sioa
     for line in lines:
         for key in sorted(line):
-            print(fmt.format(key=key, data=str(line[key])))
-        print(head.format(key="-" * 100, data=""))
+            print(fmt.format(key=key, data=str(line[key])), file=sio)
+        print(head.format(key="-" * 100, data=""), file=sio)
+
+    output.autoprint(sio.getvalue())
 
 
 def print_columns(
@@ -58,7 +61,6 @@ def print_columns(
     sep=", ",
     width=None,
     print_header=True,
-    display: bool = True,
 ):
     r"""
     Print table to fit the screen. This function can show data truncated, or even suppress columns
@@ -83,7 +85,6 @@ def print_columns(
     :param sep: Separator between columns.
     :param width: Number of characters on one line. ``None``: use current terminal's width.
     :param print_header: Optionally skip printing of header.
-    :param display: Display output (``False``: return as string).
     """
     sio = io.StringIO()
 
@@ -211,9 +212,6 @@ def print_columns(
     for line in lines:
         print(sep.join(line[column["key"]].format() for column in columns), file=sio)
 
-    if not display:
-        return sio.getvalue()
-
     output.autoprint(sio.getvalue())
 
 
@@ -236,8 +234,10 @@ def print_list(lines, key, sep=" "):
       **sep** ([``' '``] | ``<str>``)
         Separator between columns.
     """
+    sio = io.StringIO()
 
     for line in lines:
-        print(line[key], end=sep)
+        print(line[key], end=sep, file=sio)
 
-    print("")
+    print("", file=sio)
+    output.autoprint(sio.getvalue())

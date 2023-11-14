@@ -547,8 +547,8 @@ class Gstat:
             lines=lines,
             columns=columns_summary,
             header=header_summary,
-            sep=self.args["no_truncate"],
-            no_truncate=self.args["sep"],
+            no_truncate=self.args["no_truncate"],
+            sep=self.args["sep"],
             width=self.args["width"],
             print_header=not self.args["no_header"],
         )

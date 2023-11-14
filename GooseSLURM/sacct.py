@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import io
 import json
 import os
 import pwd
@@ -13,6 +14,7 @@ from collections import defaultdict
 import numpy as np
 
 from . import duration
+from . import output
 from . import rich
 from . import table
 from ._version import version
@@ -315,7 +317,9 @@ def Gacct(args: list[str]):
         for line in lines:
             line = {k: v for k, v in line.items() if len(v) > 0}
             json_object = json.dumps(line, indent=4)
-            print(json_object)
+            sio = io.StringIO()
+            print(json_object, file=sio)
+            output.autoprint(sio.getvalue())
         return
 
     default = [
