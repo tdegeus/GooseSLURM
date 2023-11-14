@@ -89,7 +89,6 @@ def read(data=None):
 
 
 def convert_duration(duration):
-
     _, d, _, h, _, m, _, s, _ = re.split("([0-9]*)(-?)([0-9]*)(:)([0-9]*)([:.])([0-9]*)", duration)
 
     if sys.platform == "darwin":
@@ -131,7 +130,6 @@ def interpret(lines, theme=colors()):
 
     # loop over all lines
     for line in lines:
-
         # custom conversion
         for key in ["%CPU"]:
             line[key] = rich.Float(line[key], precision=2)

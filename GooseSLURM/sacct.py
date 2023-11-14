@@ -35,7 +35,6 @@ def _read(cmd: str) -> list[dict]:
 
     lines = []
     for line in data:
-
         info = {}
 
         for key, val in zip(head, line.split("|")):
@@ -59,7 +58,6 @@ def read_job(jobid: int | str) -> list[dict]:
 
 
 def _asdate(text: str):
-
     if text[0] != "-":
         return text
 

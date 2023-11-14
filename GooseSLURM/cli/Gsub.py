@@ -85,7 +85,7 @@ def sbatch(options, verbose=False, dry_run=False):
     Submit job and return the job-id.
     """
 
-    assert type(options) == list
+    assert isinstance(options, list)
 
     if dry_run or verbose:
         print(" ".join(["sbatch"] + options))
@@ -121,13 +121,13 @@ def read_log(files, logfile=None):
 
     log = fileio.YamlRead(logfile)
 
-    if type(log) != dict:
+    if not isinstance(log, dict):
         raise OSError("Unable to interpret log file")
 
     for filename in files:
         if filename not in log:
             raise OSError(f'"{filename} not in log file"')
-        if type(log[filename]) != list:
+        if not isinstance(log[filename], list):
             raise OSError(f'Log of "{filename}" not interpretable')
 
     return log

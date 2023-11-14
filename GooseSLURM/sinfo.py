@@ -88,7 +88,6 @@ def read(data=None):
 
 
 def cpu_score(CPU_LOAD, CPUS_A, **kwargs):
-
     if not CPU_LOAD.isnumeric():
         return rich.Float("")
     if int(CPUS_A) <= 0:
@@ -98,7 +97,6 @@ def cpu_score(CPU_LOAD, CPUS_A, **kwargs):
 
 
 def mem_score(MEMORY, FREE_MEM, CPUS_A, CPUS_T, **kwargs):
-
     if not FREE_MEM.isnumeric():
         return rich.Float("")
     if not CPUS_T.isnumeric():
@@ -141,7 +139,6 @@ def interpret(lines, theme=colors()):
 
     # loop over all lines
     for line in lines:
-
         # convert fields to string
         for key in line:
             if not isinstance(line[key], rich.String):
@@ -182,7 +179,6 @@ def interpret(lines, theme=colors()):
             or re.match(r"maint.*", str(line["STATE"]))
             or re.match(r"drain.*", str(line["STATE"]))
         ):
-
             line["CPUS_I"] = rich.Integer(0)
             line["CPUS_D"] = rich.Integer(str(line["CPUS_T"]))
             line["CPUS_O"] = rich.Integer(0)

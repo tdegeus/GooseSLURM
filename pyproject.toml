@@ -12,18 +12,18 @@ readme = "README.md"
 requires-python = ">=3.6"
 
 [project.scripts]
+Gacct = "GooseSLURM.sacct:_Gacct_catch"
 Gdel = "GooseSLURM.cli.Gdel:main"
 Ginfo = "GooseSLURM.cli.Ginfo:main"
 Gps = "GooseSLURM.cli.Gps:main"
 Gstat = "GooseSLURM.cli.Gstat:main"
 Gsub = "GooseSLURM.cli.Gsub:main"
-Gacct = "GooseSLURM.sacct:_Gacct_catch"
 
 [project.urls]
 Source = "https://github.com/tdegeus/GooseSLURM"
 
-[tool.setuptools_scm]
-write_to = "GooseSLURM/_version.py"
-
 [tool.setuptools.packages.find]
 include = ["GooseSLURM"]
+
+[tool.setuptools_scm]
+write_to = "GooseSLURM/_version.py"

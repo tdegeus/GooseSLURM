@@ -136,14 +136,12 @@ def print_columns(
     # -------------------------------------------
 
     if no_truncate:
-
         # set all columns to the real width
         for line in lines:
             for column in columns:
                 column["width"] = column["real"]
 
     else:
-
         # get the terminal size
         if cols is None:
             import shutil

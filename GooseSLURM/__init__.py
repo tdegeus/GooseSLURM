@@ -23,7 +23,7 @@ def sbatch(options, verbose=False, dry_run=False):
     Submit job and return the job-id.
     """
 
-    assert type(options) == list
+    assert isinstance(options, list)
 
     if dry_run or verbose:
         print(" ".join(["sbatch"] + options))

@@ -37,7 +37,6 @@ def asSeconds(data, default=None):
 
     # convert SLURM time string (e.g. "1-00:00:00")
     if re.match(r"^[0-9]*\-[0-9]*\:[0-9]*\:[0-9]*$", data):
-
         # - initialize number of days, hours, minutes, seconds
         t = [0, 0, 0, 0]
         # - split days
@@ -53,7 +52,6 @@ def asSeconds(data, default=None):
 
     # convert time string in hours (e.g. "24:00:00")
     if re.match(r"^[0-9]*\:[0-9]*\:[0-9]*$", data):
-
         # - initialize number of hours, minutes, seconds
         t = [0, 0, 0]
         # - split hours:minutes:seconds (all optional)
@@ -66,7 +64,6 @@ def asSeconds(data, default=None):
 
     # convert time string in minutes (e.g. "12:34")
     if re.match(r"^[0-9]*\:[0-9]*$", data):
-
         # - initialize number of minutes, seconds
         t = [0, 0]
         # - split hours:minutes:seconds (all optional)
@@ -79,7 +76,6 @@ def asSeconds(data, default=None):
 
     # convert humanly readable time (e.g. "1d")
     if re.match(r"^[0-9]*\.?[0-9]*[a-zA-Z]$", data):
-
         if data[-1] == "d":
             return int(float(data[:-1]) * float(60 * 60 * 24))
         elif data[-1] == "h":

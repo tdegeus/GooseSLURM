@@ -46,7 +46,6 @@ class String:
     """
 
     def __init__(self, data, width=None, align="<", color=None, dummy=0):
-
         self.data = data
         self.width = width
         self.color = color
@@ -79,27 +78,21 @@ class String:
         return False
 
     def __str__(self):
-
         return str(self.data)
 
     def __len__(self):
-
         return len(str(self))
 
     def __int__(self):
-
         return int(self.dummy)
 
     def __float__(self):
-
         return float(self.dummy)
 
     def __repr__(self):
-
         return str(self)
 
     def __lt__(self, other):
-
         return str(self) < str(other)
 
 
@@ -147,7 +140,6 @@ class Integer(String):
     """
 
     def __init__(self, data, **kwargs):
-
         try:
             data = int(data)
         except BaseException:
@@ -168,7 +160,6 @@ class Integer(String):
         return False
 
     def __int__(self):
-
         if isinstance(self.data, int):
             return self.data
         if isinstance(self.data, float):
@@ -177,7 +168,6 @@ class Integer(String):
         return int(self.dummy)
 
     def __float__(self):
-
         if isinstance(self.data, int):
             return float(self.data)
         if isinstance(self.data, float):
@@ -186,7 +176,6 @@ class Integer(String):
         return float(self.dummy)
 
     def __lt__(self, other):
-
         if self.isnumeric() and other.isnumeric():
             return int(self) < int(other)
         elif self.isnumeric():
@@ -244,7 +233,6 @@ class Float(String):
     """
 
     def __init__(self, data, **kwargs):
-
         try:
             data = float(data)
         except BaseException:
@@ -267,14 +255,12 @@ class Float(String):
         return False
 
     def __str__(self):
-
         if not self.isnumeric():
             return self.data
 
         return "{{0:.{precision:d}f}}".format(**self.__dict__).format(self.data)
 
     def __int__(self):
-
         if isinstance(self.data, float):
             return int(self.data)
         if isinstance(self.data, int):
@@ -283,7 +269,6 @@ class Float(String):
         return int(self.dummy)
 
     def __float__(self):
-
         if isinstance(self.data, float):
             return self.data
         if isinstance(self.data, int):
@@ -292,7 +277,6 @@ class Float(String):
         return float(self.dummy)
 
     def __lt__(self, other):
-
         if self.isnumeric() and other.isnumeric():
             return float(self) < float(other)
         elif self.isnumeric():
@@ -352,7 +336,6 @@ class Duration(Integer):
     """
 
     def __init__(self, data, **kwargs):
-
         data = duration.asSeconds(data, default=data)
 
         self.precision = kwargs.pop("precision", None)
@@ -360,7 +343,6 @@ class Duration(Integer):
         super().__init__(data, **kwargs)
 
     def __str__(self):
-
         if not self.isnumeric():
             return self.data
 
@@ -419,7 +401,6 @@ class Memory(Integer):
     """
 
     def __init__(self, data, **kwargs):
-
         if "default_unit" in kwargs:
             data = memory.asBytes(data, default=data, default_unit=kwargs.pop("default_unit"))
         else:
@@ -430,7 +411,6 @@ class Memory(Integer):
         super().__init__(data, **kwargs)
 
     def __str__(self):
-
         if not self.isnumeric():
             return self.data
 
