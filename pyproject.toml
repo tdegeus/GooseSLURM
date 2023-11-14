@@ -23,7 +23,7 @@ Gsub = "GooseSLURM.cli.Gsub:main"
 Source = "https://github.com/tdegeus/GooseSLURM"
 
 [tool.setuptools.packages.find]
-include = ["GooseSLURM"]
+include = ["GooseSLURM", "GooseSLURM/cli"]
 
 [tool.setuptools_scm]
 write_to = "GooseSLURM/_version.py"
