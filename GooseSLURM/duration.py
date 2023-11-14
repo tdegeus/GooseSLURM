@@ -28,13 +28,18 @@ def asSeconds(data: str | float | int, default: int = None) -> int | float:
         ``<int>``
             Number of seconds as integer (or default value if the conversion fails).
     """
+    if data is None:
+        return default
 
-    # number: implicitly assume that the input is in seconds
+    # plain number (int or float), interpreted as seconds
     if isinstance(data, int) or isinstance(data, float):
         return data
 
-    if data is None:
-        return default
+    if re.match(r"^[0-9]*\.[0-9]*$", data):
+        return float(data)
+
+    if re.match(r"^[0-9]*$", data):
+        return int(data)
 
     # convert SLURM time string (e.g. "1-00:00:00")
     if re.match(r"^[0-9]*\-[0-9]*\:[0-9]*\:[0-9]*$", data):
@@ -78,19 +83,19 @@ def asSeconds(data: str | float | int, default: int = None) -> int | float:
     # convert humanly readable time (e.g. "1d")
     if re.match(r"^[0-9]*\.?[0-9]*[a-zA-Z]$", data):
         if data[-1] == "d":
-            return int(float(data[:-1]) * float(60 * 60 * 24))
+            return float(data[:-1]) * float(60 * 60 * 24)
         elif data[-1] == "h":
-            return int(float(data[:-1]) * float(60 * 60))
+            return float(data[:-1]) * float(60 * 60)
         elif data[-1] == "m":
-            return int(float(data[:-1]) * float(60))
+            return float(data[:-1]) * float(60)
         elif data[-1] == "s":
-            return int(float(data[:-1]) * float(1))
+            return float(data[:-1]) * float(1)
         elif data[-1] == "w":
-            return int(float(data[:-1]) * float(60 * 60 * 24 * 7))
+            return float(data[:-1]) * float(60 * 60 * 24 * 7)
         elif data[-1] == "M":
-            return int(float(data[:-1]) * float(60 * 60 * 24 * 7 * 31))
+            return float(data[:-1]) * float(60 * 60 * 24 * 7 * 31)
         elif data[-1] == "y":
-            return int(float(data[:-1]) * float(60 * 60 * 24 * 7 * 365))
+            return float(data[:-1]) * float(60 * 60 * 24 * 7 * 365)
 
     # one last try (implicitly assume that the input is in seconds)
     try:

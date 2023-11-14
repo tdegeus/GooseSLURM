@@ -50,6 +50,9 @@ jobs:
       run: python -m pip install . -v --no-build-isolation --no-deps
 
     - name: Run tests
+      run: python -m unittest discover tests -v
+
+    - name: Run tests
       working-directory: tests
       run: |
         python Gsub.py
