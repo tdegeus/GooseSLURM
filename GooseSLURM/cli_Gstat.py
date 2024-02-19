@@ -321,7 +321,7 @@ class Gstat:
 
         if not self.args["debug"]:
             if len(self.args["USER"]) == 1:
-                cmd = 'squeue -u "{0:s}" -o "%all"'.format(self.args["USER"][0])
+                cmd = 'squeue -u "{:s}" -o "%all"'.format(self.args["USER"][0])
                 lines = squeue.read_interpret(command=cmd, theme=theme)
             else:
                 lines = squeue.read_interpret(theme=theme)
