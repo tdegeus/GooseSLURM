@@ -30,26 +30,19 @@ def colors(theme=None):
     }
 
 
-def read(data=None):
+def read(command: str = 'squeue -o "%all"', data: str = None) -> list[dict]:
     r"""
-    Read ``squeue -o "%all"``.
+    Read command.
 
-    :options:
-
-      **data** (``<str>``)
-        For debugging: specify the output of ``squeue -o "%all"`` as string.
-
-    :returns:
-
-      **lines** ``<list<dict>>``
-        A list of dictionaries, that contain the different fields. All data are strings.
+    :param data: For debugging: specify the output of the command as string.
+    :return: A list of dictionaries, that contain the different fields. All data are strings.
     """
 
     import subprocess
 
     # get live info
     if data is None:
-        data = subprocess.check_output('squeue -o "%all"', shell=True).decode("utf-8")
+        data = subprocess.check_output(command, shell=True).decode("utf-8")
 
     # extract the header and the info
     head, data = data.split("\n", 1)
@@ -82,7 +75,7 @@ def read(data=None):
     return lines
 
 
-def interpret(lines, now=None, theme=colors()):
+def interpret(lines, now: float = None, theme=colors()):
     r"""
     Interpret the output of ``GooseSLURM.squeue.read``. All fields are converted to the
     ``GooseSLURM.rich`` classes adding useful colors in the process.
@@ -158,15 +151,18 @@ def interpret(lines, now=None, theme=colors()):
     return lines
 
 
-def read_interpret(data=None, now=None, theme=colors()):
+def read_interpret(
+    command: str = 'squeue -o "%all"', data: str = None, now: float = None, theme: dict = colors()
+) -> list[dict]:
     r"""
-    Read and interpret ``squeue -o "%all"``.
+    Read and interpret the output of the command.
 
-    :returns:
-
-      **lines** (``<list<dict>>``)
-        A list of dictionaries, that contain the different fields. All data are
-        ``GooseSLURM.rich.String`` or derived types.
+    :param command: The command to run.
+    :param data: For debugging: specify the output of ``squeue -o "%all"`` as string.
+    :param now: The current time (as seconds since epoch).
+    :param theme: The color-theme.
+    :return:
+        A list of dictionaries, that contain the different fields.
+        All data are :py:class:`GooseSLURM.rich.String` or derived types.
     """
-
-    return interpret(read(data), now, theme)
+    return interpret(lines=read(command=command, data=data), now=now, theme=theme)
