@@ -165,4 +165,4 @@ def read_interpret(
         A list of dictionaries, that contain the different fields.
         All data are :py:class:`GooseSLURM.rich.String` or derived types.
     """
-    return interpret(read(data), now, theme)
+    return interpret(lines=read(command=command, data=data), now=now, theme=theme)
